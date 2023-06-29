@@ -1,10 +1,9 @@
 from __future__ import print_function
-
+import pandas as pd
+"""
 import json
 
 import os.path
-
-import pandas as pd
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -23,9 +22,9 @@ SCOPES = ['https://www.googleapis.com/auth/drive']
 
 
 def main():
-    """Shows basic usage of the Drive v3 API.
-    Prints the names and ids of the first 10 files the user has access to.
-    """
+    #Shows basic usage of the Drive v3 API.
+    #Prints the names and ids of the first 10 files the user has access to.
+    
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
@@ -61,13 +60,8 @@ def main():
     except HttpError as error:
         # TODO(developer) - Handle errors from drive API.
         print(f'An error occurred: {error}')
+"""
 
+#main()
 
-if __name__ == '__main__':
-    main()
-
-    url = "Copy of EDUKA__CODE__BANK__2023_my.xlsx"
-    df = pd.read_excel(url, engine='openpyxl', sheet_name=None)
-
-    print(df.keys())
-    print(df['ZA_2023'].keys())
+print('hello')
