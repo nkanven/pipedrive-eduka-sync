@@ -1,5 +1,6 @@
 from __future__ import print_function
-import pandas as pd
+from bootstrap import parameters
+import requests
 """
 import json
 
@@ -62,6 +63,9 @@ def main():
         print(f'An error occurred: {error}')
 """
 
-#main()
 
-print('hello')
+# main()
+
+def run(api_key):
+    backup_endpoint = parameters['enko_education']['db_backup_api'].replace('INSERT_API_KEY_HERE', api_key)
+    print(backup_endpoint)
