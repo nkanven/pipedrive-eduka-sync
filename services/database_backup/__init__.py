@@ -1,3 +1,1 @@
-from bootstrap.platform import login
-
-login()
+service_name = "Database Backup Service"

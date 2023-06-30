@@ -15,15 +15,13 @@ parameters = json.load(json_file)
 # instance of Options class allows us to configure Headless Chrome
 chrome_options = Options()
 
-# this parameter tells Chrome that it should be run without UI (Headless)
-chrome_options.add_argument('--headless')
-chrome_options.headless = True
-
-# optional
-chrome_options.add_argument('--no-sandbox')
-# optional
-chrome_options.add_argument('--disable-dev-shm-usage')
+if parameters['environment']['prod'] == 0:
+    # this parameter tells Chrome that it should be run with UI
+    chrome_options.add_experimental_option("detach", True)
+else:
+    # this parameter tells Chrome that it should be run without UI (Headless)
+    chrome_options.add_argument("--headless")
+    chrome_options.headless = True
 
 # initializing webdriver for Chrome with our options
 driver = webdriver.Chrome(options=chrome_options)
-# Get parameters

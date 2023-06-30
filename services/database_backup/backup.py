@@ -1,6 +1,20 @@
 from __future__ import print_function
-from bootstrap import parameters
+
+import sys
+import re
+from datetime import datetime
+
+from bootstrap import platform
+from services.database_backup import *
+
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
+from bs4 import BeautifulSoup
+
 import requests
+
 """
 import json
 
@@ -66,6 +80,64 @@ def main():
 
 # main()
 
-def run(api_key):
-    backup_endpoint = parameters['enko_education']['db_backup_api'].replace('INSERT_API_KEY_HERE', api_key)
+def run(school, api_key, param):
+    print("Start " + service_name)
+
+    # DB backup parameters initialization
+    backup_endpoint = param['enko_education']['db_backup_api'].replace('INSERT_API_KEY_HERE', api_key)
+    backup_endpoint = param['enko_education']['schools'][school]['base_url'] + backup_endpoint
+    backup_url = param['enko_education']['schools'][school]['base_url'] + \
+                 param['enko_education']['database_uri']
+    email = param['enko_education']['schools'][school]['login']['email']
+    password = param['enko_education']['schools'][school]['login']['password']
+    logins = {
+        'email': email,
+        'password': password
+    }
+
+    # Create a backup through API
+    r = requests.get(backup_endpoint)
+
+    if r.text.find('ErrorBox') != -1:
+        soup = BeautifulSoup(r.text)
+        print(soup.text)
+
+    print(email, logins)
+
+    # Login to ENKO and redirection to back up management page successful
+    driver = platform.login(backup_url, logins)
+    if driver is None:
+        # stop script execution
+        sys.exit()
+
+    # List available backups
+    try:
+        db_tabs = WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.ID, 'DBTabs')))
+        li = db_tabs.find_elements(By.TAG_NAME, 'li')
+        print(li[2].click())
+
+        backup_list = WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, 'BackupListbody')))
+        list = backup_list.find_elements(By.TAG_NAME, 'tr')
+        for bckup in list:
+            bckup_date = bckup.find_element(By.CLASS_NAME, 'column_date ').get_attribute('textContent')
+            parse_date = re.search("\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$", bckup_date)
+            bckup_parsed_date = datetime.strptime(parse_date.group(0), "%d/%m/%Y %H:%M")
+            print(bckup_parsed_date, datetime.now())
+            date_diff = datetime.now() - bckup_parsed_date
+            print("Date diff " + str(date_diff.days))
+
+            # Check if backups are old enough to be deleted
+            if param['enko_education']['db_backup_max_days'] <= date_diff.days:
+                # Get backup time and name
+
+                # Delete backup
+                print("Delete backup")
+
+
+                # Send notification mail
+    except Exception as e:
+        # Send error message and quit
+        print(str(e))
+        driver.quit()
+
     print(backup_endpoint)
