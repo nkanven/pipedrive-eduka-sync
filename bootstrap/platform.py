@@ -1,7 +1,6 @@
 from bootstrap import driver
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-import sys
 
 
 def login(url: str, logins: dict) -> webdriver:

@@ -1,11 +1,16 @@
 from __future__ import print_function
 
+
+import os
 import sys
 import re
 from datetime import datetime
+import requests
 
+from bootstrap import *
 from bootstrap import platform
 from services.database_backup import *
+from utils import mail
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -13,11 +18,7 @@ from selenium.webdriver.support import expected_conditions as EC
 
 from bs4 import BeautifulSoup
 
-import requests
-
 """
-import json
-
 import os.path
 
 from google.auth.transport.requests import Request
@@ -95,14 +96,43 @@ def run(school, api_key, param):
         'password': password
     }
 
-    # Create a backup through API
-    r = requests.get(backup_endpoint)
+    address = {
+        "email_from": param['environment']['email'],
+        "email_password": param['environment']['password'],
+        "email_to": param['enko_education']['schools'][school]['comma_seperated_emails'].split(",")[0],
+        "email_cc_list": param['enko_education']['schools'][school]['comma_seperated_emails'].split(","),
+        "date": str(datetime.now()),
+    }
 
-    if r.text.find('ErrorBox') != -1:
-        soup = BeautifulSoup(r.text)
-        print(soup.text)
+    # Create a backup through API if not already done for this task
+    recent_memoize_file = datetime.now().strftime("%Y%m%d")+".ep"
 
-    print(email, logins)
+    # print(recent_memoize_file, os.listdir(autobackup_memoize))
+
+    # Check if today's task hadn't already backup the database
+    if recent_memoize_file not in os.listdir(autobackup_memoize):
+        r = requests.get(backup_endpoint)
+        response_text = r.text
+
+        if response_text.find('ErrorBox') != -1:
+            soup = BeautifulSoup(r.text, features="html.parser")
+            address['subject'] = service_name + " error "
+            address['email_message_text'] = "Unexpected failure occured"
+            address['email_message_desc'] = "API call throw: "+ soup.text + "<br>IP: " + my_public_ip
+
+            logging.error(f"Execution error occured {address['email_message']}")
+            mail.send_mail(address, service_name)
+
+        # Delete unnecessary memos
+        for stored_memo_file in os.listdir(autobackup_memoize):
+            if stored_memo_file != recent_memoize_file:
+                os.remove(autobackup_memoize + os.sep + stored_memo_file)
+
+        # Create recent memo
+        open(re.search("\d{8}", autobackup_memoize + os.sep + response_text).group(0)+".ep")
+    else:
+        logging.info("Database already store for today")
+        print("Database already store for today")
 
     # Login to ENKO and redirection to back up management page successful
     driver = platform.login(backup_url, logins)
@@ -114,7 +144,7 @@ def run(school, api_key, param):
     try:
         db_tabs = WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.ID, 'DBTabs')))
         li = db_tabs.find_elements(By.TAG_NAME, 'li')
-        print(li[2].click())
+        li[2].click()
 
         backup_list = WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, 'BackupListbody')))
         list = backup_list.find_elements(By.TAG_NAME, 'tr')
@@ -122,9 +152,9 @@ def run(school, api_key, param):
             bckup_date = bckup.find_element(By.CLASS_NAME, 'column_date ').get_attribute('textContent')
             parse_date = re.search("\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$", bckup_date)
             bckup_parsed_date = datetime.strptime(parse_date.group(0), "%d/%m/%Y %H:%M")
-            print(bckup_parsed_date, datetime.now())
+            # print(bckup_parsed_date, datetime.now())
             date_diff = datetime.now() - bckup_parsed_date
-            print("Date diff " + str(date_diff.days))
+            # print("Date diff " + str(date_diff.days))
 
             # Check if backups are old enough to be deleted
             if param['enko_education']['db_backup_max_days'] <= date_diff.days:
@@ -132,12 +162,9 @@ def run(school, api_key, param):
 
                 # Delete backup
                 print("Delete backup")
-
-
                 # Send notification mail
+
     except Exception as e:
         # Send error message and quit
-        print(str(e))
+        logging.error("Exception occured", exc_info=True)
         driver.quit()
-
-    print(backup_endpoint)
