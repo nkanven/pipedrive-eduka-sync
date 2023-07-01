@@ -4,7 +4,6 @@ from selenium.webdriver.common.by import By
 
 
 def login(url: str, logins: dict) -> webdriver:
-    print('login')
     try:
         driver.get(url)
         email = driver.find_element(By.ID, 'txLogin')
@@ -15,7 +14,8 @@ def login(url: str, logins: dict) -> webdriver:
         submit.click()
     except Exception as e:
         print(str(e))
-        # Send error message and return None
+        #Todo: Send error message and return None
+
         return None
     else:
         return driver

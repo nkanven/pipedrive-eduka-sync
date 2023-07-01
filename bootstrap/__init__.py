@@ -1,6 +1,9 @@
 """In this file, we initialize project parameters and modules"""
 import os
 import json
+import requests
+import threading
+
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import logging
@@ -9,11 +12,17 @@ import public_ip as ip
 logging.basicConfig(filename="project.log", filemode="a", format='%(asctime)s -%(process)d-%(name)s - %(levelname)s - %(message)s')
 
 try:
+    thread_local = threading.local()
+
+
+    def get_session():
+        if not hasattr(thread_local, "session"):
+            thread_local.session = requests.Session()
+        return thread_local.session
+
     autobackup_memoize = "autobackup_memoize"
     if not os.path.exists(autobackup_memoize):
         os.mkdir(autobackup_memoize)
-
-
 
     json_file = open("parameters.json")
 
@@ -36,8 +45,8 @@ try:
 
     # initializing webdriver for Chrome with our options
     driver = webdriver.Chrome(options=chrome_options)
+
     my_public_ip = ip.get()
-    logging.info("Successful bootload")
 
 except Exception:
     logging.error("Exception occured", exc_info=True)
