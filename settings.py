@@ -1,0 +1,1 @@
+parameters_url = "https://liyosol.com/parameters.json"

@@ -1,12 +1,13 @@
 """In this file, we initialize project parameters and modules"""
 import os
-import json
+import logging
 import requests
 import threading
 
+import settings
+
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-import logging
 import public_ip as ip
 
 logging.basicConfig(filename="project.log", filemode="a", format='%(asctime)s -%(process)d-%(name)s - %(levelname)s - %(message)s')
@@ -24,9 +25,9 @@ try:
     if not os.path.exists(autobackup_memoize):
         os.mkdir(autobackup_memoize)
 
-    json_file = open("parameters.json")
+    json_file = requests.get(settings.parameters_url)
 
-    parameters = json.load(json_file)
+    parameters = json_file.json()
 
     """
         Initialize web browser
