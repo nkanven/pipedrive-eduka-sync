@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.10.0" />
 <title>eduka-projects.main API documentation</title>
-<meta name="description" content="" />
+<meta name="description" content="Eduka Projects V1 …" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
 <link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
@@ -22,11 +22,44 @@
 <h1 class="title">Module <code>eduka-projects.main</code></h1>
 </header>
 <section id="section-intro">
+<h1 id="eduka-projects-v1">Eduka Projects V1</h1>
+<p>This project aims to consolidate all <strong>Enko Education</strong> microservices around a main service manager
+for an easy code base update and scalability in mind.</p>
+<h2 id="comprehension-recommendations">Comprehension / Recommendations</h2>
+<p><strong>Eduka Projects</strong> is a basket of service manager via a main unit also acting as the entry point
+For each new microservice, the developer should:
+1. create the service module in <strong><em>eduka-projects.services</em></strong> package.
+2. initialize a <strong><em>service_name</em></strong> in the <strong><em>new_module.<strong>init</strong>.py</em></strong>
+3. register that service on the <em>load</em> Dict situated at <strong><em>eduka-projects.bootstrap.service</em></strong>.
+The key name should be the command line parameter for the service. E.g if you intend to execute
+database_backup, the command line you run is <code>`python main.py -s database_backup</code> which associated
+with its method <strong>backup</strong> on <strong><em>eduka-projects.bootstrap.service</em></strong></p>
+<p>For the code base stability and integrity to prevail, developer need to respect this minimal recommendations</p>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">try:
+<pre><code class="python">&#34;&#34;&#34;
+# Eduka Projects V1
+
+This project aims to consolidate all **Enko Education** microservices around a main service manager
+for an easy code base update and scalability in mind.
+
+## Comprehension / Recommendations
+
+**Eduka Projects** is a basket of service manager via a main unit also acting as the entry point
+For each new microservice, the developer should:
+    1. create the service module in ***eduka-projects.services*** package.
+    2. initialize a ***service_name*** in the ***new_module.__init__.py***
+    3. register that service on the *load* Dict situated at ***eduka-projects.bootstrap.service***.
+        The key name should be the command line parameter for the service. E.g if you intend to execute
+        database_backup, the command line you run is ````python main.py -s database_backup``` which associated
+        with its method **backup** on ***eduka-projects.bootstrap.service***
+
+For the code base stability and integrity to prevail, developer need to respect this minimal recommendations
+&#34;&#34;&#34;
+
+try:
     import logging
     import sys
     import getopt
@@ -67,7 +100,12 @@ except Exception as e:
 <nav id="sidebar">
 <h1>Index</h1>
 <div class="toc">
-<ul></ul>
+<ul>
+<li><a href="#eduka-projects-v1">Eduka Projects V1</a><ul>
+<li><a href="#comprehension-recommendations">Comprehension / Recommendations</a></li>
+</ul>
+</li>
+</ul>
 </div>
 <ul id="index">
 <li><h3>Super-module</h3>
