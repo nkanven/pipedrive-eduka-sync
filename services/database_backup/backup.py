@@ -1,11 +1,11 @@
 import re
 import sys
-import requests
+import time
 from datetime import datetime
 
-from utils import mail
 from bootstrap import *
 from bootstrap import platform
+from utils.mail import EnkoMail
 from services.database_backup import *
 
 from selenium.webdriver.common.by import By
@@ -16,11 +16,12 @@ from bs4 import BeautifulSoup
 
 
 def run(school):
-    print("Start " + service_name)
+    print("Start " + school + " " + service_name)
 
     # DB backup parameters initialization
     param = parameters
     api_key = parameters['enko_education']['schools'][school]['api_key']
+    school_label = parameters['enko_education']['schools'][school]['label']
     backup_endpoint_uri = param['enko_education']['db_backup_api'].replace('INSERT_API_KEY_HERE', api_key)
     backup_endpoint = param['enko_education']['schools'][school]['base_url'] + backup_endpoint_uri
     backup_url = param['enko_education']['schools'][school]['base_url'] + \
@@ -32,16 +33,17 @@ def run(school):
         'email': email,
         'password': password
     }
-    address = {
-        "email_from": param['environment']['email'],
-        "email_password": param['environment']['password'],
-        "email_to": param['enko_education']['schools'][school]['comma_seperated_emails'].split(",")[0],
-        "email_cc_list": param['enko_education']['schools'][school]['comma_seperated_emails'].split(","),
-        "date": str(datetime.now()),
-    }
+
+    mailer = EnkoMail(service_name, school_label)
+
+    mailer.set_email_from(param['environment']['email'])
+    mailer.set_email_password(param['environment']['password'])
+    mailer.set_email_to(param['enko_education']['schools'][school]['comma_seperated_emails'].split(",")[0])
+    mailer.set_email_cc_list(param['enko_education']['schools'][school]['comma_seperated_emails'].split(","))
+    mailer.set_date(str(datetime.now()))
 
     # Create a backup through API if not already done for this task
-    recent_memoize_file = datetime.now().strftime("%Y%m%d")+abbr+".ep"
+    recent_memoize_file = datetime.now().strftime("%Y%m%d") + abbr + ".ep"
 
     # Check if today's task hadn't already backup the database
     if recent_memoize_file not in os.listdir(autobackup_memoize):
@@ -51,17 +53,19 @@ def run(school):
                 response_text = r.text
         except requests.exceptions.ConnectionError:
             logging.critical("ConnectionError occurred", exc_info=True)
+            # No need to execute the whole program and delete backups if unable to create a recent one
             sys.exit("Program exit due to Connection Error")
 
         # Check if API call return any error
         if response_text.find('ErrorBox') != -1:
             soup = BeautifulSoup(r.text, features="html.parser")
-            address['subject'] = service_name + " error "
-            address['email_message_text'] = "Unexpected failure occurred"
-            address['email_message_desc'] = "API call throw: " + soup.text + "<br>IP: " + my_public_ip
+            mailer.set_subject("error ")
+            mailer.set_email_message_text("<b>Unexpected failure occurred</b>")
+            mailer.set_email_message_desc("API call throw: " + soup.text + "<br>IP: " + my_public_ip)
 
-            logging.error(f"Execution error occurred {address['email_message_desc']}")
-            mail.send_mail(address, service_name)
+            # Exceptional call for private EnkoMail method __get_email_message_desc()
+            logging.error(f"Execution error occurred {mailer._EnkoMail__get_email_message_desc()}")
+            mailer.send_mail()
         else:
             # Delete unnecessary memos
             for stored_memo_file in os.listdir(autobackup_memoize):
@@ -70,7 +74,8 @@ def run(school):
                     os.remove(autobackup_memoize + os.sep + stored_memo_file)
 
             # Create recent memo
-            with open(autobackup_memoize + os.sep + re.search("\d{8}", response_text).group(0)+abbr+".ep", "w") as m:
+            with open(autobackup_memoize + os.sep + re.search("\d{8}", response_text).group(0) + abbr + ".ep",
+                      "w") as m:
                 pass
     else:
         logging.info("Database already store for today")
@@ -84,14 +89,15 @@ def run(school):
 
     # List available backups and delete old ones if any
     try:
-        db_tabs = WebDriverWait(browser, 15).until(EC.presence_of_element_located((By.ID, 'DBTabs')))
+        db_tabs = WebDriverWait(browser, 15, ignored_exceptions=ignored_exceptions).until(EC.presence_of_element_located((By.ID, 'DBTabs')))
         li = db_tabs.find_elements(By.TAG_NAME, 'li')
         li[2].click()
 
-        backup_list = WebDriverWait(browser, 5).until(EC.presence_of_element_located((By.ID, 'BackupListbody')))
+        backup_list = WebDriverWait(browser, 5, ignored_exceptions=ignored_exceptions).until(EC.presence_of_element_located((By.ID, 'BackupListbody')))
         backups = backup_list.find_elements(By.TAG_NAME, 'tr')
+        deleted_backups = []
         for bckup in backups:
-            bckup_date = bckup.find_element(By.CLASS_NAME, 'column_date ').get_attribute('textContent')
+            bckup_date = bckup.find_element(By.CLASS_NAME, 'column_date').get_attribute('textContent')
             parse_date = re.search("\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$", bckup_date)
             bckup_parsed_date = datetime.strptime(parse_date.group(0), "%d/%m/%Y %H:%M")
 
@@ -99,12 +105,40 @@ def run(school):
 
             # Check if backups are old enough to be deleted
             if param['enko_education']['db_backup_max_days'] <= date_diff.days:
-                #TODO: Get backup time and name
+                # TODO: Get backup time and name
+                bckup_filename = bckup.find_element(By.CLASS_NAME, 'column_filename').get_attribute('textContent')
 
-                #TODO: Delete backup
-                print("Delete backup")
+                # TODO: Delete backup
+                bckup.find_element(By.CLASS_NAME, 'column_delete').click()
+                deleted_backups.append((bckup_parsed_date, bckup_filename))
+                print("Delete ", bckup_parsed_date, bckup_filename)
+                time.sleep(2)
 
-                #TODO: Send notification mail
+        # Send notification mail
+        # TODO: Remove this dummy data
+        # deleted_backups.append(("2023-06-28 16:18","backup-enko-mali-com-20230628-1618-ab5d.sql.ctl.eeb"))
+        mailer.set_subject("notification ")
+        message_desc = ""
+        if len(deleted_backups) > 0:
+            mailer.set_email_message_text("<b>Removal of old database backup(s)</b>")
+            message_desc += """
+            <p>The following backup(s) have been successfully deleted:</p>
+            <table id='enko_table'>
+                <tr>
+                    <th class='enko_th'>Backup date</th>
+                    <th class='enko_th'>Backup name</th>
+                </tr>
+            """
+            for deleted_backup in deleted_backups:
+                message_desc += "<tr><td class='enko_td'>" + str(deleted_backup[0]) + "</td><td class='enko_td'>"\
+                                + str(deleted_backup[1]) + "</td>"
+            message_desc += "</table>"
+        else:
+            mailer.set_email_message_text("No database backup eligible for removal was found")
+
+        message_desc += "<p><b>N.B:</b> A new database backup has been created already</p>"
+        mailer.set_email_message_desc(message_desc)
+        mailer.send_mail()
 
     except Exception as e:
         # Send error message and quit

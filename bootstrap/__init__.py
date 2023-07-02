@@ -8,9 +8,15 @@ import settings
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
+
 import public_ip as ip
 
-logging.basicConfig(filename="project.log", filemode="a", format='%(asctime)s -%(process)d-%(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    filename="project.log",
+    filemode="a",
+    format='%(asctime)s -%(process)d-%(name)s - %(levelname)s - %(message)s'
+)
 
 try:
     thread_local = threading.local()
@@ -45,6 +51,7 @@ try:
         chrome_options.headless = True
 
     # initializing webdriver for Chrome with our options
+    ignored_exceptions = (NoSuchElementException, StaleElementReferenceException,)
     driver = webdriver.Chrome(options=chrome_options)
 
     my_public_ip = ip.get()
