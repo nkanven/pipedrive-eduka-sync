@@ -15,13 +15,14 @@ from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 
 
-def run(school):
+def run(school, switch):
+    print(switch)
+    sys.exit()
     print("Start " + school + " " + service_name)
 
     # DB backup parameters initialization
     param = parameters
     api_key = parameters['enko_education']['schools'][school]['api_key']
-    school_label = parameters['enko_education']['schools'][school]['label']
     backup_endpoint_uri = param['enko_education']['db_backup_api'].replace('INSERT_API_KEY_HERE', api_key)
     backup_endpoint = param['enko_education']['schools'][school]['base_url'] + backup_endpoint_uri
     backup_url = param['enko_education']['schools'][school]['base_url'] + \
@@ -34,13 +35,7 @@ def run(school):
         'password': password
     }
 
-    mailer = EnkoMail(service_name, school_label)
-
-    mailer.set_email_from(param['environment']['email'])
-    mailer.set_email_password(param['environment']['password'])
-    mailer.set_email_to(param['enko_education']['schools'][school]['comma_seperated_emails'].split(",")[0])
-    mailer.set_email_cc_list(param['enko_education']['schools'][school]['comma_seperated_emails'].split(","))
-    mailer.set_date(str(datetime.now()))
+    mailer = EnkoMail(service_name, school, param)
 
     # Create a backup through API if not already done for this task
     recent_memoize_file = datetime.now().strftime("%Y%m%d") + abbr + ".ep"
@@ -89,11 +84,13 @@ def run(school):
 
     # List available backups and delete old ones if any
     try:
-        db_tabs = WebDriverWait(browser, 15, ignored_exceptions=ignored_exceptions).until(EC.presence_of_element_located((By.ID, 'DBTabs')))
+        db_tabs = WebDriverWait(browser, 15, ignored_exceptions=ignored_exceptions).until(
+            EC.presence_of_element_located((By.ID, 'DBTabs')))
         li = db_tabs.find_elements(By.TAG_NAME, 'li')
         li[2].click()
 
-        backup_list = WebDriverWait(browser, 5, ignored_exceptions=ignored_exceptions).until(EC.presence_of_element_located((By.ID, 'BackupListbody')))
+        backup_list = WebDriverWait(browser, 5, ignored_exceptions=ignored_exceptions).until(
+            EC.presence_of_element_located((By.ID, 'BackupListbody')))
         backups = backup_list.find_elements(By.TAG_NAME, 'tr')
         deleted_backups = []
         for bckup in backups:
@@ -130,7 +127,7 @@ def run(school):
                 </tr>
             """
             for deleted_backup in deleted_backups:
-                message_desc += "<tr><td class='enko_td'>" + str(deleted_backup[0]) + "</td><td class='enko_td'>"\
+                message_desc += "<tr><td class='enko_td'>" + str(deleted_backup[0]) + "</td><td class='enko_td'>" \
                                 + str(deleted_backup[1]) + "</td>"
             message_desc += "</table>"
         else:
@@ -139,7 +136,7 @@ def run(school):
         message_desc += "<p><b>N.B:</b> A new database backup has been created already</p>"
         mailer.set_email_message_desc(message_desc)
         mailer.send_mail()
-
+        browser.quit()
     except Exception as e:
         # Send error message and quit
         logging.error("Exception occured", exc_info=True)

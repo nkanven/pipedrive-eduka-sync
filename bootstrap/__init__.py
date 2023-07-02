@@ -52,7 +52,6 @@ try:
 
     # initializing webdriver for Chrome with our options
     ignored_exceptions = (NoSuchElementException, StaleElementReferenceException,)
-    driver = webdriver.Chrome(options=chrome_options)
 
     my_public_ip = ip.get()
 
