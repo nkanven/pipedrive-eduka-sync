@@ -19,20 +19,18 @@ In the parameters.json, make sure you update:
 import sys
 import time
 
-import bootstrap
 import pandas as pd
 
 service_name = "Code Manager Service"
 
 
-def get_good_codes_from_excel() -> list:
+def get_good_codes_from_excel(url: str, code_bank: bool = False) -> list:
     """
     This function read an Excel file from a remote url and parse the data for computation
     :return: (list) good_codes is a list of set ordered as follows (0 = male, 1 = female and 2 = family)
     """
     print('get good code from excel')
     good_codes = []
-    url = bootstrap.parameters["environment"]["eduka_code_bank_url"]
 
     df = pd.read_excel(url, engine='openpyxl', sheet_name=None)
 
@@ -42,7 +40,7 @@ def get_good_codes_from_excel() -> list:
         if country.lower().find("do not") != -1:
             continue
 
-        params = df[country].keys()[1:]
+        params = df[country].keys()[1:] if code_bank else df[country].keys()
 
         max_loop = max(
             [len(df[country][params[0]]),
@@ -53,9 +51,10 @@ def get_good_codes_from_excel() -> list:
         i = 0
 
         while max_loop > i:
-            good_codes.append(
-                (df[country][params[0]][i], df[country][params[1]][i], df[country][params[2]][i])
-            )
+            params_tuple = ()
+            for param in params:
+                params_tuple += (str(df[country][param][i]).strip(" "),)
+            good_codes.append(params_tuple)
             i += 1
 
     duration = time.time() - start_time

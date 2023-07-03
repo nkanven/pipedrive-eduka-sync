@@ -22,7 +22,7 @@ try:
     import logging
     import sys
     import getopt
-    from bootstrap import *
+    from bootstrap import parameters
     from bootstrap import service
     import concurrent.futures
     from services.code_manager import get_good_codes_from_excel

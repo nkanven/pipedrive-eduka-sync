@@ -1,4 +1,5 @@
 import sys
+import time
 
 from bootstrap import *
 from services.code_manager import *
@@ -80,8 +81,59 @@ class Populate:
 
     def upload_data_in_code_bank(self):
         cursor = self.db.cursor()
-        print(get_good_codes_from_excel()[0])
-        cursor.execute("")
+        data_inputs = get_good_codes_from_excel(parameters["environment"]["eduka_code_manager_data_inputs"])
+        code_bank = get_good_codes_from_excel(parameters["environment"]["eduka_code_bank_url"], True)
+        category_map = {"1": "MST", "2": "FST", "3": "FAM"}
+
+
+        def insert_codes(i_codes: tuple, i_data: tuple) -> bool:
+            """
+            In function nested code for code understanding and readability. This function handle the cleaning
+            of parameters for code_bank table insertion
+            :param i_codes: a tuple of student code full id
+            :param i_data: a tuple containing school data inputs for categorization
+            :return: a boolean which indicates the successfulness of the insertion
+            """
+            result = False
+            try:
+                for i_code in i_codes:
+                    code_split = i_code.split("-")
+                    category = None
+                    country_code = code_split[0]
+
+                    if country_code.lower() == i_data[2].lower():
+
+                        try:
+                            category = category_map[code_split[2]].lower()
+                        except KeyError:
+                            logging.info("Skipped KeyError. Non studend Id")
+                            pass
+
+                        platform = i_data[0]
+                        cluster = i_data[6]
+                        try:
+                            __year = code_split[3][0:2]
+                        except IndexError:
+                            logging.info("Skipped IndexError. Non studend Id")
+                            __year = code_split[2][0:2]
+
+                        if cluster.lower() == "nh" and category in ("mst", "fst"):
+                            acad_year = "20" + __year + "/20" + str(int(__year) + 1)
+                        else:  # (cluster.lower() == "sh" and category in ("mst", "fst")) or category == "fam")
+                            acad_year = "20" + __year
+
+                        #print(i_code, category, platform, acad_year, cluster)
+                    result = True
+            except Exception:
+                logging.critical("Service task inser_code exit on exception", exc_info=True)
+            finally:
+                return result
+
+        for data_input in data_inputs:
+            for codes in code_bank:
+                insert_codes(codes, data_input)
+
+        # cursor.execute("")
 
     def run(self) -> None:
         """
@@ -91,6 +143,10 @@ class Populate:
         try:
             self.pre_check()
             print("done precheck")
+            start_time = time.time()
             self.upload_data_in_code_bank()
+            duration = time.time() - start_time
+            print(f"Store in {duration} seconds")
+
         except Exception:
             logging.critical("Service task exit on exception", exc_info=True)
