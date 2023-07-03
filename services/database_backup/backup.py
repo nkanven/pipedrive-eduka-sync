@@ -1,12 +1,15 @@
+import os
 import re
 import sys
 import time
 from datetime import datetime
 
-from bootstrap import *
+import bootstrap
 from bootstrap import platform
 from utils.mail import EnkoMail
 from services.database_backup import *
+
+import requests
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -15,14 +18,18 @@ from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 
 
-def run(school, switch):
-    print(switch)
-    sys.exit()
+def run(school: str, switch: str) -> None:
+    """
+    Run the database base backup automation on Enko dashboard
+    :param school: (str) school name
+    :param switch: (str) it's not needed in this function as this is a uni-tack service
+    :return: (None) function does not return a value
+    """
     print("Start " + school + " " + service_name)
 
     # DB backup parameters initialization
-    param = parameters
-    api_key = parameters['enko_education']['schools'][school]['api_key']
+    param = bootstrap.parameters
+    api_key = bootstrap.parameters['enko_education']['schools'][school]['api_key']
     backup_endpoint_uri = param['enko_education']['db_backup_api'].replace('INSERT_API_KEY_HERE', api_key)
     backup_endpoint = param['enko_education']['schools'][school]['base_url'] + backup_endpoint_uri
     backup_url = param['enko_education']['schools'][school]['base_url'] + \
@@ -41,13 +48,13 @@ def run(school, switch):
     recent_memoize_file = datetime.now().strftime("%Y%m%d") + abbr + ".ep"
 
     # Check if today's task hadn't already backup the database
-    if recent_memoize_file not in os.listdir(autobackup_memoize):
+    if recent_memoize_file not in os.listdir(bootstrap.autobackup_memoize):
         try:
-            session = get_session()
+            session = bootstrap.get_session()
             with session.get(backup_endpoint) as r:
                 response_text = r.text
         except requests.exceptions.ConnectionError:
-            logging.critical("ConnectionError occurred", exc_info=True)
+            bootstrap.logging.critical("ConnectionError occurred", exc_info=True)
             # No need to execute the whole program and delete backups if unable to create a recent one
             sys.exit("Program exit due to Connection Error")
 
@@ -56,24 +63,25 @@ def run(school, switch):
             soup = BeautifulSoup(r.text, features="html.parser")
             mailer.set_subject("error ")
             mailer.set_email_message_text("<b>Unexpected failure occurred</b>")
-            mailer.set_email_message_desc("API call throw: " + soup.text + "<br>IP: " + my_public_ip)
+            mailer.set_email_message_desc("API call throw: " + soup.text + "<br>IP: " + bootstrap.my_public_ip)
 
             # Exceptional call for private EnkoMail method __get_email_message_desc()
-            logging.error(f"Execution error occurred {mailer._EnkoMail__get_email_message_desc()}")
+            bootstrap.logging.error(f"Execution error occurred {mailer._EnkoMail__get_email_message_desc()}")
             mailer.send_mail()
+            sys.exit("System exit due to API unexpected failure")
         else:
             # Delete unnecessary memos
-            for stored_memo_file in os.listdir(autobackup_memoize):
+            for stored_memo_file in os.listdir(bootstrap.autobackup_memoize):
                 # Prevent from threading lock, remove old memo of this school only
                 if abbr in stored_memo_file:
-                    os.remove(autobackup_memoize + os.sep + stored_memo_file)
+                    os.remove(bootstrap.autobackup_memoize + os.sep + stored_memo_file)
 
             # Create recent memo
-            with open(autobackup_memoize + os.sep + re.search("\d{8}", response_text).group(0) + abbr + ".ep",
+            with open(bootstrap.autobackup_memoize + os.sep + re.search("\d{8}", response_text).group(0) + abbr + ".ep",
                       "w") as m:
                 pass
     else:
-        logging.info("Database already store for today")
+        bootstrap.logging.info("Database already store for today")
         print("Database already store for today")
 
     # Login to ENKO and redirection to back up management page successful
@@ -84,12 +92,12 @@ def run(school, switch):
 
     # List available backups and delete old ones if any
     try:
-        db_tabs = WebDriverWait(browser, 15, ignored_exceptions=ignored_exceptions).until(
+        db_tabs = WebDriverWait(browser, 15, ignored_exceptions=bootstrap.ignored_exceptions).until(
             EC.presence_of_element_located((By.ID, 'DBTabs')))
         li = db_tabs.find_elements(By.TAG_NAME, 'li')
         li[2].click()
 
-        backup_list = WebDriverWait(browser, 5, ignored_exceptions=ignored_exceptions).until(
+        backup_list = WebDriverWait(browser, 5, ignored_exceptions=bootstrap.ignored_exceptions).until(
             EC.presence_of_element_located((By.ID, 'BackupListbody')))
         backups = backup_list.find_elements(By.TAG_NAME, 'tr')
         deleted_backups = []
@@ -139,5 +147,5 @@ def run(school, switch):
         browser.quit()
     except Exception as e:
         # Send error message and quit
-        logging.error("Exception occured", exc_info=True)
+        bootstrap.logging.error("Exception occured", exc_info=True)
         browser.quit()

@@ -28,7 +28,7 @@
 </summary>
 <pre><code class="python">import logging
 
-from bootstrap import *
+import bootstrap
 from services.code_manager import *
 from services.code_manager.db_populate import Populate
 from utils.mail import EnkoMail
@@ -42,7 +42,7 @@ def run(school, switch):
     try:
         print(&#39;load populate&#39;, switch, code_managers)
         if switch in code_managers:
-            enko_mail = EnkoMail(service_name, school, parameters)
+            enko_mail = EnkoMail(service_name, school, bootstrap.parameters)
             populate = code_managers[switch](school, enko_mail)
             print(&#34;run populate&#34;)
             populate.run()
@@ -70,7 +70,7 @@ def run(school, switch):
     try:
         print(&#39;load populate&#39;, switch, code_managers)
         if switch in code_managers:
-            enko_mail = EnkoMail(service_name, school, parameters)
+            enko_mail = EnkoMail(service_name, school, bootstrap.parameters)
             populate = code_managers[switch](school, enko_mail)
             print(&#34;run populate&#34;)
             populate.run()

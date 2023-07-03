@@ -32,6 +32,7 @@
 from services.database_backup import backup
 from services.code_manager import load
 
+&#34;&#34;&#34;Load service model and link the to corresponding cmd -s parameter. This dict is call by the main dispatcher&#34;&#34;&#34;
 load = {
     &#34;database_backup&#34;: backup,
     &#34;code_populate_db&#34;: load,

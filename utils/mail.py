@@ -9,6 +9,9 @@ from bootstrap import *
 
 
 class EnkoMail:
+    """
+    EnkoMail is the mailing utility for email notification and error reporting
+    """
     def __init__(self, service, school, params):
         self.__service_name: str = service
         self.__params = params
@@ -70,7 +73,11 @@ class EnkoMail:
             message_desc=self.__get_email_message_desc()
         )
 
-    def send_mail(self):
+    def send_mail(self) -> None:
+        """
+        Build email components and send message
+        :return: (None)
+        """
         try:
             # Create a MIMEMultipart class, and set up the From, To, Subject fields
 

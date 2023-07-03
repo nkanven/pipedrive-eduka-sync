@@ -38,6 +38,9 @@ try:
 
     schools = parameters['enko_education']['schools'].keys()
 
+    """
+    Main dispatcher thread pool executor
+    """
     if cmd in service.load:
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             executor.map(service.load[cmd].run, schools, [cmd])

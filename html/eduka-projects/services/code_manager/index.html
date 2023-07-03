@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.10.0" />
 <title>eduka-projects.services.code_manager API documentation</title>
-<meta name="description" content="" />
+<meta name="description" content="&#34;
+Code Manager Module …" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
 <link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
@@ -22,11 +23,44 @@
 <h1 class="title">Module <code>eduka-projects.services.code_manager</code></h1>
 </header>
 <section id="section-intro">
+<p>"</p>
+<h1 id="code-manager-module">Code Manager Module</h1>
+<h2 id="file-usage">File Usage</h2>
+<p>This file Initialize global functions and parameters for code manager service</p>
+<h2 id="service-description">Service description</h2>
+<p>Code Manager Module is the code base for Eduka Code Manager service which role is to update stored
+students and parents bad/wrong code from various Enko Education dashboard.
+The module also handles database base population of good codes from a list of curated codes.</p>
+<h2 id="recommendation">Recommendation</h2>
+<p>For this module to work, ensure the appropriate external resources needed for this module to work exist and
+their paths are indicated in the parameters.json.
+In the parameters.json, make sure you update:
+&gt;&gt; environment -&gt; eduka_code_bank_url with the url of the Excel code bank
+&gt;&gt; environment -&gt; eduka_code_manager_data_inputs with the url of the Excel code bank</p>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">import time
+<pre><code class="python">&#34;&#34;&#34;&#34;
+# Code Manager Module
+
+## File Usage
+This file Initialize global functions and parameters for code manager service
+
+## Service description
+Code Manager Module is the code base for Eduka Code Manager service which role is to update stored
+students and parents bad/wrong code from various Enko Education dashboard.
+The module also handles database base population of good codes from a list of curated codes.
+
+## Recommendation
+For this module to work, ensure the appropriate external resources needed for this module to work exist and
+their paths are indicated in the parameters.json.
+In the parameters.json, make sure you update:
+    &gt;&gt; environment -&gt; eduka_code_bank_url with the url of the Excel code bank
+    &gt;&gt; environment -&gt; eduka_code_manager_data_inputs with the url of the Excel code bank
+&#34;&#34;&#34;
+
+import time
 
 from bootstrap import parameters
 import pandas as pd
@@ -35,8 +69,8 @@ service_name = &#34;Code Manager Service&#34;
 
 def get_good_codes_from_excel() -&gt; list:
     &#34;&#34;&#34;
-    This function read an excel file from a remote url and parse the data for computation
-    :return: list
+    This function read an Excel file from a remote url and parse the data for computation
+    :return: (list) good_codes
     &#34;&#34;&#34;
     print(&#39;get good code from excel&#39;)
     good_codes = []
@@ -94,16 +128,16 @@ def update_user_code():
 <span>def <span class="ident">get_good_codes_from_excel</span></span>(<span>) ‑> list</span>
 </code></dt>
 <dd>
-<div class="desc"><p>This function read an excel file from a remote url and parse the data for computation
-:return: list</p></div>
+<div class="desc"><p>This function read an Excel file from a remote url and parse the data for computation
+:return: (list) good_codes</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def get_good_codes_from_excel() -&gt; list:
     &#34;&#34;&#34;
-    This function read an excel file from a remote url and parse the data for computation
-    :return: list
+    This function read an Excel file from a remote url and parse the data for computation
+    :return: (list) good_codes
     &#34;&#34;&#34;
     print(&#39;get good code from excel&#39;)
     good_codes = []
@@ -156,7 +190,14 @@ def update_user_code():
 <nav id="sidebar">
 <h1>Index</h1>
 <div class="toc">
-<ul></ul>
+<ul>
+<li><a href="#code-manager-module">Code Manager Module</a><ul>
+<li><a href="#file-usage">File Usage</a></li>
+<li><a href="#service-description">Service description</a></li>
+<li><a href="#recommendation">Recommendation</a></li>
+</ul>
+</li>
+</ul>
 </div>
 <ul id="index">
 <li><h3>Super-module</h3>

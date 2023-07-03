@@ -37,6 +37,9 @@ from bootstrap import *
 
 
 class EnkoMail:
+    &#34;&#34;&#34;
+    EnkoMail is the mailing utility for email notification and error reporting
+    &#34;&#34;&#34;
     def __init__(self, service, school, params):
         self.__service_name: str = service
         self.__params = params
@@ -98,7 +101,11 @@ class EnkoMail:
             message_desc=self.__get_email_message_desc()
         )
 
-    def send_mail(self):
+    def send_mail(self) -&gt; None:
+        &#34;&#34;&#34;
+        Build email components and send message
+        :return: (None)
+        &#34;&#34;&#34;
         try:
             # Create a MIMEMultipart class, and set up the From, To, Subject fields
 
@@ -147,12 +154,15 @@ class EnkoMail:
 <span>(</span><span>service, school, params)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>EnkoMail is the mailing utility for email notification and error reporting</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class EnkoMail:
+    &#34;&#34;&#34;
+    EnkoMail is the mailing utility for email notification and error reporting
+    &#34;&#34;&#34;
     def __init__(self, service, school, params):
         self.__service_name: str = service
         self.__params = params
@@ -214,7 +224,11 @@ class EnkoMail:
             message_desc=self.__get_email_message_desc()
         )
 
-    def send_mail(self):
+    def send_mail(self) -&gt; None:
+        &#34;&#34;&#34;
+        Build email components and send message
+        :return: (None)
+        &#34;&#34;&#34;
         try:
             # Create a MIMEMultipart class, and set up the From, To, Subject fields
 
@@ -251,15 +265,20 @@ class EnkoMail:
 <h3>Methods</h3>
 <dl>
 <dt id="eduka-projects.utils.mail.EnkoMail.send_mail"><code class="name flex">
-<span>def <span class="ident">send_mail</span></span>(<span>self)</span>
+<span>def <span class="ident">send_mail</span></span>(<span>self) ‑> None</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Build email components and send message
+:return: (None)</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def send_mail(self):
+<pre><code class="python">def send_mail(self) -&gt; None:
+    &#34;&#34;&#34;
+    Build email components and send message
+    :return: (None)
+    &#34;&#34;&#34;
     try:
         # Create a MIMEMultipart class, and set up the From, To, Subject fields
 
