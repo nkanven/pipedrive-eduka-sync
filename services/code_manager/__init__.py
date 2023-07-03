@@ -16,22 +16,24 @@ In the parameters.json, make sure you update:
     >> environment -> eduka_code_bank_url with the url of the Excel code bank
     >> environment -> eduka_code_manager_data_inputs with the url of the Excel code bank
 """
-
+import sys
 import time
 
-from bootstrap import parameters
+import bootstrap
 import pandas as pd
+
 service_name = "Code Manager Service"
 
 
 def get_good_codes_from_excel() -> list:
     """
     This function read an Excel file from a remote url and parse the data for computation
-    :return: (list) good_codes
+    :return: (list) good_codes is a list of set ordered as follows (0 = male, 1 = female and 2 = family)
     """
     print('get good code from excel')
     good_codes = []
-    url = parameters["environment"]["eduka_code_bank_url"]
+    url = bootstrap.parameters["environment"]["eduka_code_bank_url"]
+
     df = pd.read_excel(url, engine='openpyxl', sheet_name=None)
 
     start_time = time.time()
@@ -51,7 +53,9 @@ def get_good_codes_from_excel() -> list:
         i = 0
 
         while max_loop > i:
-            good_codes.append((df[country][params[0]][i], df[country][params[1]][i], df[country][params[2]][i]))
+            good_codes.append(
+                (df[country][params[0]][i], df[country][params[1]][i], df[country][params[2]][i])
+            )
             i += 1
 
     duration = time.time() - start_time
