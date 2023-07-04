@@ -1,0 +1,8 @@
+beautifulsoup4==4.12.2
+mysql-connector-python==8.0.33
+pandas==2.0.3
+pip==22.0.2
+public-ip==0.12
+PySocks==1.7.1
+selenium==4.10.0
+setuptools==59.6.0
