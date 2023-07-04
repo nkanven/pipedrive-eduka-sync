@@ -1,5 +1,6 @@
 beautifulsoup4==4.12.2
 mysql-connector-python==8.0.33
+openpyxl==3.1.2
 pandas==2.0.3
 pip==22.0.2
 public-ip==0.12
