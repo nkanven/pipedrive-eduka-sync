@@ -62,7 +62,7 @@ class Backup:
         recent_memoize_file = datetime.now().strftime("%Y%m%d") + self.abbr + ".ep"
 
         # Check if today's task hadn't already backup the database
-        print(self.backup_endpoint)
+
         if recent_memoize_file not in os.listdir(bootstrap.autobackup_memoize):
             try:
                 session = bootstrap.get_session()
@@ -75,7 +75,7 @@ class Backup:
 
             # Check if API call return any error
             self.api_error = response_text.find('ErrorBox')
-            print(self.api_error)
+
             if self.api_error != -1:
                 soup = BeautifulSoup(r.text, features="html.parser")
                 self.mailer.set_subject("error ")
@@ -107,7 +107,6 @@ class Backup:
         li = self.reload_tabs(browser).find_elements(By.TAG_NAME, 'li')
 
         # Create backup with browser
-        print(self.api_error)
         if self.api_error != -1:
             li[1].click()
             backup_button = self.reload_tabs(browser).find_element(By.ID, 'StartBackup')

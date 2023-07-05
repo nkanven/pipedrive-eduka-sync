@@ -49,6 +49,8 @@ try:
     else:
         # this parameter tells Chrome that it should be run without UI (Headless)
         chrome_options.add_argument("--headless")
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
         chrome_options.headless = True
 
     # initializing webdriver for Chrome with our options
