@@ -12,6 +12,10 @@ class EnkoMail:
     """
     EnkoMail is the mailing utility for email notification and error reporting
     """
+
+    # TODO: Create a mail collector function which will handle all mails from threads and bundle them into an
+    # unique summary to send
+
     def __init__(self, service, school, params):
         self.__service_name: str = service
         self.__params = params
