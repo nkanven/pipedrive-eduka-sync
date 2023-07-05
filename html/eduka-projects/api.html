@@ -4,8 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.10.0" />
-<title>eduka-projects.main API documentation</title>
-<meta name="description" content="Eduka Projects V1 …" />
+<title>eduka-projects.api API documentation</title>
+<meta name="description" content="&#34;
+Eduka Project Web Tunnel …" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
 <link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
@@ -19,76 +20,85 @@
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>eduka-projects.main</code></h1>
+<h1 class="title">Module <code>eduka-projects.api</code></h1>
 </header>
 <section id="section-intro">
-<h1 id="eduka-projects-v1">Eduka Projects V1</h1>
-<p>This project aims to consolidate all <strong>Enko Education</strong> microservices around a main service manager
-for an easy code base update and scalability in mind.</p>
-<h2 id="comprehension-recommendations">Comprehension / Recommendations</h2>
-<p><strong>Eduka Projects</strong> is a basket of service manager via a main unit also acting as the entry point
-For each new microservice, the developer should:
-1. create the service module in <strong><em>eduka-projects.services</em></strong> package.
-2. initialize a <strong><em>service_name</em></strong> in the <strong><em>new_module.<strong>init</strong>.py</em></strong>
-3. register that service on the <em>load</em> Dict situated at <strong><em>eduka-projects.bootstrap.service</em></strong>.
-The key name should be the command line parameter for the service. E.g if you intend to execute
-database_backup, the command line you run is <code>`python main.py -s database_backup</code> which associated
-with its method <strong>backup</strong> on <strong><em>eduka-projects.bootstrap.service</em></strong></p>
-<p>For the code base stability and integrity to prevail, developer need to respect this minimal recommendations</p>
+<p>"</p>
+<h1 id="eduka-project-web-tunnel">Eduka Project Web Tunnel</h1>
+<p>This tunnel allowed anyone with the right api key to execute services from a web browser.</p>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">&#34;&#34;&#34;
-# Eduka Projects V1
+<pre><code class="python">&#34;&#34;&#34;&#34;
+# Eduka Project Web Tunnel
 
-This project aims to consolidate all **Enko Education** microservices around a main service manager
-for an easy code base update and scalability in mind.
-
-## Comprehension / Recommendations
-
-**Eduka Projects** is a basket of service manager via a main unit also acting as the entry point
-For each new microservice, the developer should:
-    1. create the service module in ***eduka-projects.services*** package.
-    2. initialize a ***service_name*** in the ***new_module.__init__.py***
-    3. register that service on the *load* Dict situated at ***eduka-projects.bootstrap.service***.
-        The key name should be the command line parameter for the service. E.g if you intend to execute
-        database_backup, the command line you run is ````python main.py -s database_backup``` which associated
-        with its method **backup** on ***eduka-projects.bootstrap.service***
-
-For the code base stability and integrity to prevail, developer need to respect this minimal recommendations
+This tunnel allowed anyone with the right api key to execute services from a web browser.
 &#34;&#34;&#34;
 
-try:
-    import logging
-    import sys
-    import getopt
-    from bootstrap import parameters
-    from bootstrap import service
-    import concurrent.futures
-    from services.code_manager import get_good_codes_from_excel
+import os
+import subprocess
+from flask import Flask, request
+
+app = Flask(__name__)
+app.config[&#39;TRAP_HTTP_EXCEPTIONS&#39;] = True
+key = &#34;XNSS-HSJW-3NGU-8XTJ&#34;
+
+msg = {
+    &#39;code&#39;: 404,
+    &#39;state&#39;: &#39;error&#39;,
+    &#39;msg&#39;: &#34;The requested URL was not found on the server.&#34;
+}
 
 
-    # Read command arguments
-    argv = sys.argv[1:]
-    cmd = &#34;&#34;
-    options, args = getopt.getopt(argv, &#34;s:&#34;, [&#34;service =&#34;])
-    for name, value in options:
-        if name.strip() == &#39;-s&#39; or name.strip() == &#39;--service&#39;:
-            cmd = value
+@app.errorhandler(404)
+# inbuilt function which takes error as parameter
+def page_not_found(e):
+    return msg, 404
 
-    schools = parameters[&#39;enko_education&#39;][&#39;schools&#39;].keys()
+@app.errorhandler(500)
+# inbuilt function which takes error as parameter
+def page_not_found(e):
+    msg[&#39;code&#39;] = 500
+    msg[&#39;msg&#39;] = &#34;Internal server error&#34;
+    return msg, 500
 
-    &#34;&#34;&#34;
-    Main dispatcher thread pool executor
-    &#34;&#34;&#34;
-    if cmd in service.load:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            executor.map(service.load[cmd].run, schools, [cmd])
 
-except Exception as e:
-    print(&#34;Program launch error&#34;, str(e))
-    logging.critical(&#34;Program launch error&#34;, exc_info=True)</code></pre>
+@app.route(&#34;/&#34;)
+def hello():
+    return {&#34;Greetings&#34;:&#34;Welcome to Enko Education (EDUKA PROJECTS) Web executable&#34;}
+
+
+@app.route(&#34;/service/&lt;service_name&gt;&#34;)
+def service(service_name):
+    api_key = request.args.get(&#34;api_key&#34;)
+
+    if key != api_key:
+        msg[&#39;code&#39;] = 401
+        msg[&#39;state&#39;] = &#39;Rejected&#39;
+        msg[&#39;msg&#39;] = &#34;You are not authorized to access this resource&#34;
+        return msg, 401
+
+    if service_name in os.listdir(&#34;services&#34;):
+        #os.system(&#34;source venv/bin/activate &amp;&amp; python main.py -s &#34; + service_name)
+        python_venv = os.getcwd() + os.sep + &#34;venv/bin/python&#34;
+        child = subprocess.Popen([python_venv, &#39;main.py&#39;, &#39;-s&#39;, service_name], subprocess.PIPE)
+        msg[&#39;code&#39;] = 201
+        msg[&#39;state&#39;] = &#39;Success&#39;
+        msg[&#39;msg&#39;] = &#34;Service &#34; + service_name + &#34; has been successfuly executed. &#34; \
+                                                 &#34;A mail with be sent when execution terminates&#34;
+
+        &#34;&#34;&#34;
+        Waiting for process to finish
+        streamdata = child.communicate()[0]
+        rc = child.returncode
+        print(&#34;OK OK&#34;, rc)&#34;&#34;&#34;
+
+    return msg, 201
+
+
+if __name__ == &#34;__main__&#34;:
+    app.run(host=&#39;0.0.0.0&#39;)</code></pre>
 </details>
 </section>
 <section>
@@ -96,6 +106,77 @@ except Exception as e:
 <section>
 </section>
 <section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="eduka-projects.api.hello"><code class="name flex">
+<span>def <span class="ident">hello</span></span>(<span>)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@app.route(&#34;/&#34;)
+def hello():
+    return {&#34;Greetings&#34;:&#34;Welcome to Enko Education (EDUKA PROJECTS) Web executable&#34;}</code></pre>
+</details>
+</dd>
+<dt id="eduka-projects.api.page_not_found"><code class="name flex">
+<span>def <span class="ident">page_not_found</span></span>(<span>e)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@app.errorhandler(500)
+# inbuilt function which takes error as parameter
+def page_not_found(e):
+    msg[&#39;code&#39;] = 500
+    msg[&#39;msg&#39;] = &#34;Internal server error&#34;
+    return msg, 500</code></pre>
+</details>
+</dd>
+<dt id="eduka-projects.api.service"><code class="name flex">
+<span>def <span class="ident">service</span></span>(<span>service_name)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@app.route(&#34;/service/&lt;service_name&gt;&#34;)
+def service(service_name):
+    api_key = request.args.get(&#34;api_key&#34;)
+
+    if key != api_key:
+        msg[&#39;code&#39;] = 401
+        msg[&#39;state&#39;] = &#39;Rejected&#39;
+        msg[&#39;msg&#39;] = &#34;You are not authorized to access this resource&#34;
+        return msg, 401
+
+    if service_name in os.listdir(&#34;services&#34;):
+        #os.system(&#34;source venv/bin/activate &amp;&amp; python main.py -s &#34; + service_name)
+        python_venv = os.getcwd() + os.sep + &#34;venv/bin/python&#34;
+        child = subprocess.Popen([python_venv, &#39;main.py&#39;, &#39;-s&#39;, service_name], subprocess.PIPE)
+        msg[&#39;code&#39;] = 201
+        msg[&#39;state&#39;] = &#39;Success&#39;
+        msg[&#39;msg&#39;] = &#34;Service &#34; + service_name + &#34; has been successfuly executed. &#34; \
+                                                 &#34;A mail with be sent when execution terminates&#34;
+
+        &#34;&#34;&#34;
+        Waiting for process to finish
+        streamdata = child.communicate()[0]
+        rc = child.returncode
+        print(&#34;OK OK&#34;, rc)&#34;&#34;&#34;
+
+    return msg, 201</code></pre>
+</details>
+</dd>
+</dl>
 </section>
 <section>
 </section>
@@ -104,16 +185,20 @@ except Exception as e:
 <h1>Index</h1>
 <div class="toc">
 <ul>
-<li><a href="#eduka-projects-v1">Eduka Projects V1</a><ul>
-<li><a href="#comprehension-recommendations">Comprehension / Recommendations</a></li>
-</ul>
-</li>
+<li><a href="#eduka-project-web-tunnel">Eduka Project Web Tunnel</a></li>
 </ul>
 </div>
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
 <li><code><a title="eduka-projects" href="index.html">eduka-projects</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="eduka-projects.api.hello" href="#eduka-projects.api.hello">hello</a></code></li>
+<li><code><a title="eduka-projects.api.page_not_found" href="#eduka-projects.api.page_not_found">page_not_found</a></code></li>
+<li><code><a title="eduka-projects.api.service" href="#eduka-projects.api.service">service</a></code></li>
 </ul>
 </li>
 </ul>
