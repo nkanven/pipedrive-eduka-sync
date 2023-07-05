@@ -59,22 +59,22 @@ In the parameters.json, make sure you update:
     &gt;&gt; environment -&gt; eduka_code_bank_url with the url of the Excel code bank
     &gt;&gt; environment -&gt; eduka_code_manager_data_inputs with the url of the Excel code bank
 &#34;&#34;&#34;
-
+import sys
 import time
 
-from bootstrap import parameters
 import pandas as pd
+
 service_name = &#34;Code Manager Service&#34;
 
 
-def get_good_codes_from_excel() -&gt; list:
+def get_good_codes_from_excel(url: str, code_bank: bool = False) -&gt; list:
     &#34;&#34;&#34;
     This function read an Excel file from a remote url and parse the data for computation
-    :return: (list) good_codes
+    :return: (list) good_codes is a list of set ordered as follows (0 = male, 1 = female and 2 = family)
     &#34;&#34;&#34;
     print(&#39;get good code from excel&#39;)
     good_codes = []
-    url = parameters[&#34;environment&#34;][&#34;eduka_code_bank_url&#34;]
+
     df = pd.read_excel(url, engine=&#39;openpyxl&#39;, sheet_name=None)
 
     start_time = time.time()
@@ -83,7 +83,7 @@ def get_good_codes_from_excel() -&gt; list:
         if country.lower().find(&#34;do not&#34;) != -1:
             continue
 
-        params = df[country].keys()[1:]
+        params = df[country].keys()[1:] if code_bank else df[country].keys()
 
         max_loop = max(
             [len(df[country][params[0]]),
@@ -94,7 +94,10 @@ def get_good_codes_from_excel() -&gt; list:
         i = 0
 
         while max_loop &gt; i:
-            good_codes.append((df[country][params[0]][i], df[country][params[1]][i], df[country][params[2]][i]))
+            params_tuple = ()
+            for param in params:
+                params_tuple += (str(df[country][param][i]).strip(&#34; &#34;),)
+            good_codes.append(params_tuple)
             i += 1
 
     duration = time.time() - start_time
@@ -125,23 +128,23 @@ def update_user_code():
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
 <dt id="eduka-projects.services.code_manager.get_good_codes_from_excel"><code class="name flex">
-<span>def <span class="ident">get_good_codes_from_excel</span></span>(<span>) ‑> list</span>
+<span>def <span class="ident">get_good_codes_from_excel</span></span>(<span>url: str, code_bank: bool = False) ‑> list</span>
 </code></dt>
 <dd>
 <div class="desc"><p>This function read an Excel file from a remote url and parse the data for computation
-:return: (list) good_codes</p></div>
+:return: (list) good_codes is a list of set ordered as follows (0 = male, 1 = female and 2 = family)</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_good_codes_from_excel() -&gt; list:
+<pre><code class="python">def get_good_codes_from_excel(url: str, code_bank: bool = False) -&gt; list:
     &#34;&#34;&#34;
     This function read an Excel file from a remote url and parse the data for computation
-    :return: (list) good_codes
+    :return: (list) good_codes is a list of set ordered as follows (0 = male, 1 = female and 2 = family)
     &#34;&#34;&#34;
     print(&#39;get good code from excel&#39;)
     good_codes = []
-    url = parameters[&#34;environment&#34;][&#34;eduka_code_bank_url&#34;]
+
     df = pd.read_excel(url, engine=&#39;openpyxl&#39;, sheet_name=None)
 
     start_time = time.time()
@@ -150,7 +153,7 @@ def update_user_code():
         if country.lower().find(&#34;do not&#34;) != -1:
             continue
 
-        params = df[country].keys()[1:]
+        params = df[country].keys()[1:] if code_bank else df[country].keys()
 
         max_loop = max(
             [len(df[country][params[0]]),
@@ -161,7 +164,10 @@ def update_user_code():
         i = 0
 
         while max_loop &gt; i:
-            good_codes.append((df[country][params[0]][i], df[country][params[1]][i], df[country][params[2]][i]))
+            params_tuple = ()
+            for param in params:
+                params_tuple += (str(df[country][param][i]).strip(&#34; &#34;),)
+            good_codes.append(params_tuple)
             i += 1
 
     duration = time.time() - start_time

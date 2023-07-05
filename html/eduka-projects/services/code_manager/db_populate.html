@@ -26,7 +26,10 @@
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">import sys
+<pre><code class="python">import time
+
+import mysql.connector
+import concurrent.futures
 
 from bootstrap import *
 from services.code_manager import *
@@ -39,8 +42,14 @@ from mysql.connector.errors import ProgrammingError, PoolError, OperationalError
 class Populate:
 
     def __init__(self, school: str, mail: EnkoMail):
+        &#34;&#34;&#34;
+        Populate database with student IDs information
+        :param school: (str) enko school name
+        :param mail: (EnkoMail) Mail object to handle notifcations
+        &#34;&#34;&#34;
         self.school = school
         self.mail = mail
+        self.sql: list = []
         print(&#34;Start populate service&#34;)
 
         try:
@@ -48,6 +57,8 @@ class Populate:
                 host=parameters[&#39;environment&#39;][&#39;db_host&#39;],
                 user=parameters[&#39;environment&#39;][&#39;db_user&#39;],
                 passwd=parameters[&#39;environment&#39;][&#39;db_password&#39;])
+            self.db.cursor().execute(&#39;CREATE DATABASE IF NOT EXISTS enko_db&#39;)
+            self.db.cursor().execute(&#39;use enko_db&#39;)
         except (ProgrammingError, PoolError, OperationalError, NotSupportedError) as e:
             logging.critical(&#34;Database connection error occurred&#34;, exc_info=True)
             mail.set_email_message_text(&#34;Database connection error&#34;)
@@ -63,38 +74,127 @@ class Populate:
             desc += &#34;&lt;b&gt;Trace: {trace}&lt;/b&gt; &lt;br&gt;&lt;br&gt;Please contact the system administrator for more details.&lt;/p&gt;&#34;
             mail.set_email_message_desc(desc.format(trace=str(e)))
             mail.send_mail()
-            # Send mail to admin
-
             sys.exit(&#39;Service task exit on KeyError exception&#39;)
+        except Exception as e:
+            logging.critical(&#34;Service task init exit on exception&#34;, exc_info=True)
+            mail.set_email_message_text(&#34;DB Populate init exception&#34;)
+            desc = &#34;&lt;p&gt;Service encounters an exception while initializing enko_db database.. &lt;br&gt;&lt;br&gt;&#34;
+            desc += &#34;&lt;b&gt;Trace: {trace}&lt;/b&gt; &lt;br&gt;&lt;br&gt;Please contact the system administrator for more details.&lt;/p&gt;&#34;
+            mail.set_email_message_desc(desc.format(trace=str(e)))
+            mail.send_mail()
+            sys.exit(&#39;Service task init exit on exception&#39;)
 
     def pre_check(self):
-        # Verify if service databases exists
-        cursor = self.db.cursor()
+        &#34;&#34;&#34;
+        Verify if service databases exists. If not create required database and tables
+        &#34;&#34;&#34;
+
         try:
-            cursor.execute(&#39;CREATE DATABASE IF NOT EXISTS einvestor&#39;)
+            self.db.cursor().execute(&#34;CREATE TABLE IF NOT EXISTS `bank_code` (`code_id` int NOT NULL,`code` varchar(&#34;
+                                     &#34;25) COLLATE utf8mb4_general_ci NOT NULL,`cluster` varchar(2) COLLATE &#34;
+                                     &#34;utf8mb4_general_ci NOT NULL,`platform` varchar(100) COLLATE utf8mb4_general_ci &#34;
+                                     &#34;NOT NULL,`acad_year` varchar(9) COLLATE utf8mb4_general_ci NOT NULL,`category` &#34;
+                                     &#34;varchar(3) COLLATE utf8mb4_general_ci NOT NULL,`is_used` tinyint(1) NOT NULL &#34;
+                                     &#34;DEFAULT 0,`update_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,&#34;
+                                     &#34;`d_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT &#34;
+                                     &#34;CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;&#34;)
+
+            try:
+                self.db.cursor().execute(&#34;ALTER TABLE `bank_code` ADD PRIMARY KEY (`code_id`), ADD UNIQUE KEY `code` (&#34;
+                                         &#34;`code`);&#34;)
+                self.db.cursor().execute(&#34;ALTER TABLE `bank_code` MODIFY `code_id` int NOT NULL AUTO_INCREMENT;&#34;)
+            except ProgrammingError:
+                # No need to alter table when primary keys has already been added
+                pass
+
             logging.info(&#34;Database successfully created&#34;)
         except Exception:
             self.db.rollback()
-            logging.critical(&#34;Service task exit on KeyError exception&#34;, exc_info=True)
+            logging.critical(&#34;Service task exit on exception&#34;, exc_info=True)
+            self.db.cursor().close()
             sys.exit(&#39;Service task exit on database creation error&#39;)
 
-        for x in cursor:
-            print(x[0])
+        &#34;&#34;&#34;for x in cursor:
+            print(x[0])&#34;&#34;&#34;
 
-    def upload_data(self):
-        print(get_good_codes_from_excel())
+    def prep_codes_insertion(self, i_codes: tuple, i_data: tuple) -&gt; bool:
+        &#34;&#34;&#34;
+        his function handle the cleaning
+        of parameters for code_bank table insertion
+        :param i_codes: a tuple of student code full id
+        :param i_data: a tuple containing school data inputs for categorization
+        :return: a boolean which indicates the successfulness of the insertion
+        &#34;&#34;&#34;
+        result = False
+
+        category_map = {&#34;1&#34;: &#34;MST&#34;, &#34;2&#34;: &#34;FST&#34;, &#34;3&#34;: &#34;FAM&#34;}
+        try:
+            for i_code in i_codes:
+                code_split = i_code.split(&#34;-&#34;)
+                category = None
+                country_code = code_split[0]
+
+                if country_code.lower() == i_data[2].lower():
+                    platform = i_data[0]
+                    cluster = i_data[6].lower()
+                    try:
+                        category = category_map[code_split[2]].lower()
+                        __year = code_split[3][0:2]
+                    except KeyError:
+                        if len(code_split) == 3:
+                            category = category_map[&#34;3&#34;].lower()
+                        logging.info(&#34;Skipped KeyError. Non studend Id&#34;)
+                    except IndexError:
+                        logging.info(&#34;Skipped IndexError. Non studend Id&#34;)
+                        __year = code_split[2][0:2]
+
+                    if cluster == &#34;nh&#34; and category in (&#34;mst&#34;, &#34;fst&#34;):
+                        acad_year = &#34;20&#34; + __year + &#34;/20&#34; + str(int(__year) + 1)
+                    else:  # (cluster.lower() == &#34;sh&#34; and category in (&#34;mst&#34;, &#34;fst&#34;)) or category == &#34;fam&#34;)
+                        acad_year = &#34;20&#34; + __year
+
+                    values = (i_code, category, platform, acad_year, cluster)
+                    self.sql.append(values)
+
+                result = True
+        except Exception:
+            logging.critical(&#34;Service task inser_code exit on exception&#34;, exc_info=True)
+        finally:
+            return result
+
+    def upload_data_in_code_bank(self) -&gt; None:
+        &#34;&#34;&#34;
+        Dispatch data for insertion in bank_code table.
+        Return None
+        &#34;&#34;&#34;
+        data_inputs = get_good_codes_from_excel(parameters[&#34;environment&#34;][&#34;eduka_code_manager_data_inputs&#34;])
+        code_bank = get_good_codes_from_excel(parameters[&#34;environment&#34;][&#34;eduka_code_bank_url&#34;], True)
+
+        for data_input in data_inputs:
+            for codes in code_bank:
+                self.prep_codes_insertion(codes, data_input)
+
+        query = &#34;INSERT INTO bank_code (code, category, platform, acad_year, cluster) &#34; \
+                &#34;VALUES (%s, %s, %s, %s, %s);&#34;
+
+        self.db.cursor().executemany(query, self.sql)
+        self.db.commit()
 
     def run(self) -&gt; None:
         &#34;&#34;&#34;
-        This function runs the Populate object
+        This function runs the Populate object. Handles student IDs insertation in bank_code table
         :return: None
         &#34;&#34;&#34;
         try:
             self.pre_check()
             print(&#34;done precheck&#34;)
-            self.upload_data()
+            start_time = time.time()
+            self.upload_data_in_code_bank()
+            duration = time.time() - start_time
+            print(f&#34;Store in {duration} seconds&#34;)
+
         except Exception:
-            logging.critical(&#34;Service task exit on KeyError exception&#34;, exc_info=True)</code></pre>
+            logging.critical(&#34;Service task exit on exception&#34;, exc_info=True)</code></pre>
 </details>
 </section>
 <section>
@@ -111,7 +211,9 @@ class Populate:
 <span>(</span><span>school: str, mail: utils.mail.EnkoMail)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Populate database with student IDs information
+:param school: (str) enko school name
+:param mail: (EnkoMail) Mail object to handle notifcations</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -119,8 +221,14 @@ class Populate:
 <pre><code class="python">class Populate:
 
     def __init__(self, school: str, mail: EnkoMail):
+        &#34;&#34;&#34;
+        Populate database with student IDs information
+        :param school: (str) enko school name
+        :param mail: (EnkoMail) Mail object to handle notifcations
+        &#34;&#34;&#34;
         self.school = school
         self.mail = mail
+        self.sql: list = []
         print(&#34;Start populate service&#34;)
 
         try:
@@ -128,6 +236,8 @@ class Populate:
                 host=parameters[&#39;environment&#39;][&#39;db_host&#39;],
                 user=parameters[&#39;environment&#39;][&#39;db_user&#39;],
                 passwd=parameters[&#39;environment&#39;][&#39;db_password&#39;])
+            self.db.cursor().execute(&#39;CREATE DATABASE IF NOT EXISTS enko_db&#39;)
+            self.db.cursor().execute(&#39;use enko_db&#39;)
         except (ProgrammingError, PoolError, OperationalError, NotSupportedError) as e:
             logging.critical(&#34;Database connection error occurred&#34;, exc_info=True)
             mail.set_email_message_text(&#34;Database connection error&#34;)
@@ -143,38 +253,127 @@ class Populate:
             desc += &#34;&lt;b&gt;Trace: {trace}&lt;/b&gt; &lt;br&gt;&lt;br&gt;Please contact the system administrator for more details.&lt;/p&gt;&#34;
             mail.set_email_message_desc(desc.format(trace=str(e)))
             mail.send_mail()
-            # Send mail to admin
-
             sys.exit(&#39;Service task exit on KeyError exception&#39;)
+        except Exception as e:
+            logging.critical(&#34;Service task init exit on exception&#34;, exc_info=True)
+            mail.set_email_message_text(&#34;DB Populate init exception&#34;)
+            desc = &#34;&lt;p&gt;Service encounters an exception while initializing enko_db database.. &lt;br&gt;&lt;br&gt;&#34;
+            desc += &#34;&lt;b&gt;Trace: {trace}&lt;/b&gt; &lt;br&gt;&lt;br&gt;Please contact the system administrator for more details.&lt;/p&gt;&#34;
+            mail.set_email_message_desc(desc.format(trace=str(e)))
+            mail.send_mail()
+            sys.exit(&#39;Service task init exit on exception&#39;)
 
     def pre_check(self):
-        # Verify if service databases exists
-        cursor = self.db.cursor()
+        &#34;&#34;&#34;
+        Verify if service databases exists. If not create required database and tables
+        &#34;&#34;&#34;
+
         try:
-            cursor.execute(&#39;CREATE DATABASE IF NOT EXISTS einvestor&#39;)
+            self.db.cursor().execute(&#34;CREATE TABLE IF NOT EXISTS `bank_code` (`code_id` int NOT NULL,`code` varchar(&#34;
+                                     &#34;25) COLLATE utf8mb4_general_ci NOT NULL,`cluster` varchar(2) COLLATE &#34;
+                                     &#34;utf8mb4_general_ci NOT NULL,`platform` varchar(100) COLLATE utf8mb4_general_ci &#34;
+                                     &#34;NOT NULL,`acad_year` varchar(9) COLLATE utf8mb4_general_ci NOT NULL,`category` &#34;
+                                     &#34;varchar(3) COLLATE utf8mb4_general_ci NOT NULL,`is_used` tinyint(1) NOT NULL &#34;
+                                     &#34;DEFAULT 0,`update_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,&#34;
+                                     &#34;`d_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT &#34;
+                                     &#34;CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;&#34;)
+
+            try:
+                self.db.cursor().execute(&#34;ALTER TABLE `bank_code` ADD PRIMARY KEY (`code_id`), ADD UNIQUE KEY `code` (&#34;
+                                         &#34;`code`);&#34;)
+                self.db.cursor().execute(&#34;ALTER TABLE `bank_code` MODIFY `code_id` int NOT NULL AUTO_INCREMENT;&#34;)
+            except ProgrammingError:
+                # No need to alter table when primary keys has already been added
+                pass
+
             logging.info(&#34;Database successfully created&#34;)
         except Exception:
             self.db.rollback()
-            logging.critical(&#34;Service task exit on KeyError exception&#34;, exc_info=True)
+            logging.critical(&#34;Service task exit on exception&#34;, exc_info=True)
+            self.db.cursor().close()
             sys.exit(&#39;Service task exit on database creation error&#39;)
 
-        for x in cursor:
-            print(x[0])
+        &#34;&#34;&#34;for x in cursor:
+            print(x[0])&#34;&#34;&#34;
 
-    def upload_data(self):
-        print(get_good_codes_from_excel())
+    def prep_codes_insertion(self, i_codes: tuple, i_data: tuple) -&gt; bool:
+        &#34;&#34;&#34;
+        his function handle the cleaning
+        of parameters for code_bank table insertion
+        :param i_codes: a tuple of student code full id
+        :param i_data: a tuple containing school data inputs for categorization
+        :return: a boolean which indicates the successfulness of the insertion
+        &#34;&#34;&#34;
+        result = False
+
+        category_map = {&#34;1&#34;: &#34;MST&#34;, &#34;2&#34;: &#34;FST&#34;, &#34;3&#34;: &#34;FAM&#34;}
+        try:
+            for i_code in i_codes:
+                code_split = i_code.split(&#34;-&#34;)
+                category = None
+                country_code = code_split[0]
+
+                if country_code.lower() == i_data[2].lower():
+                    platform = i_data[0]
+                    cluster = i_data[6].lower()
+                    try:
+                        category = category_map[code_split[2]].lower()
+                        __year = code_split[3][0:2]
+                    except KeyError:
+                        if len(code_split) == 3:
+                            category = category_map[&#34;3&#34;].lower()
+                        logging.info(&#34;Skipped KeyError. Non studend Id&#34;)
+                    except IndexError:
+                        logging.info(&#34;Skipped IndexError. Non studend Id&#34;)
+                        __year = code_split[2][0:2]
+
+                    if cluster == &#34;nh&#34; and category in (&#34;mst&#34;, &#34;fst&#34;):
+                        acad_year = &#34;20&#34; + __year + &#34;/20&#34; + str(int(__year) + 1)
+                    else:  # (cluster.lower() == &#34;sh&#34; and category in (&#34;mst&#34;, &#34;fst&#34;)) or category == &#34;fam&#34;)
+                        acad_year = &#34;20&#34; + __year
+
+                    values = (i_code, category, platform, acad_year, cluster)
+                    self.sql.append(values)
+
+                result = True
+        except Exception:
+            logging.critical(&#34;Service task inser_code exit on exception&#34;, exc_info=True)
+        finally:
+            return result
+
+    def upload_data_in_code_bank(self) -&gt; None:
+        &#34;&#34;&#34;
+        Dispatch data for insertion in bank_code table.
+        Return None
+        &#34;&#34;&#34;
+        data_inputs = get_good_codes_from_excel(parameters[&#34;environment&#34;][&#34;eduka_code_manager_data_inputs&#34;])
+        code_bank = get_good_codes_from_excel(parameters[&#34;environment&#34;][&#34;eduka_code_bank_url&#34;], True)
+
+        for data_input in data_inputs:
+            for codes in code_bank:
+                self.prep_codes_insertion(codes, data_input)
+
+        query = &#34;INSERT INTO bank_code (code, category, platform, acad_year, cluster) &#34; \
+                &#34;VALUES (%s, %s, %s, %s, %s);&#34;
+
+        self.db.cursor().executemany(query, self.sql)
+        self.db.commit()
 
     def run(self) -&gt; None:
         &#34;&#34;&#34;
-        This function runs the Populate object
+        This function runs the Populate object. Handles student IDs insertation in bank_code table
         :return: None
         &#34;&#34;&#34;
         try:
             self.pre_check()
             print(&#34;done precheck&#34;)
-            self.upload_data()
+            start_time = time.time()
+            self.upload_data_in_code_bank()
+            duration = time.time() - start_time
+            print(f&#34;Store in {duration} seconds&#34;)
+
         except Exception:
-            logging.critical(&#34;Service task exit on KeyError exception&#34;, exc_info=True)</code></pre>
+            logging.critical(&#34;Service task exit on exception&#34;, exc_info=True)</code></pre>
 </details>
 <h3>Methods</h3>
 <dl>
@@ -182,31 +381,109 @@ class Populate:
 <span>def <span class="ident">pre_check</span></span>(<span>self)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Verify if service databases exists. If not create required database and tables</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def pre_check(self):
-    # Verify if service databases exists
-    cursor = self.db.cursor()
+    &#34;&#34;&#34;
+    Verify if service databases exists. If not create required database and tables
+    &#34;&#34;&#34;
+
     try:
-        cursor.execute(&#39;CREATE DATABASE IF NOT EXISTS einvestor&#39;)
+        self.db.cursor().execute(&#34;CREATE TABLE IF NOT EXISTS `bank_code` (`code_id` int NOT NULL,`code` varchar(&#34;
+                                 &#34;25) COLLATE utf8mb4_general_ci NOT NULL,`cluster` varchar(2) COLLATE &#34;
+                                 &#34;utf8mb4_general_ci NOT NULL,`platform` varchar(100) COLLATE utf8mb4_general_ci &#34;
+                                 &#34;NOT NULL,`acad_year` varchar(9) COLLATE utf8mb4_general_ci NOT NULL,`category` &#34;
+                                 &#34;varchar(3) COLLATE utf8mb4_general_ci NOT NULL,`is_used` tinyint(1) NOT NULL &#34;
+                                 &#34;DEFAULT 0,`update_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,&#34;
+                                 &#34;`d_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT &#34;
+                                 &#34;CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;&#34;)
+
+        try:
+            self.db.cursor().execute(&#34;ALTER TABLE `bank_code` ADD PRIMARY KEY (`code_id`), ADD UNIQUE KEY `code` (&#34;
+                                     &#34;`code`);&#34;)
+            self.db.cursor().execute(&#34;ALTER TABLE `bank_code` MODIFY `code_id` int NOT NULL AUTO_INCREMENT;&#34;)
+        except ProgrammingError:
+            # No need to alter table when primary keys has already been added
+            pass
+
         logging.info(&#34;Database successfully created&#34;)
     except Exception:
         self.db.rollback()
-        logging.critical(&#34;Service task exit on KeyError exception&#34;, exc_info=True)
+        logging.critical(&#34;Service task exit on exception&#34;, exc_info=True)
+        self.db.cursor().close()
         sys.exit(&#39;Service task exit on database creation error&#39;)
 
-    for x in cursor:
-        print(x[0])</code></pre>
+    &#34;&#34;&#34;for x in cursor:
+        print(x[0])&#34;&#34;&#34;</code></pre>
+</details>
+</dd>
+<dt id="eduka-projects.services.code_manager.db_populate.Populate.prep_codes_insertion"><code class="name flex">
+<span>def <span class="ident">prep_codes_insertion</span></span>(<span>self, i_codes: tuple, i_data: tuple) ‑> bool</span>
+</code></dt>
+<dd>
+<div class="desc"><p>his function handle the cleaning
+of parameters for code_bank table insertion
+:param i_codes: a tuple of student code full id
+:param i_data: a tuple containing school data inputs for categorization
+:return: a boolean which indicates the successfulness of the insertion</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def prep_codes_insertion(self, i_codes: tuple, i_data: tuple) -&gt; bool:
+    &#34;&#34;&#34;
+    his function handle the cleaning
+    of parameters for code_bank table insertion
+    :param i_codes: a tuple of student code full id
+    :param i_data: a tuple containing school data inputs for categorization
+    :return: a boolean which indicates the successfulness of the insertion
+    &#34;&#34;&#34;
+    result = False
+
+    category_map = {&#34;1&#34;: &#34;MST&#34;, &#34;2&#34;: &#34;FST&#34;, &#34;3&#34;: &#34;FAM&#34;}
+    try:
+        for i_code in i_codes:
+            code_split = i_code.split(&#34;-&#34;)
+            category = None
+            country_code = code_split[0]
+
+            if country_code.lower() == i_data[2].lower():
+                platform = i_data[0]
+                cluster = i_data[6].lower()
+                try:
+                    category = category_map[code_split[2]].lower()
+                    __year = code_split[3][0:2]
+                except KeyError:
+                    if len(code_split) == 3:
+                        category = category_map[&#34;3&#34;].lower()
+                    logging.info(&#34;Skipped KeyError. Non studend Id&#34;)
+                except IndexError:
+                    logging.info(&#34;Skipped IndexError. Non studend Id&#34;)
+                    __year = code_split[2][0:2]
+
+                if cluster == &#34;nh&#34; and category in (&#34;mst&#34;, &#34;fst&#34;):
+                    acad_year = &#34;20&#34; + __year + &#34;/20&#34; + str(int(__year) + 1)
+                else:  # (cluster.lower() == &#34;sh&#34; and category in (&#34;mst&#34;, &#34;fst&#34;)) or category == &#34;fam&#34;)
+                    acad_year = &#34;20&#34; + __year
+
+                values = (i_code, category, platform, acad_year, cluster)
+                self.sql.append(values)
+
+            result = True
+    except Exception:
+        logging.critical(&#34;Service task inser_code exit on exception&#34;, exc_info=True)
+    finally:
+        return result</code></pre>
 </details>
 </dd>
 <dt id="eduka-projects.services.code_manager.db_populate.Populate.run"><code class="name flex">
 <span>def <span class="ident">run</span></span>(<span>self) ‑> None</span>
 </code></dt>
 <dd>
-<div class="desc"><p>This function runs the Populate object
+<div class="desc"><p>This function runs the Populate object. Handles student IDs insertation in bank_code table
 :return: None</p></div>
 <details class="source">
 <summary>
@@ -214,28 +491,48 @@ class Populate:
 </summary>
 <pre><code class="python">def run(self) -&gt; None:
     &#34;&#34;&#34;
-    This function runs the Populate object
+    This function runs the Populate object. Handles student IDs insertation in bank_code table
     :return: None
     &#34;&#34;&#34;
     try:
         self.pre_check()
         print(&#34;done precheck&#34;)
-        self.upload_data()
+        start_time = time.time()
+        self.upload_data_in_code_bank()
+        duration = time.time() - start_time
+        print(f&#34;Store in {duration} seconds&#34;)
+
     except Exception:
-        logging.critical(&#34;Service task exit on KeyError exception&#34;, exc_info=True)</code></pre>
+        logging.critical(&#34;Service task exit on exception&#34;, exc_info=True)</code></pre>
 </details>
 </dd>
-<dt id="eduka-projects.services.code_manager.db_populate.Populate.upload_data"><code class="name flex">
-<span>def <span class="ident">upload_data</span></span>(<span>self)</span>
+<dt id="eduka-projects.services.code_manager.db_populate.Populate.upload_data_in_code_bank"><code class="name flex">
+<span>def <span class="ident">upload_data_in_code_bank</span></span>(<span>self) ‑> None</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Dispatch data for insertion in bank_code table.
+Return None</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def upload_data(self):
-    print(get_good_codes_from_excel())</code></pre>
+<pre><code class="python">def upload_data_in_code_bank(self) -&gt; None:
+    &#34;&#34;&#34;
+    Dispatch data for insertion in bank_code table.
+    Return None
+    &#34;&#34;&#34;
+    data_inputs = get_good_codes_from_excel(parameters[&#34;environment&#34;][&#34;eduka_code_manager_data_inputs&#34;])
+    code_bank = get_good_codes_from_excel(parameters[&#34;environment&#34;][&#34;eduka_code_bank_url&#34;], True)
+
+    for data_input in data_inputs:
+        for codes in code_bank:
+            self.prep_codes_insertion(codes, data_input)
+
+    query = &#34;INSERT INTO bank_code (code, category, platform, acad_year, cluster) &#34; \
+            &#34;VALUES (%s, %s, %s, %s, %s);&#34;
+
+    self.db.cursor().executemany(query, self.sql)
+    self.db.commit()</code></pre>
 </details>
 </dd>
 </dl>
@@ -260,8 +557,9 @@ class Populate:
 <h4><code><a title="eduka-projects.services.code_manager.db_populate.Populate" href="#eduka-projects.services.code_manager.db_populate.Populate">Populate</a></code></h4>
 <ul class="">
 <li><code><a title="eduka-projects.services.code_manager.db_populate.Populate.pre_check" href="#eduka-projects.services.code_manager.db_populate.Populate.pre_check">pre_check</a></code></li>
+<li><code><a title="eduka-projects.services.code_manager.db_populate.Populate.prep_codes_insertion" href="#eduka-projects.services.code_manager.db_populate.Populate.prep_codes_insertion">prep_codes_insertion</a></code></li>
 <li><code><a title="eduka-projects.services.code_manager.db_populate.Populate.run" href="#eduka-projects.services.code_manager.db_populate.Populate.run">run</a></code></li>
-<li><code><a title="eduka-projects.services.code_manager.db_populate.Populate.upload_data" href="#eduka-projects.services.code_manager.db_populate.Populate.upload_data">upload_data</a></code></li>
+<li><code><a title="eduka-projects.services.code_manager.db_populate.Populate.upload_data_in_code_bank" href="#eduka-projects.services.code_manager.db_populate.Populate.upload_data_in_code_bank">upload_data_in_code_bank</a></code></li>
 </ul>
 </li>
 </ul>

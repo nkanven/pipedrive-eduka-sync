@@ -32,6 +32,8 @@ import sys
 import time
 from datetime import datetime
 
+import selenium.common.exceptions
+
 import bootstrap
 from bootstrap import platform
 from utils.mail import EnkoMail
@@ -46,6 +48,181 @@ from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 
 
+class Backup:
+
+    def __init__(self, school):
+        self.school = school
+        self.param = bootstrap.parameters
+        self.mailer = EnkoMail(service_name, school, self.param)
+
+        # DB backup parameters initialization
+        self.api_error = -1
+        self.api_key = bootstrap.parameters[&#39;enko_education&#39;][&#39;schools&#39;][school][&#39;api_key&#39;]
+        self.abbr = self.param[&#39;enko_education&#39;][&#39;schools&#39;][school][&#39;abbr&#39;]
+        self.backup_endpoint_uri = self.param[&#39;enko_education&#39;][&#39;db_backup_api&#39;].replace(&#39;INSERT_API_KEY_HERE&#39;,
+                                                                                         self.api_key)
+        self.backup_endpoint = self.param[&#39;enko_education&#39;][&#39;schools&#39;][school][&#39;base_url&#39;] + self.backup_endpoint_uri
+        self.backup_url = self.param[&#39;enko_education&#39;][&#39;schools&#39;][school][&#39;base_url&#39;] + \
+                          self.param[&#39;enko_education&#39;][&#39;database_uri&#39;]
+        self.bck_max_days = self.param[&#39;enko_education&#39;][&#39;db_backup_max_days&#39;]
+
+        self.email = self.param[&#39;enko_education&#39;][&#39;schools&#39;][school][&#39;login&#39;][&#39;email&#39;]
+        self.password = self.param[&#39;enko_education&#39;][&#39;schools&#39;][school][&#39;login&#39;][&#39;password&#39;]
+        self.logins = {
+            &#39;email&#39;: self.email,
+            &#39;password&#39;: self.password
+        }
+
+    def reload_tabs(self, bws):
+        &#34;&#34;&#34;
+        Reload the browser to get a new driver object with the correct node names because of weird
+        naming after immediate backup through browser
+        :return a driver object
+        &#34;&#34;&#34;
+
+        db_tabs = WebDriverWait(bws, 15, ignored_exceptions=bootstrap.ignored_exceptions).until(
+            EC.presence_of_element_located((By.ID, &#39;DBTabs&#39;)))
+        return db_tabs
+
+    def create_backup(self):
+
+        # Create a backup through API if not already done for this task
+        recent_memoize_file = datetime.now().strftime(&#34;%Y%m%d&#34;) + self.abbr + &#34;.ep&#34;
+
+        # Check if today&#39;s task hadn&#39;t already backup the database
+
+        if recent_memoize_file not in os.listdir(bootstrap.autobackup_memoize):
+            try:
+                session = bootstrap.get_session()
+                with session.get(self.backup_endpoint) as r:
+                    response_text = r.text
+            except requests.exceptions.ConnectionError:
+                bootstrap.logging.critical(&#34;ConnectionError occurred&#34;, exc_info=True)
+                # No need to execute the whole program and delete backups if unable to create a recent one
+                sys.exit(&#34;Program exit due to Connection Error&#34;)
+
+            # Check if API call return any error
+            self.api_error = response_text.find(&#39;ErrorBox&#39;)
+
+            if self.api_error != -1:
+                soup = BeautifulSoup(r.text, features=&#34;html.parser&#34;)
+                self.mailer.set_subject(&#34;error &#34;)
+                self.mailer.set_email_message_text(&#34;&lt;b&gt;Unexpected failure occurred&lt;/b&gt;&#34;)
+                self.mailer.set_email_message_desc(&#34;API call throw: &#34; + soup.text + &#34;&lt;br&gt;IP: &#34; + bootstrap.my_public_ip)
+
+                # Exceptional call for private EnkoMail method __get_email_message_desc()
+                bootstrap.logging.error(f&#34;Execution error occurred {self.mailer._EnkoMail__get_email_message_desc()}&#34;)
+                # mailer.send_mail()
+                # sys.exit(&#34;System exit due to API unexpected failure&#34;)
+            else:
+                # Delete unnecessary memos
+                for stored_memo_file in os.listdir(bootstrap.autobackup_memoize):
+                    # Prevent from threading lock, remove old memo of this school only
+                    if self.abbr in stored_memo_file:
+                        os.remove(bootstrap.autobackup_memoize + os.sep + stored_memo_file)
+
+                # Create recent memo
+                with open(bootstrap.autobackup_memoize + os.sep + re.search(&#34;\d{8}&#34;, response_text).group(
+                        0) + self.abbr + &#34;.ep&#34;,
+                          &#34;w&#34;) as m:
+                    pass
+        else:
+            bootstrap.logging.info(&#34;Database already store for today&#34;)
+            print(&#34;Database already store for today&#34;)
+
+        browser = platform.login(self.backup_url, self.logins)
+
+        li = self.reload_tabs(browser).find_elements(By.TAG_NAME, &#39;li&#39;)
+
+        # Create backup with browser
+        if self.api_error != -1:
+            li[1].click()
+            backup_button = self.reload_tabs(browser).find_element(By.ID, &#39;StartBackup&#39;)
+            backup_button.click()
+            jqibuttons = WebDriverWait(browser, 30, ignored_exceptions=bootstrap.ignored_exceptions).until(
+                EC.presence_of_element_located((By.CLASS_NAME, &#39;jqibuttons&#39;)))
+            jqibuttons.click()
+            browser.quit()
+
+    def delete_backups(self):
+        # List available backups and delete old ones if any
+        try:
+            browser = platform.login(self.backup_url, self.logins)
+            tabs = self.reload_tabs(browser)
+            tabs.find_elements(By.TAG_NAME, &#39;li&#39;)[2].click()
+
+            backup_list = WebDriverWait(browser, 5, ignored_exceptions=bootstrap.ignored_exceptions).until(
+                EC.presence_of_element_located((By.ID, &#39;BackupListbody&#39;)))
+            backups = backup_list.find_elements(By.TAG_NAME, &#39;tr&#39;)
+            tr_len = len(backups)
+            deleted_backups = []
+
+            if tr_len &gt; 1:
+                while tr_len &gt; 0:
+                    # Never delete all backup
+                    if len(backups) == 1:
+                        break
+                    bckup = backups[-1]
+                    bckup_date = bckup.find_element(By.CLASS_NAME, &#39;column_date&#39;).get_attribute(&#39;textContent&#39;)
+
+                    parse_date = re.search(&#34;\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$&#34;, bckup_date)
+                    bckup_parsed_date = datetime.strptime(parse_date.group(0), &#34;%d/%m/%Y %H:%M&#34;)
+
+                    date_diff = datetime.now() - bckup_parsed_date
+
+                    # Check if backups are old enough to be deleted
+                    if self.param[&#39;enko_education&#39;][&#39;db_backup_max_days&#39;] &lt;= date_diff.days:
+                        # TODO: Get backup time and name
+                        bckup_filename = bckup.find_element(By.CLASS_NAME, &#39;column_filename&#39;).get_attribute(&#39;textContent&#39;)
+
+                        # TODO: Delete backup
+                        column_del = WebDriverWait(browser, 10, ignored_exceptions=bootstrap.ignored_exceptions).until(
+                        EC.presence_of_element_located((By.CLASS_NAME, &#39;column_delete&#39;)))
+                        column_del.click()
+                        deleted_backups.append((bckup_parsed_date, bckup_filename))
+                        time.sleep(10)
+                    browser.refresh()
+                    tabs = self.reload_tabs(browser)
+                    tabs.find_elements(By.TAG_NAME, &#39;li&#39;)[2].click()
+                    backup_list = WebDriverWait(browser, 5, ignored_exceptions=bootstrap.ignored_exceptions).until(
+                        EC.presence_of_element_located((By.ID, &#39;BackupListbody&#39;)))
+                    backups = backup_list.find_elements(By.TAG_NAME, &#39;tr&#39;)
+                    tr_len -= 1
+
+            # Send notification mail
+            # TODO: Remove this dummy data
+            # deleted_backups.append((&#34;2023-06-28 16:18&#34;,&#34;backup-enko-mali-com-20230628-1618-ab5d.sql.ctl.eeb&#34;))
+            self.mailer.set_subject(&#34;notification &#34;)
+            message_desc = &#34;&#34;
+            if len(deleted_backups) &gt; 0:
+                self.mailer.set_email_message_text(
+                    &#34;&lt;b&gt;Removal of &#34; + str(self.bck_max_days) + &#34; old database backup(s)&lt;/b&gt;&#34;)
+                message_desc += &#34;&#34;&#34;
+                        &lt;p&gt;The following backup(s) have been successfully deleted:&lt;/p&gt;
+                        &lt;table id=&#39;enko_table&#39;&gt;
+                            &lt;tr&gt;
+                                &lt;th class=&#39;enko_th&#39;&gt;Backup date&lt;/th&gt;
+                                &lt;th class=&#39;enko_th&#39;&gt;Backup name&lt;/th&gt;
+                            &lt;/tr&gt;
+                        &#34;&#34;&#34;
+                for deleted_backup in deleted_backups:
+                    message_desc += &#34;&lt;tr&gt;&lt;td class=&#39;enko_td&#39;&gt;&#34; + str(deleted_backup[0]) + &#34;&lt;/td&gt;&lt;td class=&#39;enko_td&#39;&gt;&#34; \
+                                    + str(deleted_backup[1]) + &#34;&lt;/td&gt;&#34;
+                message_desc += &#34;&lt;/table&gt;&#34;
+            else:
+                self.mailer.set_email_message_text(&#34;No database backup eligible for removal was found on &#34;
+                                                   + self.school)
+
+            message_desc += &#34;&lt;p&gt;&lt;b&gt;N.B:&lt;/b&gt; A new database backup has been created already&lt;/p&gt;&#34;
+            self.mailer.set_email_message_desc(message_desc)
+            self.mailer.send_mail()
+            browser.quit()
+        except Exception as e:
+            # Send error message and quit
+            bootstrap.logging.error(&#34;Exception occured&#34;, exc_info=True)
+            browser.quit()
+
+
 def run(school: str, switch: str) -&gt; None:
     &#34;&#34;&#34;
     Run the database base backup automation on Enko dashboard
@@ -55,127 +232,9 @@ def run(school: str, switch: str) -&gt; None:
     &#34;&#34;&#34;
     print(&#34;Start &#34; + school + &#34; &#34; + service_name)
 
-    # DB backup parameters initialization
-    param = bootstrap.parameters
-    api_key = bootstrap.parameters[&#39;enko_education&#39;][&#39;schools&#39;][school][&#39;api_key&#39;]
-    backup_endpoint_uri = param[&#39;enko_education&#39;][&#39;db_backup_api&#39;].replace(&#39;INSERT_API_KEY_HERE&#39;, api_key)
-    backup_endpoint = param[&#39;enko_education&#39;][&#39;schools&#39;][school][&#39;base_url&#39;] + backup_endpoint_uri
-    backup_url = param[&#39;enko_education&#39;][&#39;schools&#39;][school][&#39;base_url&#39;] + \
-                 param[&#39;enko_education&#39;][&#39;database_uri&#39;]
-    email = param[&#39;enko_education&#39;][&#39;schools&#39;][school][&#39;login&#39;][&#39;email&#39;]
-    password = param[&#39;enko_education&#39;][&#39;schools&#39;][school][&#39;login&#39;][&#39;password&#39;]
-    abbr = param[&#39;enko_education&#39;][&#39;schools&#39;][school][&#39;abbr&#39;]
-    logins = {
-        &#39;email&#39;: email,
-        &#39;password&#39;: password
-    }
-
-    mailer = EnkoMail(service_name, school, param)
-
-    # Create a backup through API if not already done for this task
-    recent_memoize_file = datetime.now().strftime(&#34;%Y%m%d&#34;) + abbr + &#34;.ep&#34;
-
-    # Check if today&#39;s task hadn&#39;t already backup the database
-    if recent_memoize_file not in os.listdir(bootstrap.autobackup_memoize):
-        try:
-            session = bootstrap.get_session()
-            with session.get(backup_endpoint) as r:
-                response_text = r.text
-        except requests.exceptions.ConnectionError:
-            bootstrap.logging.critical(&#34;ConnectionError occurred&#34;, exc_info=True)
-            # No need to execute the whole program and delete backups if unable to create a recent one
-            sys.exit(&#34;Program exit due to Connection Error&#34;)
-
-        # Check if API call return any error
-        if response_text.find(&#39;ErrorBox&#39;) != -1:
-            soup = BeautifulSoup(r.text, features=&#34;html.parser&#34;)
-            mailer.set_subject(&#34;error &#34;)
-            mailer.set_email_message_text(&#34;&lt;b&gt;Unexpected failure occurred&lt;/b&gt;&#34;)
-            mailer.set_email_message_desc(&#34;API call throw: &#34; + soup.text + &#34;&lt;br&gt;IP: &#34; + bootstrap.my_public_ip)
-
-            # Exceptional call for private EnkoMail method __get_email_message_desc()
-            bootstrap.logging.error(f&#34;Execution error occurred {mailer._EnkoMail__get_email_message_desc()}&#34;)
-            mailer.send_mail()
-        else:
-            # Delete unnecessary memos
-            for stored_memo_file in os.listdir(bootstrap.autobackup_memoize):
-                # Prevent from threading lock, remove old memo of this school only
-                if abbr in stored_memo_file:
-                    os.remove(bootstrap.autobackup_memoize + os.sep + stored_memo_file)
-
-            # Create recent memo
-            with open(bootstrap.autobackup_memoize + os.sep + re.search(&#34;\d{8}&#34;, response_text).group(0) + abbr + &#34;.ep&#34;,
-                      &#34;w&#34;) as m:
-                pass
-    else:
-        bootstrap.logging.info(&#34;Database already store for today&#34;)
-        print(&#34;Database already store for today&#34;)
-
-    # Login to ENKO and redirection to back up management page successful
-    browser = platform.login(backup_url, logins)
-    if browser is None:
-        # stop script execution
-        sys.exit()
-
-    # List available backups and delete old ones if any
-    try:
-        db_tabs = WebDriverWait(browser, 15, ignored_exceptions=bootstrap.ignored_exceptions).until(
-            EC.presence_of_element_located((By.ID, &#39;DBTabs&#39;)))
-        li = db_tabs.find_elements(By.TAG_NAME, &#39;li&#39;)
-        li[2].click()
-
-        backup_list = WebDriverWait(browser, 5, ignored_exceptions=bootstrap.ignored_exceptions).until(
-            EC.presence_of_element_located((By.ID, &#39;BackupListbody&#39;)))
-        backups = backup_list.find_elements(By.TAG_NAME, &#39;tr&#39;)
-        deleted_backups = []
-        for bckup in backups:
-            bckup_date = bckup.find_element(By.CLASS_NAME, &#39;column_date&#39;).get_attribute(&#39;textContent&#39;)
-            parse_date = re.search(&#34;\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$&#34;, bckup_date)
-            bckup_parsed_date = datetime.strptime(parse_date.group(0), &#34;%d/%m/%Y %H:%M&#34;)
-
-            date_diff = datetime.now() - bckup_parsed_date
-
-            # Check if backups are old enough to be deleted
-            if param[&#39;enko_education&#39;][&#39;db_backup_max_days&#39;] &lt;= date_diff.days:
-                # TODO: Get backup time and name
-                bckup_filename = bckup.find_element(By.CLASS_NAME, &#39;column_filename&#39;).get_attribute(&#39;textContent&#39;)
-
-                # TODO: Delete backup
-                bckup.find_element(By.CLASS_NAME, &#39;column_delete&#39;).click()
-                deleted_backups.append((bckup_parsed_date, bckup_filename))
-                print(&#34;Delete &#34;, bckup_parsed_date, bckup_filename)
-                time.sleep(2)
-
-        # Send notification mail
-        # TODO: Remove this dummy data
-        # deleted_backups.append((&#34;2023-06-28 16:18&#34;,&#34;backup-enko-mali-com-20230628-1618-ab5d.sql.ctl.eeb&#34;))
-        mailer.set_subject(&#34;notification &#34;)
-        message_desc = &#34;&#34;
-        if len(deleted_backups) &gt; 0:
-            mailer.set_email_message_text(&#34;&lt;b&gt;Removal of old database backup(s)&lt;/b&gt;&#34;)
-            message_desc += &#34;&#34;&#34;
-            &lt;p&gt;The following backup(s) have been successfully deleted:&lt;/p&gt;
-            &lt;table id=&#39;enko_table&#39;&gt;
-                &lt;tr&gt;
-                    &lt;th class=&#39;enko_th&#39;&gt;Backup date&lt;/th&gt;
-                    &lt;th class=&#39;enko_th&#39;&gt;Backup name&lt;/th&gt;
-                &lt;/tr&gt;
-            &#34;&#34;&#34;
-            for deleted_backup in deleted_backups:
-                message_desc += &#34;&lt;tr&gt;&lt;td class=&#39;enko_td&#39;&gt;&#34; + str(deleted_backup[0]) + &#34;&lt;/td&gt;&lt;td class=&#39;enko_td&#39;&gt;&#34; \
-                                + str(deleted_backup[1]) + &#34;&lt;/td&gt;&#34;
-            message_desc += &#34;&lt;/table&gt;&#34;
-        else:
-            mailer.set_email_message_text(&#34;No database backup eligible for removal was found&#34;)
-
-        message_desc += &#34;&lt;p&gt;&lt;b&gt;N.B:&lt;/b&gt; A new database backup has been created already&lt;/p&gt;&#34;
-        mailer.set_email_message_desc(message_desc)
-        mailer.send_mail()
-        browser.quit()
-    except Exception as e:
-        # Send error message and quit
-        bootstrap.logging.error(&#34;Exception occured&#34;, exc_info=True)
-        browser.quit()</code></pre>
+    bck = Backup(school)
+    bck.create_backup()
+    bck.delete_backups()</code></pre>
 </details>
 </section>
 <section>
@@ -206,31 +265,222 @@ def run(school: str, switch: str) -&gt; None:
     &#34;&#34;&#34;
     print(&#34;Start &#34; + school + &#34; &#34; + service_name)
 
-    # DB backup parameters initialization
-    param = bootstrap.parameters
-    api_key = bootstrap.parameters[&#39;enko_education&#39;][&#39;schools&#39;][school][&#39;api_key&#39;]
-    backup_endpoint_uri = param[&#39;enko_education&#39;][&#39;db_backup_api&#39;].replace(&#39;INSERT_API_KEY_HERE&#39;, api_key)
-    backup_endpoint = param[&#39;enko_education&#39;][&#39;schools&#39;][school][&#39;base_url&#39;] + backup_endpoint_uri
-    backup_url = param[&#39;enko_education&#39;][&#39;schools&#39;][school][&#39;base_url&#39;] + \
-                 param[&#39;enko_education&#39;][&#39;database_uri&#39;]
-    email = param[&#39;enko_education&#39;][&#39;schools&#39;][school][&#39;login&#39;][&#39;email&#39;]
-    password = param[&#39;enko_education&#39;][&#39;schools&#39;][school][&#39;login&#39;][&#39;password&#39;]
-    abbr = param[&#39;enko_education&#39;][&#39;schools&#39;][school][&#39;abbr&#39;]
-    logins = {
-        &#39;email&#39;: email,
-        &#39;password&#39;: password
-    }
+    bck = Backup(school)
+    bck.create_backup()
+    bck.delete_backups()</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="eduka-projects.services.database_backup.backup.Backup"><code class="flex name class">
+<span>class <span class="ident">Backup</span></span>
+<span>(</span><span>school)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Backup:
 
-    mailer = EnkoMail(service_name, school, param)
+    def __init__(self, school):
+        self.school = school
+        self.param = bootstrap.parameters
+        self.mailer = EnkoMail(service_name, school, self.param)
+
+        # DB backup parameters initialization
+        self.api_error = -1
+        self.api_key = bootstrap.parameters[&#39;enko_education&#39;][&#39;schools&#39;][school][&#39;api_key&#39;]
+        self.abbr = self.param[&#39;enko_education&#39;][&#39;schools&#39;][school][&#39;abbr&#39;]
+        self.backup_endpoint_uri = self.param[&#39;enko_education&#39;][&#39;db_backup_api&#39;].replace(&#39;INSERT_API_KEY_HERE&#39;,
+                                                                                         self.api_key)
+        self.backup_endpoint = self.param[&#39;enko_education&#39;][&#39;schools&#39;][school][&#39;base_url&#39;] + self.backup_endpoint_uri
+        self.backup_url = self.param[&#39;enko_education&#39;][&#39;schools&#39;][school][&#39;base_url&#39;] + \
+                          self.param[&#39;enko_education&#39;][&#39;database_uri&#39;]
+        self.bck_max_days = self.param[&#39;enko_education&#39;][&#39;db_backup_max_days&#39;]
+
+        self.email = self.param[&#39;enko_education&#39;][&#39;schools&#39;][school][&#39;login&#39;][&#39;email&#39;]
+        self.password = self.param[&#39;enko_education&#39;][&#39;schools&#39;][school][&#39;login&#39;][&#39;password&#39;]
+        self.logins = {
+            &#39;email&#39;: self.email,
+            &#39;password&#39;: self.password
+        }
+
+    def reload_tabs(self, bws):
+        &#34;&#34;&#34;
+        Reload the browser to get a new driver object with the correct node names because of weird
+        naming after immediate backup through browser
+        :return a driver object
+        &#34;&#34;&#34;
+
+        db_tabs = WebDriverWait(bws, 15, ignored_exceptions=bootstrap.ignored_exceptions).until(
+            EC.presence_of_element_located((By.ID, &#39;DBTabs&#39;)))
+        return db_tabs
+
+    def create_backup(self):
+
+        # Create a backup through API if not already done for this task
+        recent_memoize_file = datetime.now().strftime(&#34;%Y%m%d&#34;) + self.abbr + &#34;.ep&#34;
+
+        # Check if today&#39;s task hadn&#39;t already backup the database
+
+        if recent_memoize_file not in os.listdir(bootstrap.autobackup_memoize):
+            try:
+                session = bootstrap.get_session()
+                with session.get(self.backup_endpoint) as r:
+                    response_text = r.text
+            except requests.exceptions.ConnectionError:
+                bootstrap.logging.critical(&#34;ConnectionError occurred&#34;, exc_info=True)
+                # No need to execute the whole program and delete backups if unable to create a recent one
+                sys.exit(&#34;Program exit due to Connection Error&#34;)
+
+            # Check if API call return any error
+            self.api_error = response_text.find(&#39;ErrorBox&#39;)
+
+            if self.api_error != -1:
+                soup = BeautifulSoup(r.text, features=&#34;html.parser&#34;)
+                self.mailer.set_subject(&#34;error &#34;)
+                self.mailer.set_email_message_text(&#34;&lt;b&gt;Unexpected failure occurred&lt;/b&gt;&#34;)
+                self.mailer.set_email_message_desc(&#34;API call throw: &#34; + soup.text + &#34;&lt;br&gt;IP: &#34; + bootstrap.my_public_ip)
+
+                # Exceptional call for private EnkoMail method __get_email_message_desc()
+                bootstrap.logging.error(f&#34;Execution error occurred {self.mailer._EnkoMail__get_email_message_desc()}&#34;)
+                # mailer.send_mail()
+                # sys.exit(&#34;System exit due to API unexpected failure&#34;)
+            else:
+                # Delete unnecessary memos
+                for stored_memo_file in os.listdir(bootstrap.autobackup_memoize):
+                    # Prevent from threading lock, remove old memo of this school only
+                    if self.abbr in stored_memo_file:
+                        os.remove(bootstrap.autobackup_memoize + os.sep + stored_memo_file)
+
+                # Create recent memo
+                with open(bootstrap.autobackup_memoize + os.sep + re.search(&#34;\d{8}&#34;, response_text).group(
+                        0) + self.abbr + &#34;.ep&#34;,
+                          &#34;w&#34;) as m:
+                    pass
+        else:
+            bootstrap.logging.info(&#34;Database already store for today&#34;)
+            print(&#34;Database already store for today&#34;)
+
+        browser = platform.login(self.backup_url, self.logins)
+
+        li = self.reload_tabs(browser).find_elements(By.TAG_NAME, &#39;li&#39;)
+
+        # Create backup with browser
+        if self.api_error != -1:
+            li[1].click()
+            backup_button = self.reload_tabs(browser).find_element(By.ID, &#39;StartBackup&#39;)
+            backup_button.click()
+            jqibuttons = WebDriverWait(browser, 30, ignored_exceptions=bootstrap.ignored_exceptions).until(
+                EC.presence_of_element_located((By.CLASS_NAME, &#39;jqibuttons&#39;)))
+            jqibuttons.click()
+            browser.quit()
+
+    def delete_backups(self):
+        # List available backups and delete old ones if any
+        try:
+            browser = platform.login(self.backup_url, self.logins)
+            tabs = self.reload_tabs(browser)
+            tabs.find_elements(By.TAG_NAME, &#39;li&#39;)[2].click()
+
+            backup_list = WebDriverWait(browser, 5, ignored_exceptions=bootstrap.ignored_exceptions).until(
+                EC.presence_of_element_located((By.ID, &#39;BackupListbody&#39;)))
+            backups = backup_list.find_elements(By.TAG_NAME, &#39;tr&#39;)
+            tr_len = len(backups)
+            deleted_backups = []
+
+            if tr_len &gt; 1:
+                while tr_len &gt; 0:
+                    # Never delete all backup
+                    if len(backups) == 1:
+                        break
+                    bckup = backups[-1]
+                    bckup_date = bckup.find_element(By.CLASS_NAME, &#39;column_date&#39;).get_attribute(&#39;textContent&#39;)
+
+                    parse_date = re.search(&#34;\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$&#34;, bckup_date)
+                    bckup_parsed_date = datetime.strptime(parse_date.group(0), &#34;%d/%m/%Y %H:%M&#34;)
+
+                    date_diff = datetime.now() - bckup_parsed_date
+
+                    # Check if backups are old enough to be deleted
+                    if self.param[&#39;enko_education&#39;][&#39;db_backup_max_days&#39;] &lt;= date_diff.days:
+                        # TODO: Get backup time and name
+                        bckup_filename = bckup.find_element(By.CLASS_NAME, &#39;column_filename&#39;).get_attribute(&#39;textContent&#39;)
+
+                        # TODO: Delete backup
+                        column_del = WebDriverWait(browser, 10, ignored_exceptions=bootstrap.ignored_exceptions).until(
+                        EC.presence_of_element_located((By.CLASS_NAME, &#39;column_delete&#39;)))
+                        column_del.click()
+                        deleted_backups.append((bckup_parsed_date, bckup_filename))
+                        time.sleep(10)
+                    browser.refresh()
+                    tabs = self.reload_tabs(browser)
+                    tabs.find_elements(By.TAG_NAME, &#39;li&#39;)[2].click()
+                    backup_list = WebDriverWait(browser, 5, ignored_exceptions=bootstrap.ignored_exceptions).until(
+                        EC.presence_of_element_located((By.ID, &#39;BackupListbody&#39;)))
+                    backups = backup_list.find_elements(By.TAG_NAME, &#39;tr&#39;)
+                    tr_len -= 1
+
+            # Send notification mail
+            # TODO: Remove this dummy data
+            # deleted_backups.append((&#34;2023-06-28 16:18&#34;,&#34;backup-enko-mali-com-20230628-1618-ab5d.sql.ctl.eeb&#34;))
+            self.mailer.set_subject(&#34;notification &#34;)
+            message_desc = &#34;&#34;
+            if len(deleted_backups) &gt; 0:
+                self.mailer.set_email_message_text(
+                    &#34;&lt;b&gt;Removal of &#34; + str(self.bck_max_days) + &#34; old database backup(s)&lt;/b&gt;&#34;)
+                message_desc += &#34;&#34;&#34;
+                        &lt;p&gt;The following backup(s) have been successfully deleted:&lt;/p&gt;
+                        &lt;table id=&#39;enko_table&#39;&gt;
+                            &lt;tr&gt;
+                                &lt;th class=&#39;enko_th&#39;&gt;Backup date&lt;/th&gt;
+                                &lt;th class=&#39;enko_th&#39;&gt;Backup name&lt;/th&gt;
+                            &lt;/tr&gt;
+                        &#34;&#34;&#34;
+                for deleted_backup in deleted_backups:
+                    message_desc += &#34;&lt;tr&gt;&lt;td class=&#39;enko_td&#39;&gt;&#34; + str(deleted_backup[0]) + &#34;&lt;/td&gt;&lt;td class=&#39;enko_td&#39;&gt;&#34; \
+                                    + str(deleted_backup[1]) + &#34;&lt;/td&gt;&#34;
+                message_desc += &#34;&lt;/table&gt;&#34;
+            else:
+                self.mailer.set_email_message_text(&#34;No database backup eligible for removal was found on &#34;
+                                                   + self.school)
+
+            message_desc += &#34;&lt;p&gt;&lt;b&gt;N.B:&lt;/b&gt; A new database backup has been created already&lt;/p&gt;&#34;
+            self.mailer.set_email_message_desc(message_desc)
+            self.mailer.send_mail()
+            browser.quit()
+        except Exception as e:
+            # Send error message and quit
+            bootstrap.logging.error(&#34;Exception occured&#34;, exc_info=True)
+            browser.quit()</code></pre>
+</details>
+<h3>Methods</h3>
+<dl>
+<dt id="eduka-projects.services.database_backup.backup.Backup.create_backup"><code class="name flex">
+<span>def <span class="ident">create_backup</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def create_backup(self):
 
     # Create a backup through API if not already done for this task
-    recent_memoize_file = datetime.now().strftime(&#34;%Y%m%d&#34;) + abbr + &#34;.ep&#34;
+    recent_memoize_file = datetime.now().strftime(&#34;%Y%m%d&#34;) + self.abbr + &#34;.ep&#34;
 
     # Check if today&#39;s task hadn&#39;t already backup the database
+
     if recent_memoize_file not in os.listdir(bootstrap.autobackup_memoize):
         try:
             session = bootstrap.get_session()
-            with session.get(backup_endpoint) as r:
+            with session.get(self.backup_endpoint) as r:
                 response_text = r.text
         except requests.exceptions.ConnectionError:
             bootstrap.logging.critical(&#34;ConnectionError occurred&#34;, exc_info=True)
@@ -238,90 +488,130 @@ def run(school: str, switch: str) -&gt; None:
             sys.exit(&#34;Program exit due to Connection Error&#34;)
 
         # Check if API call return any error
-        if response_text.find(&#39;ErrorBox&#39;) != -1:
+        self.api_error = response_text.find(&#39;ErrorBox&#39;)
+
+        if self.api_error != -1:
             soup = BeautifulSoup(r.text, features=&#34;html.parser&#34;)
-            mailer.set_subject(&#34;error &#34;)
-            mailer.set_email_message_text(&#34;&lt;b&gt;Unexpected failure occurred&lt;/b&gt;&#34;)
-            mailer.set_email_message_desc(&#34;API call throw: &#34; + soup.text + &#34;&lt;br&gt;IP: &#34; + bootstrap.my_public_ip)
+            self.mailer.set_subject(&#34;error &#34;)
+            self.mailer.set_email_message_text(&#34;&lt;b&gt;Unexpected failure occurred&lt;/b&gt;&#34;)
+            self.mailer.set_email_message_desc(&#34;API call throw: &#34; + soup.text + &#34;&lt;br&gt;IP: &#34; + bootstrap.my_public_ip)
 
             # Exceptional call for private EnkoMail method __get_email_message_desc()
-            bootstrap.logging.error(f&#34;Execution error occurred {mailer._EnkoMail__get_email_message_desc()}&#34;)
-            mailer.send_mail()
+            bootstrap.logging.error(f&#34;Execution error occurred {self.mailer._EnkoMail__get_email_message_desc()}&#34;)
+            # mailer.send_mail()
+            # sys.exit(&#34;System exit due to API unexpected failure&#34;)
         else:
             # Delete unnecessary memos
             for stored_memo_file in os.listdir(bootstrap.autobackup_memoize):
                 # Prevent from threading lock, remove old memo of this school only
-                if abbr in stored_memo_file:
+                if self.abbr in stored_memo_file:
                     os.remove(bootstrap.autobackup_memoize + os.sep + stored_memo_file)
 
             # Create recent memo
-            with open(bootstrap.autobackup_memoize + os.sep + re.search(&#34;\d{8}&#34;, response_text).group(0) + abbr + &#34;.ep&#34;,
+            with open(bootstrap.autobackup_memoize + os.sep + re.search(&#34;\d{8}&#34;, response_text).group(
+                    0) + self.abbr + &#34;.ep&#34;,
                       &#34;w&#34;) as m:
                 pass
     else:
         bootstrap.logging.info(&#34;Database already store for today&#34;)
         print(&#34;Database already store for today&#34;)
 
-    # Login to ENKO and redirection to back up management page successful
-    browser = platform.login(backup_url, logins)
-    if browser is None:
-        # stop script execution
-        sys.exit()
+    browser = platform.login(self.backup_url, self.logins)
 
+    li = self.reload_tabs(browser).find_elements(By.TAG_NAME, &#39;li&#39;)
+
+    # Create backup with browser
+    if self.api_error != -1:
+        li[1].click()
+        backup_button = self.reload_tabs(browser).find_element(By.ID, &#39;StartBackup&#39;)
+        backup_button.click()
+        jqibuttons = WebDriverWait(browser, 30, ignored_exceptions=bootstrap.ignored_exceptions).until(
+            EC.presence_of_element_located((By.CLASS_NAME, &#39;jqibuttons&#39;)))
+        jqibuttons.click()
+        browser.quit()</code></pre>
+</details>
+</dd>
+<dt id="eduka-projects.services.database_backup.backup.Backup.delete_backups"><code class="name flex">
+<span>def <span class="ident">delete_backups</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def delete_backups(self):
     # List available backups and delete old ones if any
     try:
-        db_tabs = WebDriverWait(browser, 15, ignored_exceptions=bootstrap.ignored_exceptions).until(
-            EC.presence_of_element_located((By.ID, &#39;DBTabs&#39;)))
-        li = db_tabs.find_elements(By.TAG_NAME, &#39;li&#39;)
-        li[2].click()
+        browser = platform.login(self.backup_url, self.logins)
+        tabs = self.reload_tabs(browser)
+        tabs.find_elements(By.TAG_NAME, &#39;li&#39;)[2].click()
 
         backup_list = WebDriverWait(browser, 5, ignored_exceptions=bootstrap.ignored_exceptions).until(
             EC.presence_of_element_located((By.ID, &#39;BackupListbody&#39;)))
         backups = backup_list.find_elements(By.TAG_NAME, &#39;tr&#39;)
+        tr_len = len(backups)
         deleted_backups = []
-        for bckup in backups:
-            bckup_date = bckup.find_element(By.CLASS_NAME, &#39;column_date&#39;).get_attribute(&#39;textContent&#39;)
-            parse_date = re.search(&#34;\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$&#34;, bckup_date)
-            bckup_parsed_date = datetime.strptime(parse_date.group(0), &#34;%d/%m/%Y %H:%M&#34;)
 
-            date_diff = datetime.now() - bckup_parsed_date
+        if tr_len &gt; 1:
+            while tr_len &gt; 0:
+                # Never delete all backup
+                if len(backups) == 1:
+                    break
+                bckup = backups[-1]
+                bckup_date = bckup.find_element(By.CLASS_NAME, &#39;column_date&#39;).get_attribute(&#39;textContent&#39;)
 
-            # Check if backups are old enough to be deleted
-            if param[&#39;enko_education&#39;][&#39;db_backup_max_days&#39;] &lt;= date_diff.days:
-                # TODO: Get backup time and name
-                bckup_filename = bckup.find_element(By.CLASS_NAME, &#39;column_filename&#39;).get_attribute(&#39;textContent&#39;)
+                parse_date = re.search(&#34;\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$&#34;, bckup_date)
+                bckup_parsed_date = datetime.strptime(parse_date.group(0), &#34;%d/%m/%Y %H:%M&#34;)
 
-                # TODO: Delete backup
-                bckup.find_element(By.CLASS_NAME, &#39;column_delete&#39;).click()
-                deleted_backups.append((bckup_parsed_date, bckup_filename))
-                print(&#34;Delete &#34;, bckup_parsed_date, bckup_filename)
-                time.sleep(2)
+                date_diff = datetime.now() - bckup_parsed_date
+
+                # Check if backups are old enough to be deleted
+                if self.param[&#39;enko_education&#39;][&#39;db_backup_max_days&#39;] &lt;= date_diff.days:
+                    # TODO: Get backup time and name
+                    bckup_filename = bckup.find_element(By.CLASS_NAME, &#39;column_filename&#39;).get_attribute(&#39;textContent&#39;)
+
+                    # TODO: Delete backup
+                    column_del = WebDriverWait(browser, 10, ignored_exceptions=bootstrap.ignored_exceptions).until(
+                    EC.presence_of_element_located((By.CLASS_NAME, &#39;column_delete&#39;)))
+                    column_del.click()
+                    deleted_backups.append((bckup_parsed_date, bckup_filename))
+                    time.sleep(10)
+                browser.refresh()
+                tabs = self.reload_tabs(browser)
+                tabs.find_elements(By.TAG_NAME, &#39;li&#39;)[2].click()
+                backup_list = WebDriverWait(browser, 5, ignored_exceptions=bootstrap.ignored_exceptions).until(
+                    EC.presence_of_element_located((By.ID, &#39;BackupListbody&#39;)))
+                backups = backup_list.find_elements(By.TAG_NAME, &#39;tr&#39;)
+                tr_len -= 1
 
         # Send notification mail
         # TODO: Remove this dummy data
         # deleted_backups.append((&#34;2023-06-28 16:18&#34;,&#34;backup-enko-mali-com-20230628-1618-ab5d.sql.ctl.eeb&#34;))
-        mailer.set_subject(&#34;notification &#34;)
+        self.mailer.set_subject(&#34;notification &#34;)
         message_desc = &#34;&#34;
         if len(deleted_backups) &gt; 0:
-            mailer.set_email_message_text(&#34;&lt;b&gt;Removal of old database backup(s)&lt;/b&gt;&#34;)
+            self.mailer.set_email_message_text(
+                &#34;&lt;b&gt;Removal of &#34; + str(self.bck_max_days) + &#34; old database backup(s)&lt;/b&gt;&#34;)
             message_desc += &#34;&#34;&#34;
-            &lt;p&gt;The following backup(s) have been successfully deleted:&lt;/p&gt;
-            &lt;table id=&#39;enko_table&#39;&gt;
-                &lt;tr&gt;
-                    &lt;th class=&#39;enko_th&#39;&gt;Backup date&lt;/th&gt;
-                    &lt;th class=&#39;enko_th&#39;&gt;Backup name&lt;/th&gt;
-                &lt;/tr&gt;
-            &#34;&#34;&#34;
+                    &lt;p&gt;The following backup(s) have been successfully deleted:&lt;/p&gt;
+                    &lt;table id=&#39;enko_table&#39;&gt;
+                        &lt;tr&gt;
+                            &lt;th class=&#39;enko_th&#39;&gt;Backup date&lt;/th&gt;
+                            &lt;th class=&#39;enko_th&#39;&gt;Backup name&lt;/th&gt;
+                        &lt;/tr&gt;
+                    &#34;&#34;&#34;
             for deleted_backup in deleted_backups:
                 message_desc += &#34;&lt;tr&gt;&lt;td class=&#39;enko_td&#39;&gt;&#34; + str(deleted_backup[0]) + &#34;&lt;/td&gt;&lt;td class=&#39;enko_td&#39;&gt;&#34; \
                                 + str(deleted_backup[1]) + &#34;&lt;/td&gt;&#34;
             message_desc += &#34;&lt;/table&gt;&#34;
         else:
-            mailer.set_email_message_text(&#34;No database backup eligible for removal was found&#34;)
+            self.mailer.set_email_message_text(&#34;No database backup eligible for removal was found on &#34;
+                                               + self.school)
 
         message_desc += &#34;&lt;p&gt;&lt;b&gt;N.B:&lt;/b&gt; A new database backup has been created already&lt;/p&gt;&#34;
-        mailer.set_email_message_desc(message_desc)
-        mailer.send_mail()
+        self.mailer.set_email_message_desc(message_desc)
+        self.mailer.send_mail()
         browser.quit()
     except Exception as e:
         # Send error message and quit
@@ -329,9 +619,32 @@ def run(school: str, switch: str) -&gt; None:
         browser.quit()</code></pre>
 </details>
 </dd>
+<dt id="eduka-projects.services.database_backup.backup.Backup.reload_tabs"><code class="name flex">
+<span>def <span class="ident">reload_tabs</span></span>(<span>self, bws)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Reload the browser to get a new driver object with the correct node names because of weird
+naming after immediate backup through browser
+:return a driver object</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def reload_tabs(self, bws):
+    &#34;&#34;&#34;
+    Reload the browser to get a new driver object with the correct node names because of weird
+    naming after immediate backup through browser
+    :return a driver object
+    &#34;&#34;&#34;
+
+    db_tabs = WebDriverWait(bws, 15, ignored_exceptions=bootstrap.ignored_exceptions).until(
+        EC.presence_of_element_located((By.ID, &#39;DBTabs&#39;)))
+    return db_tabs</code></pre>
+</details>
+</dd>
 </dl>
-</section>
-<section>
+</dd>
+</dl>
 </section>
 </article>
 <nav id="sidebar">
@@ -348,6 +661,18 @@ def run(school: str, switch: str) -&gt; None:
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
 <li><code><a title="eduka-projects.services.database_backup.backup.run" href="#eduka-projects.services.database_backup.backup.run">run</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="eduka-projects.services.database_backup.backup.Backup" href="#eduka-projects.services.database_backup.backup.Backup">Backup</a></code></h4>
+<ul class="">
+<li><code><a title="eduka-projects.services.database_backup.backup.Backup.create_backup" href="#eduka-projects.services.database_backup.backup.Backup.create_backup">create_backup</a></code></li>
+<li><code><a title="eduka-projects.services.database_backup.backup.Backup.delete_backups" href="#eduka-projects.services.database_backup.backup.Backup.delete_backups">delete_backups</a></code></li>
+<li><code><a title="eduka-projects.services.database_backup.backup.Backup.reload_tabs" href="#eduka-projects.services.database_backup.backup.Backup.reload_tabs">reload_tabs</a></code></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
