@@ -16,9 +16,14 @@ In the parameters.json, make sure you update:
     >> environment -> eduka_code_bank_url with the url of the Excel code bank
     >> environment -> eduka_code_manager_data_inputs with the url of the Excel code bank
 """
+
+from bootstrap import *
+from utils.mail import EnkoMail
 import sys
 import time
 
+from mysql import connector
+from mysql.connector.errors import ProgrammingError, PoolError, OperationalError, NotSupportedError
 import pandas as pd
 
 service_name = "Code Manager Service"
@@ -60,6 +65,50 @@ def get_good_codes_from_excel(url: str, code_bank: bool = False) -> list:
     duration = time.time() - start_time
     print(f"Looping through all excel in {duration} seconds")
     return good_codes
+
+
+def build_academic_year(cluster: str, category: str, __year: str) -> str:
+    if cluster == "nh" and category in ("mst", "fst"):
+        acad_year = "20" + __year + "/20" + str(int(__year) + 1)
+    else:  # (cluster.lower() == "sh" and category in ("mst", "fst")) or category == "fam")
+        acad_year = "20" + __year
+    return acad_year
+
+
+def db(params, mail):
+    try:
+        dbase = connector.connect(
+            host=params['environment']['db_host'],
+            user=params['environment']['db_user'],
+            passwd=params['environment']['db_password'])
+        dbase.cursor().execute('CREATE DATABASE IF NOT EXISTS enko_db')
+        dbase.cursor().execute('use enko_db')
+    except (ProgrammingError, PoolError, OperationalError, NotSupportedError) as e:
+        logging.critical("Database connection error occurred", exc_info=True)
+        mail.set_email_message_text("Database connection error")
+        desc = "<p>Service is not able to connect to project database. <br><br>"
+        desc += "<b>Trace: {trace}</b> <br><br>Please contact the system administrator for more details.</p>"
+        mail.set_email_message_desc(desc.format(trace=str(e)))
+        mail.send_mail()
+        sys.exit('Service task exit on database connection error')
+    except KeyError as e:
+        logging.critical("Service task exit on KeyError exception", exc_info=True)
+        mail.set_email_message_text("Parameters.json KeyError exception")
+        desc = "<p>Service is unable to find appropriate key in the given Json file.. <br><br>"
+        desc += "<b>Trace: {trace}</b> <br><br>Please contact the system administrator for more details.</p>"
+        mail.set_email_message_desc(desc.format(trace=str(e)))
+        mail.send_mail()
+        sys.exit('Service task exit on KeyError exception')
+    except Exception as e:
+        logging.critical("Service task init exit on exception", exc_info=True)
+        mail.set_email_message_text("DB Populate init exception")
+        desc = "<p>Service encounters an exception while initializing enko_db database.. <br><br>"
+        desc += "<b>Trace: {trace}</b> <br><br>Please contact the system administrator for more details.</p>"
+        mail.set_email_message_desc(desc.format(trace=str(e)))
+        mail.send_mail()
+        sys.exit('Service task init exit on exception')
+
+    return dbase
 
 
 def update_user_code():

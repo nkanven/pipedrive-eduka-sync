@@ -90,8 +90,8 @@ class EnkoMail:
             email_message = MIMEMultipart()
             email_message['From'] = self.__service_name + ' <' + self.__email_from + '>'
             email_message['To'] = self.__email_to
-            email_message['Subject'] = self.__school + " - " + self.__service_name + " " + self.__get_subject()\
-                + " - " + self.__date
+            email_message['Subject'] = self.__school + " - " + self.__service_name + " " + self.__get_subject() \
+                                       + " - " + self.__date
 
             email_message.attach(MIMEText(self.__email_template(), "html"))
 
@@ -114,3 +114,6 @@ class EnkoMail:
                 print("Mail sent successfully")
         except Exception as e:
             logging.error("Exception occured", exc_info=True)
+
+    def mail_summarized(self):
+        pass

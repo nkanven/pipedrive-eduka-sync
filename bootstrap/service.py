@@ -7,4 +7,5 @@ from services.code_manager import load
 load = {
     "database_backup": backup,
     "code_populate_db": load,
+    "code_corrector": load,
 }

@@ -7,7 +7,6 @@ import threading
 
 import settings
 
-from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
 
@@ -27,6 +26,7 @@ try:
         if not hasattr(thread_local, "session"):
             thread_local.session = requests.Session()
         return thread_local.session
+
 
     autobackup_memoize = "autobackup_memoize"
     if not os.path.exists(autobackup_memoize):
