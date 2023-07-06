@@ -27,6 +27,7 @@ try:
             thread_local.session = requests.Session()
         return thread_local.session
 
+
     autobackup_memoize = "autobackup_memoize"
     if not os.path.exists(autobackup_memoize):
         os.mkdir(autobackup_memoize)

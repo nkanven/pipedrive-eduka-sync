@@ -23,38 +23,7 @@ class Populate:
         self.mail = mail
         self.sql: list = []
         print("Start populate service")
-
-        try:
-            self.db = connector.connect(
-                host=parameters['environment']['db_host'],
-                user=parameters['environment']['db_user'],
-                passwd=parameters['environment']['db_password'])
-            self.db.cursor().execute('CREATE DATABASE IF NOT EXISTS enko_db')
-            self.db.cursor().execute('use enko_db')
-        except (ProgrammingError, PoolError, OperationalError, NotSupportedError) as e:
-            logging.critical("Database connection error occurred", exc_info=True)
-            mail.set_email_message_text("Database connection error")
-            desc = "<p>Service is not able to connect to project database. <br><br>"
-            desc += "<b>Trace: {trace}</b> <br><br>Please contact the system administrator for more details.</p>"
-            mail.set_email_message_desc(desc.format(trace=str(e)))
-            mail.send_mail()
-            sys.exit('Service task exit on database connection error')
-        except KeyError as e:
-            logging.critical("Service task exit on KeyError exception", exc_info=True)
-            mail.set_email_message_text("Parameters.json KeyError exception")
-            desc = "<p>Service is unable to find appropriate key in the given Json file.. <br><br>"
-            desc += "<b>Trace: {trace}</b> <br><br>Please contact the system administrator for more details.</p>"
-            mail.set_email_message_desc(desc.format(trace=str(e)))
-            mail.send_mail()
-            sys.exit('Service task exit on KeyError exception')
-        except Exception as e:
-            logging.critical("Service task init exit on exception", exc_info=True)
-            mail.set_email_message_text("DB Populate init exception")
-            desc = "<p>Service encounters an exception while initializing enko_db database.. <br><br>"
-            desc += "<b>Trace: {trace}</b> <br><br>Please contact the system administrator for more details.</p>"
-            mail.set_email_message_desc(desc.format(trace=str(e)))
-            mail.send_mail()
-            sys.exit('Service task init exit on exception')
+        self.db = db(parameters, self.mail)
 
     def pre_check(self):
         """
@@ -75,18 +44,31 @@ class Populate:
                                      "`old_code` varchar(255) NOT NULL, `new_code` int(11) NOT NULL, "
                                      "`d_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP) ENGINE = InnoDB DEFAULT "
                                      "CHARSET = utf8mb4;")
+
+            # This multiple try except is to avoid the interpreter to skip an execution because of just on exception
             try:
                 self.db.cursor().execute("ALTER TABLE `bank_code` ADD PRIMARY KEY (`code_id`), ADD UNIQUE KEY `code` ("
                                          "`code`);")
+            except ProgrammingError:
+                pass
+            try:
                 self.db.cursor().execute("ALTER TABLE `bank_code` MODIFY `code_id` int NOT NULL AUTO_INCREMENT;")
+            except ProgrammingError:
+                pass
+            try:
                 self.db.cursor().execute("ALTER TABLE `replacement_logs` ADD PRIMARY KEY (`log_id`), ADD KEY "
                                          "`new_code` (`new_code`);")
+            except ProgrammingError:
+                pass
+            try:
                 self.db.cursor().execute("ALTER TABLE `replacement_logs` MODIFY `log_id` int(11) NOT NULL "
                                          "AUTO_INCREMENT;")
+            except ProgrammingError:
+                pass
+            try:
                 self.db.cursor().execute("ALTER TABLE `replacement_logs` ADD CONSTRAINT `replacement_logs_ibfk_1` "
                                          "FOREIGN KEY (`new_code`) REFERENCES `bank_code` (`code_id`);")
             except ProgrammingError:
-                # No need to alter table when primary keys has already been added
                 pass
 
             logging.info("Database successfully created")
@@ -128,12 +110,8 @@ class Populate:
                         logging.info("Skipped KeyError. Non studend Id")
                     except IndexError:
                         logging.info("Skipped IndexError. Non studend Id")
-                        __year = code_split[2][0:2]
 
-                    if cluster == "nh" and category in ("mst", "fst"):
-                        acad_year = "20" + __year + "/20" + str(int(__year) + 1)
-                    else:  # (cluster.lower() == "sh" and category in ("mst", "fst")) or category == "fam")
-                        acad_year = "20" + __year
+                    acad_year = build_academic_year(cluster, category, code_split[2][0:2])
 
                     values = (i_code, category, platform, acad_year, cluster)
                     self.sql.append(values)
@@ -174,6 +152,7 @@ class Populate:
             self.upload_data_in_code_bank()
             duration = time.time() - start_time
             print(f"Store in {duration} seconds")
+            self.db.close()
 
         except Exception:
             logging.critical("Service task exit on exception", exc_info=True)
