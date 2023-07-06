@@ -71,10 +71,20 @@ class Populate:
                                      "`d_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT "
                                      "CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;")
 
+            self.db.cursor().execute("CREATE TABLE IF NOT EXISTS `replacement_logs`(`log_id` int(11) NOT NULL, "
+                                     "`old_code` varchar(255) NOT NULL, `new_code` int(11) NOT NULL, "
+                                     "`d_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP) ENGINE = InnoDB DEFAULT "
+                                     "CHARSET = utf8mb4;")
             try:
                 self.db.cursor().execute("ALTER TABLE `bank_code` ADD PRIMARY KEY (`code_id`), ADD UNIQUE KEY `code` ("
                                          "`code`);")
                 self.db.cursor().execute("ALTER TABLE `bank_code` MODIFY `code_id` int NOT NULL AUTO_INCREMENT;")
+                self.db.cursor().execute("ALTER TABLE `replacement_logs` ADD PRIMARY KEY (`log_id`), ADD KEY "
+                                         "`new_code` (`new_code`);")
+                self.db.cursor().execute("ALTER TABLE `replacement_logs` MODIFY `log_id` int(11) NOT NULL "
+                                         "AUTO_INCREMENT;")
+                self.db.cursor().execute("ALTER TABLE `replacement_logs` ADD CONSTRAINT `replacement_logs_ibfk_1` "
+                                         "FOREIGN KEY (`new_code`) REFERENCES `bank_code` (`code_id`);")
             except ProgrammingError:
                 # No need to alter table when primary keys has already been added
                 pass
