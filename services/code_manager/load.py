@@ -14,11 +14,11 @@ code_managers = {
 
 def run(school, switch):
     try:
-        print('load populate', switch, code_managers)
+        print('load sub service', switch)
         if switch in code_managers:
             enko_mail = EnkoMail(service_name, school, bootstrap.parameters)
             sub_service = code_managers[switch](school, enko_mail)
-            print("run populate")
+            print("running ", switch)
             sub_service.run()
     except Exception:
         logging.critical("Service task exit on exception", exc_info=True)

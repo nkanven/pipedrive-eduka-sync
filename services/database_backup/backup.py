@@ -45,18 +45,10 @@ class Backup:
             'password': self.password
         }
 
+        self.tabs_id = 'DBTabs'
+
         self.message = {}
 
-    def reload_tabs(self, bws):
-        """
-        Reload the browser to get a new driver object with the correct node names because of weird
-        naming after immediate backup through browser
-        :return a driver object
-        """
-
-        db_tabs = WebDriverWait(bws, 15, ignored_exceptions=bootstrap.ignored_exceptions).until(
-            EC.presence_of_element_located((By.ID, 'DBTabs')))
-        return db_tabs
 
     def create_backup(self):
 
@@ -106,12 +98,12 @@ class Backup:
 
         browser = platform.login(self.backup_url, self.logins)
 
-        li = self.reload_tabs(browser).find_elements(By.TAG_NAME, 'li')
+        li = platform.get_tabs(self.tabs_id, browser).find_elements(By.TAG_NAME, 'li')
 
         # Create backup with browser if there was an API error
         if self.api_error != -1:
             li[1].click()
-            backup_button = self.reload_tabs(browser).find_element(By.ID, 'StartBackup')
+            backup_button = platform.get_tabs(self.tabs_id, browser).find_element(By.ID, 'StartBackup')
             backup_button.click()
             jqibuttons = WebDriverWait(browser, 30, ignored_exceptions=bootstrap.ignored_exceptions).until(
                 EC.presence_of_element_located((By.CLASS_NAME, 'jqibuttons')))
@@ -122,7 +114,7 @@ class Backup:
         # List available backups and delete old ones if any
         try:
             browser = platform.login(self.backup_url, self.logins)
-            tabs = self.reload_tabs(browser)
+            tabs = platform.get_tabs(self.tabs_id, browser)
             tabs.find_elements(By.TAG_NAME, 'li')[2].click()
 
             backup_list = WebDriverWait(browser, 5, ignored_exceptions=bootstrap.ignored_exceptions).until(
@@ -156,7 +148,7 @@ class Backup:
                         deleted_backups.append((bckup_parsed_date, bckup_filename))
                         time.sleep(10)
                     browser.refresh()
-                    tabs = self.reload_tabs(browser)
+                    tabs = platform.get_tabs(self.tabs_id, browser)
                     tabs.find_elements(By.TAG_NAME, 'li')[2].click()
                     backup_list = WebDriverWait(browser, 5, ignored_exceptions=bootstrap.ignored_exceptions).until(
                         EC.presence_of_element_located((By.ID, 'BackupListbody')))
