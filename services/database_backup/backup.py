@@ -45,6 +45,8 @@ class Backup:
             'password': self.password
         }
 
+        self.message = {}
+
     def reload_tabs(self, bws):
         """
         Reload the browser to get a new driver object with the correct node names because of weird
@@ -106,7 +108,7 @@ class Backup:
 
         li = self.reload_tabs(browser).find_elements(By.TAG_NAME, 'li')
 
-        # Create backup with browser
+        # Create backup with browser if there was an API error
         if self.api_error != -1:
             li[1].click()
             backup_button = self.reload_tabs(browser).find_element(By.ID, 'StartBackup')
