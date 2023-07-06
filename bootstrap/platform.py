@@ -4,6 +4,8 @@ import sys
 import bootstrap
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 
 def login(url: str, logins: dict) -> webdriver:
@@ -28,6 +30,16 @@ def login(url: str, logins: dict) -> webdriver:
         # Todo: Send error message and return None
     else:
         return dvr
+
+
+def get_tabs(id: str, dvr: webdriver) -> webdriver:
+    """
+    Get the tab row on Enko dasboard
+    :return a webdriver object
+    """
+    db_tabs = WebDriverWait(dvr, 15, ignored_exceptions=bootstrap.ignored_exceptions).until(
+        EC.presence_of_element_located((By.ID, id)))
+    return db_tabs
 
 
 def driver():
