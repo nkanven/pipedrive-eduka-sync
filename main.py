@@ -18,6 +18,8 @@ For each new microservice, the developer should:
 For the code base stability and integrity to prevail, developer need to respect this minimal recommendations
 """
 
+import time
+
 try:
     import logging
     import sys
@@ -26,7 +28,8 @@ try:
     from bootstrap import service
     import concurrent.futures
     from services.code_manager import get_good_codes_from_excel
-
+    from utils.rialization import deserialize
+    from utils.mail import EnkoMail
 
     # Read command arguments
     argv = sys.argv[1:]
@@ -42,9 +45,27 @@ try:
     Main dispatcher thread pool executor
     """
     if cmd in service.load:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            executor.map(service.load[cmd].run, schools, [cmd])
 
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            for school in schools:
+                executor.submit(service.load[cmd]["loader"].run, school, cmd)
+                # Make space between workers execution
+                time.sleep(5)
+                print("Work started for", school)
+        print("Thread work done...")
+
+        # From all schools, get unique emails
+        emails = []
+        for school in schools:
+            for email in parameters['enko_education']['schools'][school]["comma_seperated_emails"].split(","):
+                emails.append(email.strip(" "))
+
+        unique_emails = set(emails)
+
+        enko_mail = EnkoMail(cmd, school, parameters)
+        enko_mail.set_email_cc_list(list(unique_emails))
+        enko_mail.mail_summarized()
+        enko_mail.send_mail()
 except Exception as e:
     print("Program launch error", str(e))
     logging.critical("Program launch error", exc_info=True)
