@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.10.0" />
-<title>eduka-projects.settings API documentation</title>
+<title>eduka-projects.utils.rialization API documentation</title>
 <meta name="description" content="" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
@@ -19,14 +19,64 @@
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>eduka-projects.settings</code></h1>
+<h1 class="title">Module <code>eduka-projects.utils.rialization</code></h1>
 </header>
 <section id="section-intro">
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">parameters_url = &#34;https://liyosol.com/parameters-dev.json&#34;</code></pre>
+<pre><code class="python">import os
+import pickle
+
+import bootstrap
+
+
+def serialize(fname, data) -&gt; bool:
+    &#34;&#34;&#34;
+    Serialize data for later usage
+    :param fname: (str) name of the file to be created for in which the bytes will be stored
+    :param data: (any) the object to store. It can be of any datatype
+    :return: (bool) function does True if successfully completed or False if an error occured
+    &#34;&#34;&#34;
+
+    result = False
+    try:
+        with open(fname, &#34;wb&#34;) as d:
+            d.write(pickle.dumps(data))
+        result = True
+    except Exception as e:
+        print(str(e))
+    finally:
+        return result
+
+
+def deserialize(service_running, category):
+    &#34;&#34;&#34;
+    Deserialize a store object
+    :param service_running: (str) the name of the service running
+    :param category: (str) the type of contained in data. It can be mail, memoize, etc.
+    :return: (list) function return a list of python object
+    &#34;&#34;&#34;
+    data = []
+    fname = category + service_running
+    for f in os.listdir(bootstrap.autobackup_memoize):
+        if f.find(fname) != -1:
+            with open(bootstrap.autobackup_memoize + os.sep + f, &#34;rb&#34;) as d:
+                data.append(pickle.loads(d.read()))
+
+    return data
+
+
+def delete_serialized(folder_path, file_name):
+    &#34;&#34;&#34;
+    Delete serialized files
+    :param folder_path: (str) path of the folder in which files should be searched
+    :param file_name: (str) partial or full name of the file to delete.
+    &#34;&#34;&#34;
+    for stored_memo_file in os.listdir(folder_path):
+        if stored_memo_file.find(file_name) != -1:
+            os.remove(folder_path + os.sep + stored_memo_file)</code></pre>
 </details>
 </section>
 <section>
@@ -34,6 +84,91 @@
 <section>
 </section>
 <section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="eduka-projects.utils.rialization.delete_serialized"><code class="name flex">
+<span>def <span class="ident">delete_serialized</span></span>(<span>folder_path, file_name)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Delete serialized files
+:param folder_path: (str) path of the folder in which files should be searched
+:param file_name: (str) partial or full name of the file to delete.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def delete_serialized(folder_path, file_name):
+    &#34;&#34;&#34;
+    Delete serialized files
+    :param folder_path: (str) path of the folder in which files should be searched
+    :param file_name: (str) partial or full name of the file to delete.
+    &#34;&#34;&#34;
+    for stored_memo_file in os.listdir(folder_path):
+        if stored_memo_file.find(file_name) != -1:
+            os.remove(folder_path + os.sep + stored_memo_file)</code></pre>
+</details>
+</dd>
+<dt id="eduka-projects.utils.rialization.deserialize"><code class="name flex">
+<span>def <span class="ident">deserialize</span></span>(<span>service_running, category)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Deserialize a store object
+:param service_running: (str) the name of the service running
+:param category: (str) the type of contained in data. It can be mail, memoize, etc.
+:return: (list) function return a list of python object</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def deserialize(service_running, category):
+    &#34;&#34;&#34;
+    Deserialize a store object
+    :param service_running: (str) the name of the service running
+    :param category: (str) the type of contained in data. It can be mail, memoize, etc.
+    :return: (list) function return a list of python object
+    &#34;&#34;&#34;
+    data = []
+    fname = category + service_running
+    for f in os.listdir(bootstrap.autobackup_memoize):
+        if f.find(fname) != -1:
+            with open(bootstrap.autobackup_memoize + os.sep + f, &#34;rb&#34;) as d:
+                data.append(pickle.loads(d.read()))
+
+    return data</code></pre>
+</details>
+</dd>
+<dt id="eduka-projects.utils.rialization.serialize"><code class="name flex">
+<span>def <span class="ident">serialize</span></span>(<span>fname, data) ‑> bool</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Serialize data for later usage
+:param fname: (str) name of the file to be created for in which the bytes will be stored
+:param data: (any) the object to store. It can be of any datatype
+:return: (bool) function does True if successfully completed or False if an error occured</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def serialize(fname, data) -&gt; bool:
+    &#34;&#34;&#34;
+    Serialize data for later usage
+    :param fname: (str) name of the file to be created for in which the bytes will be stored
+    :param data: (any) the object to store. It can be of any datatype
+    :return: (bool) function does True if successfully completed or False if an error occured
+    &#34;&#34;&#34;
+
+    result = False
+    try:
+        with open(fname, &#34;wb&#34;) as d:
+            d.write(pickle.dumps(data))
+        result = True
+    except Exception as e:
+        print(str(e))
+    finally:
+        return result</code></pre>
+</details>
+</dd>
+</dl>
 </section>
 <section>
 </section>
@@ -46,7 +181,14 @@
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="eduka-projects" href="index.html">eduka-projects</a></code></li>
+<li><code><a title="eduka-projects.utils" href="index.html">eduka-projects.utils</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="eduka-projects.utils.rialization.delete_serialized" href="#eduka-projects.utils.rialization.delete_serialized">delete_serialized</a></code></li>
+<li><code><a title="eduka-projects.utils.rialization.deserialize" href="#eduka-projects.utils.rialization.deserialize">deserialize</a></code></li>
+<li><code><a title="eduka-projects.utils.rialization.serialize" href="#eduka-projects.utils.rialization.serialize">serialize</a></code></li>
 </ul>
 </li>
 </ul>

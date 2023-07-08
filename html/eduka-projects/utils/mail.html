@@ -27,6 +27,8 @@
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">import logging
+import pickle
+
 import ssl
 import smtplib
 from datetime import datetime
@@ -34,6 +36,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 from bootstrap import *
+from utils.rialization import deserialize, delete_serialized
 
 
 class EnkoMail:
@@ -49,10 +52,11 @@ class EnkoMail:
         self.__params = params
         self.__email_message_text: str = &#34;&#34;
         self.__email_message_desc: str = &#34;&#34;
+        self.__category: str = &#34;&#34;
         self.__subject: str = &#34;&#34;
         self.__school: str = params[&#39;enko_education&#39;][&#39;schools&#39;][school][&#39;label&#39;]
         self.__email_cc_list: list = params[&#39;enko_education&#39;][&#39;schools&#39;][school][&#39;comma_seperated_emails&#39;].split(&#34;,&#34;)
-        self.__email_to: str = params[&#39;enko_education&#39;][&#39;schools&#39;][school][&#39;comma_seperated_emails&#39;].split(&#34;,&#34;)[0]
+        self.__email_to: str = self.__email_cc_list[0]
         self.__date: str = str(datetime.now())
         self.__email_from: str = params[&#39;environment&#39;][&#39;email&#39;]
         self.__email_password: str = params[&#39;environment&#39;][&#39;password&#39;]
@@ -74,6 +78,12 @@ class EnkoMail:
 
     def __get_subject(self):
         return self.__subject
+
+    def set_email_cc_list(self, email: list):
+        self.__email_cc_list = email
+
+    def set_category(self, category):
+        self.__category = category
 
     def __email_template(self):
         style = &#34;&#34;&#34;
@@ -118,8 +128,8 @@ class EnkoMail:
             email_message = MIMEMultipart()
             email_message[&#39;From&#39;] = self.__service_name + &#39; &lt;&#39; + self.__email_from + &#39;&gt;&#39;
             email_message[&#39;To&#39;] = self.__email_to
-            email_message[&#39;Subject&#39;] = self.__school + &#34; - &#34; + self.__service_name + &#34; &#34; + self.__get_subject()\
-                + &#34; - &#34; + self.__date
+            email_message[&#39;Subject&#39;] = self.__service_name + &#34; &#34; + self.__get_subject() \
+                                       + &#34; - &#34; + self.__date
 
             email_message.attach(MIMEText(self.__email_template(), &#34;html&#34;))
 
@@ -140,8 +150,43 @@ class EnkoMail:
                 logging.error(&#34;Exception occured&#34;, exc_info=True)
             else:
                 print(&#34;Mail sent successfully&#34;)
+                delete_serialized(bootstrap.autobackup_memoize, self.__category + self.__service_name)
         except Exception as e:
-            logging.error(&#34;Exception occured&#34;, exc_info=True)</code></pre>
+            logging.error(&#34;Exception occured&#34;, exc_info=True)
+
+    def mail_summarized(self):
+        &#34;&#34;&#34;
+        Mail summarized for single message using multiple threads
+        &#34;&#34;&#34;
+        self.__category = &#34;mail&#34;
+        datas = deserialize(self.__service_name, self.__category)
+        success_message_desc = message_foot = message_title = message_desc = &#34;&#34;
+
+        errors = &#34;&lt;p style=color:red&gt;&lt;hr&gt;&lt;b&gt;Error(s)&lt;/b&gt;&lt;hr&gt;&lt;/p&gt;&#34;
+        for data in datas:
+            for error in data[&#39;error&#39;]:
+                errors += &#34;&lt;p&gt;&#34; + error[0] + &#34; &#34; + error[1] + &#34;&lt;/p&gt;&#34;
+
+            for succ in data[&#39;success&#39;]:
+                message_title += &#34;&lt;p&gt;&#34; + succ[0] + &#34; for &#34; + self.__school + &#34;&lt;/p&gt;&#34;
+                message_desc += succ[1]
+                message_foot += succ[2] + &#34;&lt;/br&gt;&#34;
+
+        #error = bootstrap.service.load[self.__service_name][&#34;mail_template&#34;][&#34;error&#34;]
+        success = bootstrap.service.load[self.__service_name][&#34;mail_template&#34;][&#34;success&#34;]
+        success[&#34;head&#34;] = message_title
+        success[&#34;body&#34;] = success[&#34;body&#34;] + message_desc + &#34;&lt;/table&gt;&#34;
+        success[&#34;foot&#34;] = &#34;&lt;p&gt;&lt;b&gt;N.B:&lt;/b&gt; &#34; + message_foot + &#34;&lt;/p&gt;&#34;
+
+        if message_desc != &#34;&#34;:
+            success_message_desc += &#34;&lt;p&gt;The following backup(s) have been successfully deleted:&lt;/p&gt;&#34;
+
+        self.set_email_message_desc(
+            success_message_desc + success[&#34;body&#34;] + success[&#34;foot&#34;] + &#34;&lt;div&gt;&#34; + errors + &#34;&lt;/div&gt;&#34;
+        )
+        self.set_email_message_text(success[&#34;head&#34;])
+
+        self.set_subject(subject=success[&#34;subject&#34;])</code></pre>
 </details>
 </section>
 <section>
@@ -176,10 +221,11 @@ class EnkoMail:
         self.__params = params
         self.__email_message_text: str = &#34;&#34;
         self.__email_message_desc: str = &#34;&#34;
+        self.__category: str = &#34;&#34;
         self.__subject: str = &#34;&#34;
         self.__school: str = params[&#39;enko_education&#39;][&#39;schools&#39;][school][&#39;label&#39;]
         self.__email_cc_list: list = params[&#39;enko_education&#39;][&#39;schools&#39;][school][&#39;comma_seperated_emails&#39;].split(&#34;,&#34;)
-        self.__email_to: str = params[&#39;enko_education&#39;][&#39;schools&#39;][school][&#39;comma_seperated_emails&#39;].split(&#34;,&#34;)[0]
+        self.__email_to: str = self.__email_cc_list[0]
         self.__date: str = str(datetime.now())
         self.__email_from: str = params[&#39;environment&#39;][&#39;email&#39;]
         self.__email_password: str = params[&#39;environment&#39;][&#39;password&#39;]
@@ -201,6 +247,12 @@ class EnkoMail:
 
     def __get_subject(self):
         return self.__subject
+
+    def set_email_cc_list(self, email: list):
+        self.__email_cc_list = email
+
+    def set_category(self, category):
+        self.__category = category
 
     def __email_template(self):
         style = &#34;&#34;&#34;
@@ -245,8 +297,8 @@ class EnkoMail:
             email_message = MIMEMultipart()
             email_message[&#39;From&#39;] = self.__service_name + &#39; &lt;&#39; + self.__email_from + &#39;&gt;&#39;
             email_message[&#39;To&#39;] = self.__email_to
-            email_message[&#39;Subject&#39;] = self.__school + &#34; - &#34; + self.__service_name + &#34; &#34; + self.__get_subject()\
-                + &#34; - &#34; + self.__date
+            email_message[&#39;Subject&#39;] = self.__service_name + &#34; &#34; + self.__get_subject() \
+                                       + &#34; - &#34; + self.__date
 
             email_message.attach(MIMEText(self.__email_template(), &#34;html&#34;))
 
@@ -267,11 +319,90 @@ class EnkoMail:
                 logging.error(&#34;Exception occured&#34;, exc_info=True)
             else:
                 print(&#34;Mail sent successfully&#34;)
+                delete_serialized(bootstrap.autobackup_memoize, self.__category + self.__service_name)
         except Exception as e:
-            logging.error(&#34;Exception occured&#34;, exc_info=True)</code></pre>
+            logging.error(&#34;Exception occured&#34;, exc_info=True)
+
+    def mail_summarized(self):
+        &#34;&#34;&#34;
+        Mail summarized for single message using multiple threads
+        &#34;&#34;&#34;
+        self.__category = &#34;mail&#34;
+        datas = deserialize(self.__service_name, self.__category)
+        success_message_desc = message_foot = message_title = message_desc = &#34;&#34;
+
+        errors = &#34;&lt;p style=color:red&gt;&lt;hr&gt;&lt;b&gt;Error(s)&lt;/b&gt;&lt;hr&gt;&lt;/p&gt;&#34;
+        for data in datas:
+            for error in data[&#39;error&#39;]:
+                errors += &#34;&lt;p&gt;&#34; + error[0] + &#34; &#34; + error[1] + &#34;&lt;/p&gt;&#34;
+
+            for succ in data[&#39;success&#39;]:
+                message_title += &#34;&lt;p&gt;&#34; + succ[0] + &#34; for &#34; + self.__school + &#34;&lt;/p&gt;&#34;
+                message_desc += succ[1]
+                message_foot += succ[2] + &#34;&lt;/br&gt;&#34;
+
+        #error = bootstrap.service.load[self.__service_name][&#34;mail_template&#34;][&#34;error&#34;]
+        success = bootstrap.service.load[self.__service_name][&#34;mail_template&#34;][&#34;success&#34;]
+        success[&#34;head&#34;] = message_title
+        success[&#34;body&#34;] = success[&#34;body&#34;] + message_desc + &#34;&lt;/table&gt;&#34;
+        success[&#34;foot&#34;] = &#34;&lt;p&gt;&lt;b&gt;N.B:&lt;/b&gt; &#34; + message_foot + &#34;&lt;/p&gt;&#34;
+
+        if message_desc != &#34;&#34;:
+            success_message_desc += &#34;&lt;p&gt;The following backup(s) have been successfully deleted:&lt;/p&gt;&#34;
+
+        self.set_email_message_desc(
+            success_message_desc + success[&#34;body&#34;] + success[&#34;foot&#34;] + &#34;&lt;div&gt;&#34; + errors + &#34;&lt;/div&gt;&#34;
+        )
+        self.set_email_message_text(success[&#34;head&#34;])
+
+        self.set_subject(subject=success[&#34;subject&#34;])</code></pre>
 </details>
 <h3>Methods</h3>
 <dl>
+<dt id="eduka-projects.utils.mail.EnkoMail.mail_summarized"><code class="name flex">
+<span>def <span class="ident">mail_summarized</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Mail summarized for single message using multiple threads</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def mail_summarized(self):
+    &#34;&#34;&#34;
+    Mail summarized for single message using multiple threads
+    &#34;&#34;&#34;
+    self.__category = &#34;mail&#34;
+    datas = deserialize(self.__service_name, self.__category)
+    success_message_desc = message_foot = message_title = message_desc = &#34;&#34;
+
+    errors = &#34;&lt;p style=color:red&gt;&lt;hr&gt;&lt;b&gt;Error(s)&lt;/b&gt;&lt;hr&gt;&lt;/p&gt;&#34;
+    for data in datas:
+        for error in data[&#39;error&#39;]:
+            errors += &#34;&lt;p&gt;&#34; + error[0] + &#34; &#34; + error[1] + &#34;&lt;/p&gt;&#34;
+
+        for succ in data[&#39;success&#39;]:
+            message_title += &#34;&lt;p&gt;&#34; + succ[0] + &#34; for &#34; + self.__school + &#34;&lt;/p&gt;&#34;
+            message_desc += succ[1]
+            message_foot += succ[2] + &#34;&lt;/br&gt;&#34;
+
+    #error = bootstrap.service.load[self.__service_name][&#34;mail_template&#34;][&#34;error&#34;]
+    success = bootstrap.service.load[self.__service_name][&#34;mail_template&#34;][&#34;success&#34;]
+    success[&#34;head&#34;] = message_title
+    success[&#34;body&#34;] = success[&#34;body&#34;] + message_desc + &#34;&lt;/table&gt;&#34;
+    success[&#34;foot&#34;] = &#34;&lt;p&gt;&lt;b&gt;N.B:&lt;/b&gt; &#34; + message_foot + &#34;&lt;/p&gt;&#34;
+
+    if message_desc != &#34;&#34;:
+        success_message_desc += &#34;&lt;p&gt;The following backup(s) have been successfully deleted:&lt;/p&gt;&#34;
+
+    self.set_email_message_desc(
+        success_message_desc + success[&#34;body&#34;] + success[&#34;foot&#34;] + &#34;&lt;div&gt;&#34; + errors + &#34;&lt;/div&gt;&#34;
+    )
+    self.set_email_message_text(success[&#34;head&#34;])
+
+    self.set_subject(subject=success[&#34;subject&#34;])</code></pre>
+</details>
+</dd>
 <dt id="eduka-projects.utils.mail.EnkoMail.send_mail"><code class="name flex">
 <span>def <span class="ident">send_mail</span></span>(<span>self) ‑> None</span>
 </code></dt>
@@ -295,8 +426,8 @@ class EnkoMail:
         email_message = MIMEMultipart()
         email_message[&#39;From&#39;] = self.__service_name + &#39; &lt;&#39; + self.__email_from + &#39;&gt;&#39;
         email_message[&#39;To&#39;] = self.__email_to
-        email_message[&#39;Subject&#39;] = self.__school + &#34; - &#34; + self.__service_name + &#34; &#34; + self.__get_subject()\
-            + &#34; - &#34; + self.__date
+        email_message[&#39;Subject&#39;] = self.__service_name + &#34; &#34; + self.__get_subject() \
+                                   + &#34; - &#34; + self.__date
 
         email_message.attach(MIMEText(self.__email_template(), &#34;html&#34;))
 
@@ -317,8 +448,35 @@ class EnkoMail:
             logging.error(&#34;Exception occured&#34;, exc_info=True)
         else:
             print(&#34;Mail sent successfully&#34;)
+            delete_serialized(bootstrap.autobackup_memoize, self.__category + self.__service_name)
     except Exception as e:
         logging.error(&#34;Exception occured&#34;, exc_info=True)</code></pre>
+</details>
+</dd>
+<dt id="eduka-projects.utils.mail.EnkoMail.set_category"><code class="name flex">
+<span>def <span class="ident">set_category</span></span>(<span>self, category)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def set_category(self, category):
+    self.__category = category</code></pre>
+</details>
+</dd>
+<dt id="eduka-projects.utils.mail.EnkoMail.set_email_cc_list"><code class="name flex">
+<span>def <span class="ident">set_email_cc_list</span></span>(<span>self, email: list)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def set_email_cc_list(self, email: list):
+    self.__email_cc_list = email</code></pre>
 </details>
 </dd>
 <dt id="eduka-projects.utils.mail.EnkoMail.set_email_message_desc"><code class="name flex">
@@ -381,7 +539,10 @@ class EnkoMail:
 <li>
 <h4><code><a title="eduka-projects.utils.mail.EnkoMail" href="#eduka-projects.utils.mail.EnkoMail">EnkoMail</a></code></h4>
 <ul class="">
+<li><code><a title="eduka-projects.utils.mail.EnkoMail.mail_summarized" href="#eduka-projects.utils.mail.EnkoMail.mail_summarized">mail_summarized</a></code></li>
 <li><code><a title="eduka-projects.utils.mail.EnkoMail.send_mail" href="#eduka-projects.utils.mail.EnkoMail.send_mail">send_mail</a></code></li>
+<li><code><a title="eduka-projects.utils.mail.EnkoMail.set_category" href="#eduka-projects.utils.mail.EnkoMail.set_category">set_category</a></code></li>
+<li><code><a title="eduka-projects.utils.mail.EnkoMail.set_email_cc_list" href="#eduka-projects.utils.mail.EnkoMail.set_email_cc_list">set_email_cc_list</a></code></li>
 <li><code><a title="eduka-projects.utils.mail.EnkoMail.set_email_message_desc" href="#eduka-projects.utils.mail.EnkoMail.set_email_message_desc">set_email_message_desc</a></code></li>
 <li><code><a title="eduka-projects.utils.mail.EnkoMail.set_email_message_text" href="#eduka-projects.utils.mail.EnkoMail.set_email_message_text">set_email_message_text</a></code></li>
 <li><code><a title="eduka-projects.utils.mail.EnkoMail.set_subject" href="#eduka-projects.utils.mail.EnkoMail.set_subject">set_subject</a></code></li>

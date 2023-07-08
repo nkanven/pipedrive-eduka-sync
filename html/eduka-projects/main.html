@@ -59,6 +59,8 @@ For each new microservice, the developer should:
 For the code base stability and integrity to prevail, developer need to respect this minimal recommendations
 &#34;&#34;&#34;
 
+import time
+
 try:
     import logging
     import sys
@@ -67,7 +69,8 @@ try:
     from bootstrap import service
     import concurrent.futures
     from services.code_manager import get_good_codes_from_excel
-
+    from utils.rialization import deserialize
+    from utils.mail import EnkoMail
 
     # Read command arguments
     argv = sys.argv[1:]
@@ -83,9 +86,27 @@ try:
     Main dispatcher thread pool executor
     &#34;&#34;&#34;
     if cmd in service.load:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            executor.map(service.load[cmd].run, schools, [cmd])
 
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            for school in schools:
+                executor.submit(service.load[cmd][&#34;loader&#34;].run, school, cmd)
+                # Make space between workers execution
+                time.sleep(5)
+                print(&#34;Work started for&#34;, school)
+        print(&#34;Thread work done...&#34;)
+
+        # From all schools, get unique emails
+        emails = []
+        for school in schools:
+            for email in parameters[&#39;enko_education&#39;][&#39;schools&#39;][school][&#34;comma_seperated_emails&#34;].split(&#34;,&#34;):
+                emails.append(email.strip(&#34; &#34;))
+
+        unique_emails = set(emails)
+
+        enko_mail = EnkoMail(cmd, school, parameters)
+        enko_mail.set_email_cc_list(list(unique_emails))
+        enko_mail.mail_summarized()
+        enko_mail.send_mail()
 except Exception as e:
     print(&#34;Program launch error&#34;, str(e))
     logging.critical(&#34;Program launch error&#34;, exc_info=True)</code></pre>

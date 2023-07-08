@@ -31,21 +31,23 @@
 import bootstrap
 from services.code_manager import *
 from services.code_manager.db_populate import Populate
+from services.code_manager.corrector import Correct
 from utils.mail import EnkoMail
 
 code_managers = {
     &#39;code_populate_db&#39;: Populate,
+    &#39;code_corrector&#39;: Correct,
 }
 
 
 def run(school, switch):
     try:
-        print(&#39;load populate&#39;, switch, code_managers)
+        print(&#39;load sub service&#39;, switch)
         if switch in code_managers:
             enko_mail = EnkoMail(service_name, school, bootstrap.parameters)
-            populate = code_managers[switch](school, enko_mail)
-            print(&#34;run populate&#34;)
-            populate.run()
+            sub_service = code_managers[switch](school, enko_mail)
+            print(&#34;running &#34;, switch)
+            sub_service.run()
     except Exception:
         logging.critical(&#34;Service task exit on exception&#34;, exc_info=True)</code></pre>
 </details>
@@ -68,12 +70,12 @@ def run(school, switch):
 </summary>
 <pre><code class="python">def run(school, switch):
     try:
-        print(&#39;load populate&#39;, switch, code_managers)
+        print(&#39;load sub service&#39;, switch)
         if switch in code_managers:
             enko_mail = EnkoMail(service_name, school, bootstrap.parameters)
-            populate = code_managers[switch](school, enko_mail)
-            print(&#34;run populate&#34;)
-            populate.run()
+            sub_service = code_managers[switch](school, enko_mail)
+            print(&#34;running &#34;, switch)
+            sub_service.run()
     except Exception:
         logging.critical(&#34;Service task exit on exception&#34;, exc_info=True)</code></pre>
 </details>

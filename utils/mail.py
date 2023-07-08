@@ -7,7 +7,6 @@ from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-import bootstrap.service
 from bootstrap import *
 from utils.rialization import deserialize, delete_serialized
 
@@ -145,7 +144,7 @@ class EnkoMail:
                 message_desc += succ[1]
                 message_foot += succ[2] + "</br>"
 
-        error = bootstrap.service.load[self.__service_name]["mail_template"]["error"]
+        #error = bootstrap.service.load[self.__service_name]["mail_template"]["error"]
         success = bootstrap.service.load[self.__service_name]["mail_template"]["success"]
         success["head"] = message_title
         success["body"] = success["body"] + message_desc + "</table>"
