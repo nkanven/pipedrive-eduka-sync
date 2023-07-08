@@ -1,5 +1,7 @@
 import datetime
-import time
+import random
+
+import mysql.connector
 
 from services.code_manager import *
 
@@ -13,7 +15,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-import mysql.connector
+from mysql.connector import errors
 
 
 class Correct:
@@ -24,7 +26,7 @@ class Correct:
         self.school = school
         self.param = bootstrap.parameters
         self.mailer = EnkoMail(service_name, school, self.param)
-        self.db = db(self.param, self.mailer)
+        db_init(self.mailer)
 
         self.logins = {
             'email': self.param['enko_education']['schools'][self.school]['login']['email'],
@@ -61,6 +63,7 @@ class Correct:
             self.columns_data.append(user_data)
 
         print(self.columns_data)
+        random.shuffle(self.columns_data)
 
         self.browser.get(
             self.param['enko_education']['schools'][self.school]['base_url']
@@ -88,6 +91,8 @@ class Correct:
 
         )
         platform.get_tabs("tabs", self.browser).find_elements(By.TAG_NAME, 'li')[4].click()
+
+        random.shuffle(self.columns_data)
 
         for data in self.columns_data:
             if len(data) > 4:
@@ -125,32 +130,42 @@ class Correct:
                     print(c_platform, cluster, category, acad_year)
                     # Get the oldest student id
                     query = f"select code_id, code from bank_code where platform='{c_platform}' and cluster='{cluster}' and acad_year='{acad_year}' and category='{category}' and is_used=0 order by code_id asc"
-                    cursor = self.db.cursor()
-                    cursor.execute(query)
-                    res = cursor.fetchone()
+
+                    with mysql.connector.connect(**db_config) as conn:
+                        global res
+                        cursor = conn.cursor(buffered=True)
+                        cursor.execute('use enko_db')
+                        cursor.execute(query)
+                        res = cursor.fetchone()
+                        print("In this connection ", res, query)
+                    print("Just after onnection ", res, query)
 
                     if res is not None:
                         clean_code_id = res[0]
                         clean_code = res[1]
+
                         # Update bank_code and replacement_logs tables
                         # To insecure consistency, query is wrapped inside a transaction
-                        query = "BEGIN;"
-                        query += f"INSERT INTO replacement_logs (old_code, new_code) VALUES ({data[0]}, {clean_code_id});"
-                        query += f"UPDATE bank_code SET is_used=1 WHERE code={clean_code};"
-                        query += "COMMIT;"
-                        print(query)
-                        self.db.cursor(buffered=True).execute(query)
-                        self.db.commit()
-                        exit("Stopped")
 
-                    print(clean_code)
-
-                    print(query, res)
-
-                    exit()
-
-                    "SELECT code FROM code_bank WHERE cluster='', platform='', acad_year LIKE%%, category=''"
-
+                        query2 = f"INSERT INTO replacement_logs (old_code, new_code) VALUES (%s, %s);"
+                        query3 = f"UPDATE bank_code SET is_used=1 WHERE code=%s;"
+                        print(query2, query3)
+                        with mysql.connector.connect(**db_config) as conn:
+                            try:
+                                conn.autocommit = False
+                                cursor = conn.cursor()
+                                cursor.execute('use enko_db')
+                                cursor.execute(query2, (data[0], clean_code_id))
+                                cursor.execute(query3, (clean_code,))
+                                conn.commit()
+                                print(f"{clean_code_id} for {clean_code} Update")
+                            except (errors.InternalError, errors.ProgrammingError):
+                                logging.critical("DB error occurred", exc_info=True)
+                                conn.rollback()
+                            except Exception as e:
+                                conn.rollback()
+                                logging.critical("Exception occurred", exc_info=True)
+                                print("Exception", str(e))
 
     def run(self) -> None:
         try:

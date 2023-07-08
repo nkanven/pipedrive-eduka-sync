@@ -40,7 +40,7 @@ try:
             cmd = value
 
     schools = parameters['enko_education']['schools'].keys()
-
+    #schools:list = ['enko_mali']
     """
     Main dispatcher thread pool executor
     """

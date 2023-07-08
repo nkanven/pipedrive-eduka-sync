@@ -8,7 +8,7 @@ from services.code_manager import *
 from utils.mail import EnkoMail
 
 from mysql import connector
-from mysql.connector.errors import ProgrammingError, PoolError, OperationalError, NotSupportedError
+from mysql.connector.errors import ProgrammingError, DatabaseError, PoolError, OperationalError, NotSupportedError
 
 
 class Populate:
@@ -23,63 +23,65 @@ class Populate:
         self.mail = mail
         self.sql: list = []
         print("Start populate service")
-        self.db = db(parameters, self.mail)
+        db_init(self.mail)
 
     def pre_check(self):
         """
         Verify if service databases exists. If not create required database and tables
         """
 
-        try:
-            self.db.cursor().execute("CREATE TABLE IF NOT EXISTS `bank_code` (`code_id` int NOT NULL,`code` varchar("
-                                     "25) COLLATE utf8mb4_general_ci NOT NULL,`cluster` varchar(2) COLLATE "
-                                     "utf8mb4_general_ci NOT NULL,`platform` varchar(100) COLLATE utf8mb4_general_ci "
-                                     "NOT NULL,`acad_year` varchar(9) COLLATE utf8mb4_general_ci NOT NULL,`category` "
-                                     "varchar(3) COLLATE utf8mb4_general_ci NOT NULL,`is_used` tinyint(1) NOT NULL "
-                                     "DEFAULT 0,`update_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,"
-                                     "`d_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT "
-                                     "CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;")
+        with mysql.connector.connect(**db_config) as conn:
+            try:
+                conn.cursor().execute('use enko_db')
+                conn.cursor().execute("CREATE TABLE IF NOT EXISTS `bank_code` (`code_id` int NOT NULL,`code` varchar("
+                                         "25) COLLATE utf8mb4_general_ci NOT NULL,`cluster` varchar(2) COLLATE "
+                                         "utf8mb4_general_ci NOT NULL,`platform` varchar(100) COLLATE utf8mb4_general_ci "
+                                         "NOT NULL,`acad_year` varchar(9) COLLATE utf8mb4_general_ci NOT NULL,`category` "
+                                         "varchar(3) COLLATE utf8mb4_general_ci NOT NULL,`is_used` tinyint(1) NOT NULL "
+                                         "DEFAULT 0,`update_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,"
+                                         "`d_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT "
+                                         "CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;")
 
-            self.db.cursor().execute("CREATE TABLE IF NOT EXISTS `replacement_logs`(`log_id` int(11) NOT NULL, "
-                                     "`old_code` varchar(255) NOT NULL, `new_code` int(11) NOT NULL, "
-                                     "`d_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP) ENGINE = InnoDB DEFAULT "
-                                     "CHARSET = utf8mb4;")
+                conn.cursor().execute("CREATE TABLE IF NOT EXISTS `replacement_logs`(`log_id` int(11) NOT NULL, "
+                                         "`old_code` varchar(255) NOT NULL, `new_code` int(11) NOT NULL, "
+                                         "`d_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP) ENGINE = InnoDB DEFAULT "
+                                         "CHARSET = utf8mb4;")
 
-            # This multiple try except is to avoid the interpreter to skip an execution because of just on exception
-            try:
-                self.db.cursor().execute("ALTER TABLE `bank_code` ADD PRIMARY KEY (`code_id`), ADD UNIQUE KEY `code` ("
-                                         "`code`);")
-            except ProgrammingError:
-                pass
-            try:
-                self.db.cursor().execute("ALTER TABLE `bank_code` MODIFY `code_id` int NOT NULL AUTO_INCREMENT;")
-            except ProgrammingError:
-                pass
-            try:
-                self.db.cursor().execute("ALTER TABLE `replacement_logs` ADD PRIMARY KEY (`log_id`), ADD KEY "
-                                         "`new_code` (`new_code`);")
-            except ProgrammingError:
-                pass
-            try:
-                self.db.cursor().execute("ALTER TABLE `replacement_logs` MODIFY `log_id` int(11) NOT NULL "
-                                         "AUTO_INCREMENT;")
-            except ProgrammingError:
-                pass
-            try:
-                self.db.cursor().execute("ALTER TABLE `replacement_logs` ADD CONSTRAINT `replacement_logs_ibfk_1` "
-                                         "FOREIGN KEY (`new_code`) REFERENCES `bank_code` (`code_id`);")
-            except ProgrammingError:
-                pass
+                # This multiple try except is to avoid the interpreter to skip an execution because of just on exception
+                try:
+                    conn.cursor().execute("ALTER TABLE `bank_code` ADD PRIMARY KEY (`code_id`), ADD UNIQUE KEY `code` ("
+                                             "`code`);")
+                except ProgrammingError:
+                    pass
+                try:
+                    conn.cursor().execute("ALTER TABLE `bank_code` MODIFY `code_id` int NOT NULL AUTO_INCREMENT;")
+                except ProgrammingError:
+                    pass
+                try:
+                    conn.cursor().execute("ALTER TABLE `replacement_logs` ADD PRIMARY KEY (`log_id`), ADD UNIQUE KEY "
+                                             "`new_code` (`new_code`);")
+                except ProgrammingError:
+                    pass
+                try:
+                    conn.cursor().execute("ALTER TABLE `replacement_logs` MODIFY `log_id` int(11) NOT NULL "
+                                             "AUTO_INCREMENT;")
+                except ProgrammingError:
+                    pass
+                try:
+                    conn.cursor().execute("ALTER TABLE `replacement_logs` ADD CONSTRAINT `replacement_logs_ibfk_1` "
+                                             "FOREIGN KEY (`new_code`) REFERENCES `bank_code` (`code_id`);")
+                except (ProgrammingError, DatabaseError):
+                    pass
 
-            logging.info("Database successfully created")
-        except Exception:
-            self.db.rollback()
-            logging.critical("Service task exit on exception", exc_info=True)
-            self.db.cursor().close()
-            sys.exit('Service task exit on database creation error')
+            except Exception:
+                conn.rollback()
+                logging.critical("Service task exit on exception", exc_info=True)
+                sys.exit('Service task exit on database creation error')
+            else:
+                logging.info("Database successfully created")
 
-        """for x in cursor:
-            print(x[0])"""
+            """for x in cursor:
+                print(x[0])"""
 
     def prep_codes_insertion(self, i_codes: tuple, i_data: tuple) -> bool:
         """
@@ -111,7 +113,8 @@ class Populate:
                     except IndexError:
                         logging.info("Skipped IndexError. Non studend Id")
 
-                    acad_year = build_academic_year(cluster, category, code_split[2][0:2])
+                    print("Year ", code_split[-1][0:2], code_split[-1], code_split)
+                    acad_year = build_academic_year(cluster, category, code_split[-1][:2])
 
                     values = (i_code, category, platform, acad_year, cluster)
                     self.sql.append(values)
@@ -136,9 +139,10 @@ class Populate:
 
         query = "INSERT INTO bank_code (code, category, platform, acad_year, cluster) " \
                 "VALUES (%s, %s, %s, %s, %s);"
-
-        self.db.cursor().executemany(query, self.sql)
-        self.db.commit()
+        with mysql.connector.connect(**db_config) as conn:
+            conn.cursor().execute('use enko_db')
+            conn.cursor().executemany(query, self.sql)
+            conn.commit()
 
     def run(self) -> None:
         """
@@ -152,7 +156,6 @@ class Populate:
             self.upload_data_in_code_bank()
             duration = time.time() - start_time
             print(f"Store in {duration} seconds")
-            self.db.close()
 
         except Exception:
             logging.critical("Service task exit on exception", exc_info=True)

@@ -28,6 +28,12 @@ import pandas as pd
 
 service_name = "Code Manager Service"
 
+db_config = {
+    'user': parameters['environment']['db_user'],
+    'password': parameters['environment']['db_password'],
+    'host': parameters['environment']['db_host'],
+}
+
 
 def get_good_codes_from_excel(url: str, code_bank: bool = False) -> list:
     """
@@ -75,14 +81,11 @@ def build_academic_year(cluster: str, category: str, __year: str) -> str:
     return acad_year
 
 
-def db(params, mail):
+def db_init(mail):
     try:
-        dbase = connector.connect(
-            host=params['environment']['db_host'],
-            user=params['environment']['db_user'],
-            passwd=params['environment']['db_password'])
-        dbase.cursor().execute('CREATE DATABASE IF NOT EXISTS enko_db')
-        dbase.cursor().execute('use enko_db')
+        with connector.connect(**db_config) as dbase:
+            dbase.cursor().execute('CREATE DATABASE IF NOT EXISTS enko_db')
+            dbase.cursor().execute('use enko_db')
     except (ProgrammingError, PoolError, OperationalError, NotSupportedError) as e:
         logging.critical("Database connection error occurred", exc_info=True)
         mail.set_email_message_text("Database connection error")
@@ -107,8 +110,6 @@ def db(params, mail):
         mail.set_email_message_desc(desc.format(trace=str(e)))
         mail.send_mail()
         sys.exit('Service task init exit on exception')
-
-    return dbase
 
 
 def update_user_code():
