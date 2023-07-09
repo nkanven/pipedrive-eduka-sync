@@ -131,7 +131,7 @@ class EnkoMail(Bootstrap):
         Mail summarized for single message using multiple threads
         """
         self.__category = "mail"
-        datas = deserialize(self.__service_name, self.__category)
+        datas = deserialize(self.autobackup_memoize, self.__category + self.__service_name)
         success_message_desc = message_foot = message_title = message_desc = ""
 
         errors = "<p style=color:red><hr><b>Error(s)</b><hr></p>"

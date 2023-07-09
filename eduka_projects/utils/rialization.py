@@ -1,9 +1,6 @@
 import os
 import pickle
 
-from eduka_projects.bootstrap import Bootstrap
-
-bts = Bootstrap()
 
 
 def serialize(fname, data) -> bool:
@@ -25,18 +22,18 @@ def serialize(fname, data) -> bool:
         return result
 
 
-def deserialize(service_running, category):
+def deserialize(dir_name, fname):
     """
     Deserialize a store object
-    :param service_running: (str) the name of the service running
+    :param dir_name: (str) the name of the directory in which file is stored
     :param category: (str) the type of contained in data. It can be mail, memoize, etc.
     :return: (list) function return a list of python object
     """
     data = []
-    fname = category + service_running
-    for f in os.listdir(bts.autobackup_memoize):
+    #fname = category + service_running
+    for f in os.listdir(dir_name):
         if f.find(fname) != -1:
-            with open(bts.autobackup_memoize + os.sep + f, "rb") as d:
+            with open(dir_name + os.sep + f, "rb") as d:
                 data.append(pickle.loads(d.read()))
 
     return data

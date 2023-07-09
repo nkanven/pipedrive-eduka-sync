@@ -8,6 +8,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
 
 bts = Bootstrap()
+bts.initialize_chrome()
 
 
 def login(url: str, logins: dict) -> webdriver:
