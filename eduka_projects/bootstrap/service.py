@@ -1,12 +1,8 @@
 """Import and Add new services in this loader"""
 
-from services.database_backup import backup
-from services.code_manager import load
-
 """Load service model and link the to corresponding cmd -s parameter. This dict is call by the main dispatcher"""
-load = {
-    "database_backup": {
-        "loader": backup,
+get = {
+    "backup_automation": {
         "mail_template":
             {
                 "success":
@@ -22,6 +18,6 @@ load = {
                     },
             }
     },
-    "code_populate_db": {"loader": load},
-    "code_corrector": {"loader": load},
+    "corrector": {},
+    "db_populate": {},
 }

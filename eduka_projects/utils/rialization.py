@@ -1,7 +1,9 @@
 import os
 import pickle
 
-import bootstrap
+from eduka_projects.bootstrap import Bootstrap
+
+bts = Bootstrap()
 
 
 def serialize(fname, data) -> bool:
@@ -32,9 +34,9 @@ def deserialize(service_running, category):
     """
     data = []
     fname = category + service_running
-    for f in os.listdir(bootstrap.autobackup_memoize):
+    for f in os.listdir(bts.autobackup_memoize):
         if f.find(fname) != -1:
-            with open(bootstrap.autobackup_memoize + os.sep + f, "rb") as d:
+            with open(bts.autobackup_memoize + os.sep + f, "rb") as d:
                 data.append(pickle.loads(d.read()))
 
     return data

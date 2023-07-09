@@ -1,5 +1,4 @@
 import logging
-import pickle
 
 import ssl
 import smtplib
@@ -7,12 +6,12 @@ from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-import bootstrap
-from bootstrap import service
-from utils.rialization import deserialize, delete_serialized
+from eduka_projects.bootstrap import Bootstrap, service
+from eduka_projects.utils.rialization import deserialize, delete_serialized
+from eduka_projects.utils.eduka_exceptions import EdukaKeyError
 
 
-class EnkoMail:
+class EnkoMail(Bootstrap):
     """
     EnkoMail is the mailing utility for email notification and error reporting
     """
@@ -20,19 +19,19 @@ class EnkoMail:
     # TODO: Create a mail collector function which will handle all mails from threads and bundle them into an
     # unique summary to send
 
-    def __init__(self, service, school, params):
+    def __init__(self, service, school):
+        super().__init__()
         self.__service_name: str = service
-        self.__params = params
         self.__email_message_text: str = ""
         self.__email_message_desc: str = ""
         self.__category: str = ""
         self.__subject: str = ""
-        self.__school: str = params['enko_education']['schools'][school]['label']
-        self.__email_cc_list: list = params['enko_education']['schools'][school]['comma_seperated_emails'].split(",")
+        self.__school: str = self.parameters['enko_education']['schools'][school]['label']
+        self.__email_cc_list: list = self.parameters['enko_education']['schools'][school]['comma_seperated_emails'].split(",")
         self.__email_to: str = self.__email_cc_list[0]
         self.__date: str = str(datetime.now())
-        self.__email_from: str = params['environment']['email']
-        self.__email_password: str = params['environment']['password']
+        self.__email_from: str = self.parameters['environment']['email']
+        self.__email_password: str = self.parameters['environment']['password']
 
     def set_email_message_text(self, email_message_text):
         self.__email_message_text = email_message_text
@@ -123,7 +122,7 @@ class EnkoMail:
                 logging.error("Exception occured", exc_info=True)
             else:
                 print("Mail sent successfully")
-                delete_serialized(bootstrap.autobackup_memoize, self.__category + self.__service_name)
+                delete_serialized(self.autobackup_memoize, self.__category + self.__service_name)
         except Exception as e:
             logging.error("Exception occured", exc_info=True)
 
@@ -146,17 +145,25 @@ class EnkoMail:
                 message_foot += succ[2] + "</br>"
 
         #error = bootstrap.service.load[self.__service_name]["mail_template"]["error"]
-        success = service.load[self.__service_name]["mail_template"]["success"]
-        success["head"] = message_title
-        success["body"] = success["body"] + message_desc + "</table>"
-        success["foot"] = "<p><b>N.B:</b> " + message_foot + "</p>"
 
-        if message_desc != "":
-            success_message_desc += "<p>The following backup(s) have been successfully deleted:</p>"
+        if self.__service_name in service.get.keys():
+            try:
+                success = service.get[self.__service_name]["mail_template"]["success"]
+                success["head"] = message_title
+                success["body"] = success["body"] + message_desc + "</table>"
+                success["foot"] = "<p><b>N.B:</b> " + message_foot + "</p>"
 
-        self.set_email_message_desc(
-            success_message_desc + success["body"] + success["foot"] + "<div>" + errors + "</div>"
-        )
-        self.set_email_message_text(success["head"])
+                if message_desc != "":
+                    success_message_desc += "<p>The following backup(s) have been successfully deleted:</p>"
 
-        self.set_subject(subject=success["subject"])
+                self.set_email_message_desc(
+                    success_message_desc + success["body"] + success["foot"] + "<div>" + errors + "</div>"
+                )
+                self.set_email_message_text(success["head"])
+
+                self.set_subject(subject=success["subject"])
+            except KeyError as e:
+                self.error_logger.info(f"{str(e)} key not found in bootstrap.service.get")
+        else:
+            self.error_logger.info(f"{self.__service_name} key not found in bootstrap.service.get")
+

@@ -1,17 +1,14 @@
+import sys
 import time
-
 import mysql.connector
-import concurrent.futures
 
-from bootstrap import *
-from services.code_manager import *
-from utils.mail import EnkoMail
+from eduka_projects.services.code_manager import CodeManager
+from eduka_projects.utils.mail import EnkoMail
 
-from mysql import connector
-from mysql.connector.errors import ProgrammingError, DatabaseError, PoolError, OperationalError, NotSupportedError
+from mysql.connector.errors import ProgrammingError, DatabaseError
 
 
-class Populate:
+class Populate(CodeManager):
 
     def __init__(self, school: str, mail: EnkoMail):
         """
@@ -19,18 +16,19 @@ class Populate:
         :param school: (str) enko school name
         :param mail: (EnkoMail) Mail object to handle notifcations
         """
+        super().__init__()
         self.school = school
         self.mail = mail
         self.sql: list = []
         print("Start populate service")
-        db_init(self.mail)
+        self.db_init(self.mail)
 
     def pre_check(self):
         """
         Verify if service databases exists. If not create required database and tables
         """
 
-        with mysql.connector.connect(**db_config) as conn:
+        with mysql.connector.connect(**self.db_config) as conn:
             try:
                 conn.cursor().execute('use enko_db')
                 conn.cursor().execute("CREATE TABLE IF NOT EXISTS `bank_code` (`code_id` int NOT NULL,`code` varchar("
@@ -75,10 +73,10 @@ class Populate:
 
             except Exception:
                 conn.rollback()
-                logging.critical("Service task exit on exception", exc_info=True)
+                self.error_logger.critical("Service task exit on exception", exc_info=True)
                 sys.exit('Service task exit on database creation error')
             else:
-                logging.info("Database successfully created")
+                self.error_logger.info("Database successfully created")
 
             """for x in cursor:
                 print(x[0])"""
@@ -109,19 +107,19 @@ class Populate:
                     except KeyError:
                         if len(code_split) == 3:
                             category = category_map["3"].lower()
-                        logging.info("Skipped KeyError. Non studend Id")
+                        self.error_logger.info("Skipped KeyError. Non studend Id")
                     except IndexError:
-                        logging.info("Skipped IndexError. Non studend Id")
+                        self.error_logger.info("Skipped IndexError. Non studend Id")
 
                     print("Year ", code_split[-1][0:2], code_split[-1], code_split)
-                    acad_year = build_academic_year(cluster, category, code_split[-1][:2])
+                    acad_year = self.build_academic_year(cluster, category, code_split[-1][:2])
 
                     values = (i_code, category, platform, acad_year, cluster)
                     self.sql.append(values)
 
                 result = True
         except Exception:
-            logging.critical("Service task inser_code exit on exception", exc_info=True)
+            self.error_logger.critical("Service task inser_code exit on exception", exc_info=True)
         finally:
             return result
 
@@ -130,8 +128,8 @@ class Populate:
         Dispatch data for insertion in bank_code table.
         Return None
         """
-        data_inputs = get_good_codes_from_excel(parameters["environment"]["eduka_code_manager_data_inputs"])
-        code_bank = get_good_codes_from_excel(parameters["environment"]["eduka_code_bank_url"], True)
+        data_inputs = self.get_good_codes_from_excel(self.parameters["environment"]["eduka_code_manager_data_inputs"])
+        code_bank = self.get_good_codes_from_excel(self.parameters["environment"]["eduka_code_bank_url"], True)
 
         for data_input in data_inputs:
             for codes in code_bank:
@@ -139,7 +137,7 @@ class Populate:
 
         query = "INSERT INTO bank_code (code, category, platform, acad_year, cluster) " \
                 "VALUES (%s, %s, %s, %s, %s);"
-        with mysql.connector.connect(**db_config) as conn:
+        with mysql.connector.connect(**self.db_config) as conn:
             conn.cursor().execute('use enko_db')
             conn.cursor().executemany(query, self.sql)
             conn.commit()
@@ -158,4 +156,4 @@ class Populate:
             print(f"Store in {duration} seconds")
 
         except Exception:
-            logging.critical("Service task exit on exception", exc_info=True)
+            self.error_logger.critical("Service task exit on exception", exc_info=True)
