@@ -26,10 +26,9 @@ class EdukaProjects:
     base_dir = os.path.dirname(__file__)
 
     def __init__(self):
+        self.chrome_options = None
         print("Eduka Project initialization...")
         self.version = 1
-        self.chrome_options = None
-        self.my_public_ip = None
         try:
             self.autobackup_memoize = "autobackup_memoize"
             if not os.path.exists(self.autobackup_memoize):
@@ -46,7 +45,6 @@ class EdukaProjects:
 
             print("Successfully loader parameters from json...")
 
-            # initializing webdriver for Chrome with our options
             self.ignored_exceptions = (NoSuchElementException, StaleElementReferenceException,)
             self.error_logger = logger
 
@@ -55,6 +53,8 @@ class EdukaProjects:
                 'password': self.parameters['environment']['db_password'],
                 'host': self.parameters['environment']['db_host'],
             }
+            self.my_public_ip = ip.get()
+            print("Initialization terminated.", "Program is ready to start.", sep="\n")
 
         except Exception:
             logger.error("Exception occured", exc_info=True)
@@ -64,9 +64,9 @@ class EdukaProjects:
 
     def initialize_chrome(self):
         """
-            Initialize web browser
-            Chrome driver initialisation
-        """
+                        Initialize web browser
+                        Chrome driver initialisation
+                    """
         # instance of Options class allows us to configure Headless Chrome
         self.chrome_options = Options()
 
@@ -88,11 +88,6 @@ class EdukaProjects:
             thread_local.session = requests.Session()
         return thread_local.session
 
-    @staticmethod
-    def get_ipaddr():
-        return ip.get()
-
     # TODO: Work on project execution text
-    @staticmethod
-    def verbose(text):
+    def verbose(self, text):
         print(text)

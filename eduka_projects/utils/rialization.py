@@ -2,7 +2,6 @@ import os
 import pickle
 
 
-
 def serialize(fname, data) -> bool:
     """
     Serialize data for later usage
@@ -29,12 +28,13 @@ def deserialize(dir_name, fname):
     :param category: (str) the type of contained in data. It can be mail, memoize, etc.
     :return: (list) function return a list of python object
     """
-    data = []
-    #fname = category + service_running
+    data = None
+
     for f in os.listdir(dir_name):
-        if f.find(fname) != -1:
+
+        if fname.find(f) != -1:
             with open(dir_name + os.sep + f, "rb") as d:
-                data.append(pickle.loads(d.read()))
+                data = pickle.loads(d.read())
 
     return data
 

@@ -132,38 +132,39 @@ class EnkoMail(Bootstrap):
         """
         self.__category = "mail"
         datas = deserialize(self.autobackup_memoize, self.__category + self.__service_name)
-        success_message_desc = message_foot = message_title = message_desc = ""
+        if datas is not None:
+            success_message_desc = message_foot = message_title = message_desc = ""
 
-        errors = "<p style=color:red><hr><b>Error(s)</b><hr></p>"
-        for data in datas:
-            for error in data['error']:
-                errors += "<p>" + error[0] + " " + error[1] + "</p>"
+            errors = "<p style=color:red><hr><b>Error(s)</b><hr></p>"
+            for data in datas:
+                for error in data['error']:
+                    errors += "<p>" + error[0] + " " + error[1] + "</p>"
 
-            for succ in data['success']:
-                message_title += "<p>" + succ[0] + " for " + self.__school + "</p>"
-                message_desc += succ[1]
-                message_foot += succ[2] + "</br>"
+                for succ in data['success']:
+                    message_title += "<p>" + succ[0] + " for " + self.__school + "</p>"
+                    message_desc += succ[1]
+                    message_foot += succ[2] + "</br>"
 
-        #error = bootstrap.service.load[self.__service_name]["mail_template"]["error"]
+            #error = bootstrap.service.load[self.__service_name]["mail_template"]["error"]
 
-        if self.__service_name in service.get.keys():
-            try:
-                success = service.get[self.__service_name]["mail_template"]["success"]
-                success["head"] = message_title
-                success["body"] = success["body"] + message_desc + "</table>"
-                success["foot"] = "<p><b>N.B:</b> " + message_foot + "</p>"
+            if self.__service_name in service.get.keys():
+                try:
+                    success = service.get[self.__service_name]["mail_template"]["success"]
+                    success["head"] = message_title
+                    success["body"] = success["body"] + message_desc + "</table>"
+                    success["foot"] = "<p><b>N.B:</b> " + message_foot + "</p>"
 
-                if message_desc != "":
-                    success_message_desc += "<p>The following backup(s) have been successfully deleted:</p>"
+                    if message_desc != "":
+                        success_message_desc += "<p>The following backup(s) have been successfully deleted:</p>"
 
-                self.set_email_message_desc(
-                    success_message_desc + success["body"] + success["foot"] + "<div>" + errors + "</div>"
-                )
-                self.set_email_message_text(success["head"])
+                    self.set_email_message_desc(
+                        success_message_desc + success["body"] + success["foot"] + "<div>" + errors + "</div>"
+                    )
+                    self.set_email_message_text(success["head"])
 
-                self.set_subject(subject=success["subject"])
-            except KeyError as e:
-                self.error_logger.info(f"{str(e)} key not found in bootstrap.service.get")
-        else:
-            self.error_logger.info(f"{self.__service_name} key not found in bootstrap.service.get")
+                    self.set_subject(subject=success["subject"])
+                except KeyError as e:
+                    self.error_logger.info(f"{str(e)} key not found in bootstrap.service.get")
+            else:
+                self.error_logger.info(f"{self.__service_name} key not found in bootstrap.service.get")
 
