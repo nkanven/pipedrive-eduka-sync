@@ -3,25 +3,22 @@ import time
 import mysql.connector
 
 from eduka_projects.services.code_manager import CodeManager
-from eduka_projects.utils.mail import EnkoMail
 
 from mysql.connector.errors import ProgrammingError, DatabaseError
 
 
 class Populate(CodeManager):
 
-    def __init__(self, school: str, mail: EnkoMail):
+    def __init__(self, school: str):
         """
         Populate database with student IDs information
         :param school: (str) enko school name
-        :param mail: (EnkoMail) Mail object to handle notifcations
         """
         super().__init__()
         self.school = school
-        self.mail = mail
         self.sql: list = []
         print("Start populate service")
-        self.db_init(self.mail)
+        self.db_init()
 
     def pre_check(self):
         """

@@ -21,8 +21,11 @@ For the code base stability and integrity to prevail, developer need to respect 
 # TODO: Convert KeyError in mail class and check api and all the code base
 
 import time
+import datetime
 
+start_time = time.time()
 from eduka_projects.bootstrap import Bootstrap
+
 bts = Bootstrap()
 
 try:
@@ -42,18 +45,22 @@ try:
         if name.strip() == '-s' or name.strip() == '--service':
             cmd = value
 
-    schools = bts.parameters['enko_education']['schools'].keys()
-    #schools:list = ['enko_mali']
+    # schools = bts.parameters['enko_education']['schools'].keys()
+    schools: list = ['enko_mali']
+
     """
     Main dispatcher thread pool executor
     """
+
+    print("Eduka Projects Services Started...")
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         for school in schools:
+            print("Work started for", school)
             sm = ServiceManager()
             executor.submit(sm.dispatcher, cmd, school)
             # Make space between workers execution
             time.sleep(5)
-            print("Work started for", school)
+
     print("Thread work done...")
 
     # From all schools, get unique emails
@@ -71,3 +78,8 @@ try:
 except Exception as e:
     print("Program launch error", str(e))
     bts.error_logger.critical("Program launch error", exc_info=True)
+
+end_time = time.time()
+total_time = end_time - start_time
+time_format = str(datetime.timedelta(seconds=total_time))
+print(f"Program took {time_format} to run")

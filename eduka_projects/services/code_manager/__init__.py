@@ -75,32 +75,20 @@ class CodeManager(Bootstrap):
             acad_year = "20" + __year
         return acad_year
 
-    def db_init(self, mail):
+    def db_init(self):
         try:
             with connector.connect(**self.db_config) as dbase:
                 dbase.cursor().execute('CREATE DATABASE IF NOT EXISTS enko_db')
                 dbase.cursor().execute('use enko_db')
         except (ProgrammingError, PoolError, OperationalError, NotSupportedError) as e:
+            self.errors.append(("Error occurred on " + self.service_name, "Error summary " + str(e), None))
             self.error_logger.critical("Database connection error occurred", exc_info=True)
-            mail.set_email_message_text("Database connection error")
-            desc = "<p>Service is not able to connect to project database. <br><br>"
-            desc += "<b>Trace: {trace}</b> <br><br>Please contact the system administrator for more details.</p>"
-            mail.set_email_message_desc(desc.format(trace=str(e)))
-            mail.send_mail()
             sys.exit('Service task exit on database connection error')
         except KeyError as e:
+            self.errors.append(("KeyError occurred on " + self.service_name, "Error summary " + str(e), None))
             self.error_logger.critical("Service task exit on KeyError exception", exc_info=True)
-            mail.set_email_message_text("Parameters.json KeyError exception")
-            desc = "<p>Service is unable to find appropriate key in the given Json file.. <br><br>"
-            desc += "<b>Trace: {trace}</b> <br><br>Please contact the system administrator for more details.</p>"
-            mail.set_email_message_desc(desc.format(trace=str(e)))
-            mail.send_mail()
             sys.exit('Service task exit on KeyError exception')
         except Exception as e:
+            self.errors.append(("Exception occurred on " + self.service_name, "Error summary " + str(e), None))
             self.error_logger.critical("Service task init exit on exception", exc_info=True)
-            mail.set_email_message_text("DB Populate init exception")
-            desc = "<p>Service encounters an exception while initializing enko_db database.. <br><br>"
-            desc += "<b>Trace: {trace}</b> <br><br>Please contact the system administrator for more details.</p>"
-            mail.set_email_message_desc(desc.format(trace=str(e)))
-            mail.send_mail()
             sys.exit('Service task init exit on exception')

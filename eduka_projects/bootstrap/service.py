@@ -18,6 +18,32 @@ get = {
                     },
             }
     },
-    "corrector": {},
-    "db_populate": {},
+    "corrector": {
+        "mail_template":
+            {
+                "success":
+                    {
+                        "subject": "notification ", "head": "", "body": "",
+                        "foot": ""
+                    },
+                "error":
+                    {
+                        "subject": "Error ", "head": "", "body": "", "foot": ""
+                    },
+            }
+    },
+    "db_populate": {
+        "mail_template":
+            {
+                "success":
+                    {
+                        "subject": "notification ", "head": "", "body": "",
+                        "foot": ""
+                    },
+                "error":
+                    {
+                        "subject": "Error ", "head": "", "body": "", "foot": ""
+                    },
+            }
+    },
 }

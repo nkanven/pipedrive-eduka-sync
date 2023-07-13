@@ -27,13 +27,11 @@ class EdukaProjects:
 
     def __init__(self):
         self.chrome_options = None
-        print("Eduka Project initialization...")
         self.version = 1
         try:
             self.autobackup_memoize = "autobackup_memoize"
             if not os.path.exists(self.autobackup_memoize):
                 os.mkdir(self.autobackup_memoize)
-                print("Auto backup Memoized file created...")
 
             parameter_store_path = os.path.join(self.autobackup_memoize, "parameters.ep")
             if not os.path.exists(parameter_store_path):
@@ -42,8 +40,6 @@ class EdukaProjects:
                 serialize(parameter_store_path, self.parameters)
             else:
                 self.parameters = deserialize(self.autobackup_memoize, parameter_store_path)
-
-            print("Successfully loader parameters from json...")
 
             self.ignored_exceptions = (NoSuchElementException, StaleElementReferenceException,)
             self.error_logger = logger
@@ -54,7 +50,6 @@ class EdukaProjects:
                 'host': self.parameters['environment']['db_host'],
             }
             self.my_public_ip = ip.get()
-            print("Initialization terminated.", "Program is ready to start.", sep="\n")
 
         except Exception:
             logger.error("Exception occured", exc_info=True)

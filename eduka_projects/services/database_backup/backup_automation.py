@@ -45,12 +45,6 @@ class Backup(DatabaseBackup):
 
         self.tabs_id = 'DBTabs'
 
-        self.message_text = self.message_desc = ""
-        self.errors = []
-        self.success = []
-        self.nb = ""
-        self.notifications = {}
-
     def create_backup(self):
 
         # Create a backup through API if not already done for this task
