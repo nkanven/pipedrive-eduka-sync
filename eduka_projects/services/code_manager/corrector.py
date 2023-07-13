@@ -1,6 +1,5 @@
 import datetime
 import random
-import time
 
 import mysql.connector
 
@@ -319,6 +318,7 @@ class Correct(CodeManager):
                 print("Waiting for element to be interectable...")
 
     def run(self) -> None:
+        # TODO: Handle mail notification for errors and statistics
         try:
             self.get_wrong_ids()
             self.code_categorizer()

@@ -1,3 +1,4 @@
+import os
 import logging
 
 import ssl
@@ -6,10 +7,13 @@ from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+from dotenv import load_dotenv
+
 from eduka_projects.bootstrap import Bootstrap, service
 from eduka_projects.utils.rialization import deserialize, delete_serialized
 from eduka_projects.utils.eduka_exceptions import EdukaKeyError
 
+load_dotenv()
 
 class EnkoMail(Bootstrap):
     """
@@ -30,8 +34,8 @@ class EnkoMail(Bootstrap):
         self.__email_cc_list: list = self.parameters['enko_education']['schools'][school]['comma_seperated_emails'].split(",")
         self.__email_to: str = self.__email_cc_list[0]
         self.__date: str = str(datetime.now())
-        self.__email_from: str = self.parameters['environment']['email']
-        self.__email_password: str = self.parameters['environment']['password']
+        self.__email_from: str = os.getenv('email')
+        self.__email_password: str = os.getenv('password')
 
     def set_email_message_text(self, email_message_text):
         self.__email_message_text = email_message_text

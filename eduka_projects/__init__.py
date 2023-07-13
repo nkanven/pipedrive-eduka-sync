@@ -6,15 +6,16 @@ import os
 import threading
 import requests
 
-import settings
 from setup_logger import logger
-from eduka_projects.utils.rialization import serialize, deserialize, delete_serialized
+from eduka_projects.utils.rialization import serialize, deserialize, delete_serialized, clean_memoize_folder
 
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
 
+from dotenv import load_dotenv
 import public_ip as ip
 
+load_dotenv()
 
 class EdukaProjects:
     """
@@ -33,9 +34,12 @@ class EdukaProjects:
             if not os.path.exists(self.autobackup_memoize):
                 os.mkdir(self.autobackup_memoize)
 
+            clean_memoize_folder(self.autobackup_memoize)
+
             parameter_store_path = os.path.join(self.autobackup_memoize, "parameters.ep")
+
             if not os.path.exists(parameter_store_path):
-                json_file = requests.get(settings.parameters_url)
+                json_file = requests.get(os.getenv('parameters_url'))
                 self.parameters = json_file.json()
                 serialize(parameter_store_path, self.parameters)
             else:
@@ -45,9 +49,9 @@ class EdukaProjects:
             self.error_logger = logger
 
             self.db_config = {
-                'user': self.parameters['environment']['db_user'],
-                'password': self.parameters['environment']['db_password'],
-                'host': self.parameters['environment']['db_host'],
+                'user': os.getenv('db_user'),
+                'password': os.getenv('db_password'),
+                'host': os.getenv('db_host'),
             }
             self.my_public_ip = ip.get()
 
@@ -65,7 +69,7 @@ class EdukaProjects:
         # instance of Options class allows us to configure Headless Chrome
         self.chrome_options = Options()
 
-        if self.parameters['environment']['prod'] == 0:
+        if os.getenv('prod') == "0":
             # this parameter tells Chrome that it should be run with UI
             self.chrome_options.add_experimental_option("detach", True)
         else:

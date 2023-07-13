@@ -1,3 +1,4 @@
+import datetime
 import os
 import pickle
 
@@ -48,3 +49,16 @@ def delete_serialized(folder_path, file_name):
     for stored_memo_file in os.listdir(folder_path):
         if stored_memo_file.find(file_name) != -1:
             os.remove(folder_path + os.sep + stored_memo_file)
+
+
+def clean_memoize_folder(folder_path):
+    for _file in os.listdir(folder_path):
+        print(_file)
+        c_time = os.path.getctime(folder_path)
+        dt_c = datetime.datetime.fromtimestamp(c_time)
+        dt_now = datetime.datetime.now()
+        date_dtc = datetime.datetime.strptime(dt_c.strftime("%Y-%m-%d"), "%Y-%m-%d")
+        date_dtn = datetime.datetime.strptime(dt_now.strftime("%Y-%m-%d"), "%Y-%m-%d")
+
+        if date_dtn > date_dtc:
+            os.remove(os.path.join(folder_path, _file))
