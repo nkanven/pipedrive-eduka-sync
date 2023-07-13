@@ -18,18 +18,24 @@ For each new microservice, the developer should:
 For the code base stability and integrity to prevail, developer need to respect this minimal recommendations
 """
 
+# TODO: Convert KeyError in mail class and check api and all the code base
+
 import time
+import datetime
+
+start_time = time.time()
+from eduka_projects.bootstrap import Bootstrap
+
+bts = Bootstrap()
 
 try:
-    import logging
     import sys
     import getopt
-    from bootstrap import parameters
-    from bootstrap import service
+    from eduka_projects.bootstrap import service
+    from eduka_projects.services import ServiceManager
     import concurrent.futures
-    from services.code_manager import get_good_codes_from_excel
-    from utils.rialization import deserialize
-    from utils.mail import EnkoMail
+    from eduka_projects.utils.rialization import deserialize
+    from eduka_projects.utils.mail import EnkoMail
 
     # Read command arguments
     argv = sys.argv[1:]
@@ -39,33 +45,41 @@ try:
         if name.strip() == '-s' or name.strip() == '--service':
             cmd = value
 
-    schools = parameters['enko_education']['schools'].keys()
+    # schools = bts.parameters['enko_education']['schools'].keys()
+    schools: list = ['enko_mali']
 
     """
     Main dispatcher thread pool executor
     """
-    if cmd in service.load:
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-            for school in schools:
-                executor.submit(service.load[cmd]["loader"].run, school, cmd)
-                # Make space between workers execution
-                time.sleep(5)
-                print("Work started for", school)
-        print("Thread work done...")
-
-        # From all schools, get unique emails
-        emails = []
+    print("Eduka Projects Services Started...")
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         for school in schools:
-            for email in parameters['enko_education']['schools'][school]["comma_seperated_emails"].split(","):
-                emails.append(email.strip(" "))
+            print("Work started for", school)
+            sm = ServiceManager()
+            executor.submit(sm.dispatcher, cmd, school)
+            # Make space between workers execution
+            time.sleep(5)
 
-        unique_emails = set(emails)
+    print("Thread work done...")
 
-        enko_mail = EnkoMail(cmd, school, parameters)
-        enko_mail.set_email_cc_list(list(unique_emails))
-        enko_mail.mail_summarized()
-        enko_mail.send_mail()
+    # From all schools, get unique emails
+    emails = []
+    for school in schools:
+        for email in bts.parameters['enko_education']['schools'][school]["comma_seperated_emails"].split(","):
+            emails.append(email.strip(" "))
+
+    unique_emails = set(emails)
+
+    enko_mail = EnkoMail(cmd, school)
+    enko_mail.set_email_cc_list(list(unique_emails))
+    enko_mail.mail_summarized()
+    enko_mail.send_mail()
 except Exception as e:
     print("Program launch error", str(e))
-    logging.critical("Program launch error", exc_info=True)
+    bts.error_logger.critical("Program launch error", exc_info=True)
+
+end_time = time.time()
+total_time = end_time - start_time
+time_format = str(datetime.timedelta(seconds=total_time))
+print(f"Program took {time_format} to run")

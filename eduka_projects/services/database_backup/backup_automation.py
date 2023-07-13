@@ -4,13 +4,10 @@ import re
 import time
 from datetime import datetime
 
-import selenium.common.exceptions
-
-import bootstrap
-from bootstrap import platform
-from utils.eduka_exceptions import EdukaException
-from utils.rialization import serialize, delete_serialized
-from services.database_backup import *
+from eduka_projects.bootstrap import platform
+from eduka_projects.utils.eduka_exceptions import EdukaException
+from eduka_projects.utils.rialization import serialize, delete_serialized
+from eduka_projects.services.database_backup import DatabaseBackup
 
 import requests
 
@@ -21,37 +18,32 @@ from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 
 
-class Backup:
+class Backup(DatabaseBackup):
 
     def __init__(self, school):
+        super().__init__()
         self.school = school
-        self.param = bootstrap.parameters
 
         # DB backup parameters initialization
         self.api_error = -1
-        self.api_key = bootstrap.parameters['enko_education']['schools'][school]['api_key']
-        self.abbr = self.param['enko_education']['schools'][school]['abbr']
-        self.backup_endpoint_uri = self.param['enko_education']['db_backup_api'].replace('INSERT_API_KEY_HERE',
-                                                                                         self.api_key)
-        self.backup_endpoint = self.param['enko_education']['schools'][school]['base_url'] + self.backup_endpoint_uri
-        self.backup_url = self.param['enko_education']['schools'][school]['base_url'] + \
-                          self.param['enko_education']['database_uri']
-        self.bck_max_days = self.param['enko_education']['db_backup_max_days']
+        self.api_key = self.parameters['enko_education']['schools'][school]['api_key']
+        self.abbr = self.parameters['enko_education']['schools'][school]['abbr']
+        self.backup_endpoint_uri = self.parameters['enko_education']['db_backup_api'].replace('INSERT_API_KEY_HERE',
+                                                                                              self.api_key)
+        self.backup_endpoint = self.parameters['enko_education']['schools'][school][
+                                   'base_url'] + self.backup_endpoint_uri
+        self.backup_url = self.parameters['enko_education']['schools'][school]['base_url'] + \
+                          self.parameters['enko_education']['database_uri']
+        self.bck_max_days = self.parameters['enko_education']['db_backup_max_days']
 
-        self.email = self.param['enko_education']['schools'][school]['login']['email']
-        self.password = self.param['enko_education']['schools'][school]['login']['password']
+        self.email = self.parameters['enko_education']['schools'][school]['login']['email']
+        self.password = self.parameters['enko_education']['schools'][school]['login']['password']
         self.logins = {
             'email': self.email,
             'password': self.password
         }
 
         self.tabs_id = 'DBTabs'
-
-        self.message_text = self.message_desc = ""
-        self.errors = []
-        self.success = []
-        self.nb = ""
-        self.notifications = {}
 
     def create_backup(self):
 
@@ -60,11 +52,11 @@ class Backup:
         create_memo = False
 
         # Check if today's task hadn't already backup the database
-        print(recent_memoize_file, os.listdir(bootstrap.autobackup_memoize))
+        print(recent_memoize_file, os.listdir(self.autobackup_memoize))
 
-        if recent_memoize_file not in os.listdir(bootstrap.autobackup_memoize):
+        if recent_memoize_file not in os.listdir(self.autobackup_memoize):
             try:
-                session = bootstrap.get_session()
+                session = self.get_session()
                 with session.get(self.backup_endpoint) as r:
                     response_text = r.text
                 create_memo = True
@@ -72,7 +64,7 @@ class Backup:
                 self.errors.append(
                     ("ConnectionError occurred on " + self.school, "Error summary " + str(e))
                 )
-                bootstrap.logging.critical("ConnectionError occurred", exc_info=True)
+                self.error_logger.critical("ConnectionError occurred", exc_info=True)
                 # No need to execute the whole program and delete backups if unable to create a recent one
                 raise EdukaException(self.school, e)
 
@@ -81,12 +73,12 @@ class Backup:
 
             if self.api_error != -1:
                 soup = BeautifulSoup(r.text, features="html.parser")
-                message_desc = "API call throw: " + soup.text + "<br>IP: " + bootstrap.my_public_ip
+                message_desc = "API call throw: " + soup.text + "<br>IP: " + self.my_public_ip
                 self.errors.append(
                     ("<b>Unexpected failure occurred</b> " + self.school, message_desc, None)
                 )
                 # Exceptional call for private EnkoMail method __get_email_message_desc()
-                bootstrap.logging.error(f"Execution error occurred {message_desc}")
+                self.error_logger.error(f"Execution error occurred {message_desc}")
 
                 browser = platform.login(self.backup_url, self.logins)
 
@@ -96,7 +88,7 @@ class Backup:
                 li[1].click()
                 backup_button = platform.get_tabs(self.tabs_id, browser).find_element(By.ID, 'StartBackup')
                 backup_button.click()
-                jqibuttons = WebDriverWait(browser, 30, ignored_exceptions=bootstrap.ignored_exceptions).until(
+                jqibuttons = WebDriverWait(browser, 30, ignored_exceptions=self.ignored_exceptions).until(
                     EC.presence_of_element_located((By.CLASS_NAME, 'jqibuttons')))
                 jqibuttons.click()
                 browser.quit()
@@ -104,14 +96,14 @@ class Backup:
 
             if create_memo:
                 # Delete unnecessary memos
-                delete_serialized(bootstrap.autobackup_memoize, self.abbr)
+                delete_serialized(self.autobackup_memoize, self.abbr)
 
                 # Create recent memo
-                with open(bootstrap.autobackup_memoize + os.sep + recent_memoize_file, "w") as m:
+                with open(self.autobackup_memoize + os.sep + recent_memoize_file, "w") as m:
                     pass
         else:
             self.nb = f"Database already store for today for {self.school}"
-            bootstrap.logging.info(self.nb)
+            self.error_logger.info(self.nb)
             print(self.nb)
 
     def delete_backups(self):
@@ -121,7 +113,7 @@ class Backup:
             tabs = platform.get_tabs(self.tabs_id, browser)
             tabs.find_elements(By.TAG_NAME, 'li')[2].click()
 
-            backup_list = WebDriverWait(browser, 5, ignored_exceptions=bootstrap.ignored_exceptions).until(
+            backup_list = WebDriverWait(browser, 5, ignored_exceptions=self.ignored_exceptions).until(
                 EC.presence_of_element_located((By.ID, 'BackupListbody')))
             backups = backup_list.find_elements(By.TAG_NAME, 'tr')
             tr_len = len(backups)
@@ -143,7 +135,7 @@ class Backup:
                         date_diff = datetime.now() - bckup_parsed_date
 
                         # Check if backups are old enough to be deleted
-                        if self.param['enko_education']['db_backup_max_days'] <= date_diff.days:
+                        if self.parameters['enko_education']['db_backup_max_days'] <= date_diff.days:
                             # TODO: Get backup time and name
                             bckup_filename = bckup.find_element(By.CLASS_NAME, 'column_filename').get_attribute(
                                 'textContent')
@@ -153,7 +145,7 @@ class Backup:
                             # TODO: Delete backup
                             time.sleep(5)
                             column_del = WebDriverWait(bckup, 15,
-                                                       ignored_exceptions=bootstrap.ignored_exceptions).until(
+                                                       ignored_exceptions=self.ignored_exceptions).until(
                                 EC.presence_of_element_located((By.CLASS_NAME, 'column_delete')))
                             column_del.click()
                             deleted_backups.append((bckup_parsed_date, bckup_filename))
@@ -162,7 +154,7 @@ class Backup:
                     browser.refresh()
                     tabs = platform.get_tabs(self.tabs_id, browser)
                     tabs.find_elements(By.TAG_NAME, 'li')[2].click()
-                    backup_list = WebDriverWait(browser, 5, ignored_exceptions=bootstrap.ignored_exceptions).until(
+                    backup_list = WebDriverWait(browser, 5, ignored_exceptions=self.ignored_exceptions).until(
                         EC.presence_of_element_located((By.ID, 'BackupListbody')))
                     backups = backup_list.find_elements(By.TAG_NAME, 'tr')
                     tr_len -= 1
@@ -185,7 +177,7 @@ class Backup:
             browser.quit()
         except Exception as e:
             # Send error message and quit
-            bootstrap.logging.error("Exception occured", exc_info=True)
+            self.error_logger.error("Exception occured", exc_info=True)
             self.errors.append(
                 ("ConnectionError occurred on " + self.school, "Error summary " + str(e), None)
             )
@@ -193,25 +185,23 @@ class Backup:
             self.notifications["error"] = self.errors
             self.notifications["success"] = self.success
 
-
-def run(school: str, switch: str) -> None:
-    """
-    Run the database base backup automation on Enko dashboard
-    :param school: (str) school name
-    :param switch: (str) it's the running service / microservice name
-    :return: (None) function does not return a value
-    """
-    print("Start " + school + " " + service_name)
-    bck = Backup(school)
-    try:
-        bck.create_backup()
-        bck.delete_backups()
-    except EdukaException as e:
-        bck.errors.append(("EdukaException error occured ", str(e), None))
-        logging.critical("Exception occured", exc_info=True)
-    finally:
-        file_name = bootstrap.autobackup_memoize + os.sep + "mail"+switch+"-" + bck.abbr
-        if serialize(file_name, bck.notifications):
-            print("Succcessful serialization")
-        else:
-            print("Fail to serialize")
+    def run(self, school: str, switch: str) -> None:
+        """
+        Run the database base backup automation on Enko dashboard
+        :param school: (str) school name
+        :param switch: (str) it's the running service / microservice name
+        :return: (None) function does not return a value
+        """
+        print("Start " + school + " " + self.service_name)
+        try:
+            self.create_backup()
+            self.delete_backups()
+        except EdukaException as e:
+            self.errors.append(("EdukaException error occured ", str(e), None))
+            logging.critical("Exception occured", exc_info=True)
+        finally:
+            file_name = self.autobackup_memoize + os.sep + "mail" + switch + "-" + self.abbr
+            if serialize(file_name, self.notifications):
+                print("Succcessful serialization")
+            else:
+                print("Fail to serialize")

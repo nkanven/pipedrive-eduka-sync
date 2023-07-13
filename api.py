@@ -47,7 +47,7 @@ def service(service_name):
         msg['msg'] = "You are not authorized to access this resource"
         return msg, 401
 
-    if service_name in os.listdir("services"):
+    if service_name in os.listdir("eduka_projects/services"):
         #os.system("source venv/bin/activate && python main.py -s " + service_name)
         python_venv = os.getcwd() + os.sep + "venv/bin/python"
         child = subprocess.Popen([python_venv, 'main.py', '-s', service_name], subprocess.PIPE)
@@ -75,7 +75,7 @@ def sub_service(service_name, sub_serv):
         msg['msg'] = "You are not authorized to access this resource"
         return msg, 401
 
-    if service_name in os.listdir("services"):
+    if service_name in os.listdir("eduka_projects/services"):
         #os.system("source venv/bin/activate && python main.py -s " + service_name)
         python_venv = os.getcwd() + os.sep + "venv/bin/python"
         child = subprocess.Popen([python_venv, 'main.py', '-s', sub_serv], subprocess.PIPE)
