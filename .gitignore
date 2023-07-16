@@ -17,6 +17,7 @@ static/
 eggs/
 .eggs/
 lib/
+logs/
 lib64/
 parts/
 sdist/

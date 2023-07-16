@@ -97,6 +97,33 @@ def service(service_name):
     return msg, 201
 
 
+@app.route(&#34;/service/&lt;service_name&gt;/&lt;sub_serv&gt;&#34;)
+def sub_service(service_name, sub_serv):
+    api_key = request.args.get(&#34;api_key&#34;)
+
+    if key != api_key:
+        msg[&#39;code&#39;] = 401
+        msg[&#39;state&#39;] = &#39;Rejected&#39;
+        msg[&#39;msg&#39;] = &#34;You are not authorized to access this resource&#34;
+        return msg, 401
+
+    if service_name in os.listdir(&#34;services&#34;):
+        #os.system(&#34;source venv/bin/activate &amp;&amp; python main.py -s &#34; + service_name)
+        python_venv = os.getcwd() + os.sep + &#34;venv/bin/python&#34;
+        child = subprocess.Popen([python_venv, &#39;main.py&#39;, &#39;-s&#39;, sub_serv], subprocess.PIPE)
+        msg[&#39;code&#39;] = 201
+        msg[&#39;state&#39;] = &#39;Success&#39;
+        msg[&#39;msg&#39;] = &#34;Sub Service &#34; + sub_serv + &#34; of &#34; + service_name +&#34; has been successfuly executed. &#34; \
+                                                 &#34;A mail with be sent when execution terminates&#34;
+
+        &#34;&#34;&#34;
+        Waiting for process to finish
+        streamdata = child.communicate()[0]
+        rc = child.returncode
+        print(&#34;OK OK&#34;, rc)&#34;&#34;&#34;
+
+    return msg, 201
+
 if __name__ == &#34;__main__&#34;:
     app.run(host=&#39;0.0.0.0&#39;)</code></pre>
 </details>
@@ -176,6 +203,43 @@ def service(service_name):
     return msg, 201</code></pre>
 </details>
 </dd>
+<dt id="eduka-projects.api.sub_service"><code class="name flex">
+<span>def <span class="ident">sub_service</span></span>(<span>service_name, sub_serv)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@app.route(&#34;/service/&lt;service_name&gt;/&lt;sub_serv&gt;&#34;)
+def sub_service(service_name, sub_serv):
+    api_key = request.args.get(&#34;api_key&#34;)
+
+    if key != api_key:
+        msg[&#39;code&#39;] = 401
+        msg[&#39;state&#39;] = &#39;Rejected&#39;
+        msg[&#39;msg&#39;] = &#34;You are not authorized to access this resource&#34;
+        return msg, 401
+
+    if service_name in os.listdir(&#34;services&#34;):
+        #os.system(&#34;source venv/bin/activate &amp;&amp; python main.py -s &#34; + service_name)
+        python_venv = os.getcwd() + os.sep + &#34;venv/bin/python&#34;
+        child = subprocess.Popen([python_venv, &#39;main.py&#39;, &#39;-s&#39;, sub_serv], subprocess.PIPE)
+        msg[&#39;code&#39;] = 201
+        msg[&#39;state&#39;] = &#39;Success&#39;
+        msg[&#39;msg&#39;] = &#34;Sub Service &#34; + sub_serv + &#34; of &#34; + service_name +&#34; has been successfuly executed. &#34; \
+                                                 &#34;A mail with be sent when execution terminates&#34;
+
+        &#34;&#34;&#34;
+        Waiting for process to finish
+        streamdata = child.communicate()[0]
+        rc = child.returncode
+        print(&#34;OK OK&#34;, rc)&#34;&#34;&#34;
+
+    return msg, 201</code></pre>
+</details>
+</dd>
 </dl>
 </section>
 <section>
@@ -199,6 +263,7 @@ def service(service_name):
 <li><code><a title="eduka-projects.api.hello" href="#eduka-projects.api.hello">hello</a></code></li>
 <li><code><a title="eduka-projects.api.page_not_found" href="#eduka-projects.api.page_not_found">page_not_found</a></code></li>
 <li><code><a title="eduka-projects.api.service" href="#eduka-projects.api.service">service</a></code></li>
+<li><code><a title="eduka-projects.api.sub_service" href="#eduka-projects.api.sub_service">sub_service</a></code></li>
 </ul>
 </li>
 </ul>

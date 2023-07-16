@@ -34,8 +34,25 @@ from services.code_manager import load
 
 &#34;&#34;&#34;Load service model and link the to corresponding cmd -s parameter. This dict is call by the main dispatcher&#34;&#34;&#34;
 load = {
-    &#34;database_backup&#34;: backup,
-    &#34;code_populate_db&#34;: load,
+    &#34;database_backup&#34;: {
+        &#34;loader&#34;: backup,
+        &#34;mail_template&#34;:
+            {
+                &#34;success&#34;:
+                    {
+                        &#34;subject&#34;: &#34;notification &#34;, &#34;head&#34;: &#34;&#34;, &#34;body&#34;: &#34;&lt;table id=&#39;enko_table&#39;&gt;&lt;tr&gt;&lt;th &#34;
+                                                                        &#34;class=&#39;enko_th&#39;&gt;Backup date&lt;/th&gt;&lt;th &#34;
+                                                                        &#34;class=&#39;enko_th&#39;&gt;Backup name&lt;/th&gt;&lt;/tr&gt;&#34;,
+                        &#34;foot&#34;: &#34;&#34;
+                    },
+                &#34;error&#34;:
+                    {
+                        &#34;subject&#34;: &#34;Error &#34;, &#34;head&#34;: &#34;&#34;, &#34;body&#34;: &#34;&#34;, &#34;foot&#34;: &#34;&#34;
+                    },
+            }
+    },
+    &#34;code_populate_db&#34;: {&#34;loader&#34;: load},
+    &#34;code_corrector&#34;: {&#34;loader&#34;: load},
 }</code></pre>
 </details>
 </section>

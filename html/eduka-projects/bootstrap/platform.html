@@ -33,6 +33,8 @@ import sys
 import bootstrap
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 
 def login(url: str, logins: dict) -&gt; webdriver:
@@ -57,6 +59,16 @@ def login(url: str, logins: dict) -&gt; webdriver:
         # Todo: Send error message and return None
     else:
         return dvr
+
+
+def get_tabs(id: str, dvr: webdriver) -&gt; webdriver:
+    &#34;&#34;&#34;
+    Get the tab row on Enko dasboard
+    :return a webdriver object
+    &#34;&#34;&#34;
+    db_tabs = WebDriverWait(dvr, 15, ignored_exceptions=bootstrap.ignored_exceptions).until(
+        EC.presence_of_element_located((By.ID, id)))
+    return db_tabs
 
 
 def driver():
@@ -92,8 +104,28 @@ def driver():
     return webdriver.Chrome(options=bootstrap.chrome_options)</code></pre>
 </details>
 </dd>
+<dt id="eduka-projects.bootstrap.platform.get_tabs"><code class="name flex">
+<span>def <span class="ident">get_tabs</span></span>(<span>id: str, dvr: <module 'selenium.webdriver' from 'D:\\Dev\\Enko Education\\eduka-projects\\.venv\\Lib\\site-packages\\selenium\\webdriver\\__init__.py'>) ‑> <module 'selenium.webdriver' from 'D:\\Dev\\Enko Education\\eduka-projects\\.venv\\Lib\\site-packages\\selenium\\webdriver\\__init__.py'></span>
+</code></dt>
+<dd>
+<div class="desc"><p>Get the tab row on Enko dasboard
+:return a webdriver object</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_tabs(id: str, dvr: webdriver) -&gt; webdriver:
+    &#34;&#34;&#34;
+    Get the tab row on Enko dasboard
+    :return a webdriver object
+    &#34;&#34;&#34;
+    db_tabs = WebDriverWait(dvr, 15, ignored_exceptions=bootstrap.ignored_exceptions).until(
+        EC.presence_of_element_located((By.ID, id)))
+    return db_tabs</code></pre>
+</details>
+</dd>
 <dt id="eduka-projects.bootstrap.platform.login"><code class="name flex">
-<span>def <span class="ident">login</span></span>(<span>url: str, logins: dict) ‑> <module 'selenium.webdriver' from '/home/nkanven/PycharmProjects/eduka-projects/venv/lib/python3.10/site-packages/selenium/webdriver/__init__.py'></span>
+<span>def <span class="ident">login</span></span>(<span>url: str, logins: dict) ‑> <module 'selenium.webdriver' from 'D:\\Dev\\Enko Education\\eduka-projects\\.venv\\Lib\\site-packages\\selenium\\webdriver\\__init__.py'></span>
 </code></dt>
 <dd>
 <div class="desc"><p>login function enable access to enko admin platform and return a webdriver object for further nivagation
@@ -147,6 +179,7 @@ def driver():
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
 <li><code><a title="eduka-projects.bootstrap.platform.driver" href="#eduka-projects.bootstrap.platform.driver">driver</a></code></li>
+<li><code><a title="eduka-projects.bootstrap.platform.get_tabs" href="#eduka-projects.bootstrap.platform.get_tabs">get_tabs</a></code></li>
 <li><code><a title="eduka-projects.bootstrap.platform.login" href="#eduka-projects.bootstrap.platform.login">login</a></code></li>
 </ul>
 </li>

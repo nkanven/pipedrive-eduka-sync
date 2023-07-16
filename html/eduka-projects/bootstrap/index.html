@@ -36,7 +36,6 @@ import threading
 
 import settings
 
-from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
 
@@ -57,11 +56,8 @@ try:
             thread_local.session = requests.Session()
         return thread_local.session
 
-    autobackup_memoize = &#34;autobackup_memoize&#34;
-    if not os.path.exists(autobackup_memoize):
-        os.mkdir(autobackup_memoize)
 
-    json_file = requests.get(settings.parameters_url)
+    autobackup_memoize = &#34;auO)
 
     parameters = json_file.json()
 
