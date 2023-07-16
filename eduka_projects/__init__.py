@@ -17,6 +17,7 @@ import public_ip as ip
 
 load_dotenv()
 
+
 class EdukaProjects:
     """
     Define global scope project parameters and methods used in the whole project

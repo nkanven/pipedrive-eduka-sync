@@ -45,6 +45,45 @@ def get_tabs(id: str, dvr: webdriver) -> webdriver:
     return db_tabs
 
 
+def goto_printable(browser):
+    """
+
+    @param browser: webdriver object
+    @return:
+    """
+    # Get printable link list as it content full data
+    breadcrumb = WebDriverWait(browser, 15, ignored_exceptions=bts.ignored_exceptions).until(
+        ec.presence_of_element_located((By.ID, 'BreadCrumb')))
+    printable_link = WebDriverWait(breadcrumb, 5, ignored_exceptions=bts.ignored_exceptions).until(
+        ec.presence_of_element_located((By.CSS_SELECTOR, 'span > a')))
+
+    browser.get(printable_link.get_attribute('href'))
+
+
+def get_printable(browser) -> list:
+    """
+    Parse all the table rows and return a list of tuple
+    @param browser: webdriver
+    @return: a list of tuple
+    """
+    columns_data = []
+    list_table = WebDriverWait(browser, 15, ignored_exceptions=bts.ignored_exceptions).until(
+        ec.presence_of_element_located((By.ID, 'CustomListTable0')))
+    table_rows = list_table.find_elements(By.TAG_NAME, 'tr')
+
+    # Loop through table ignoring thead row
+    for table_row in table_rows[1:]:
+        columns = table_row.find_elements(By.TAG_NAME, 'td')
+        user_data = ()
+
+        for column in columns:
+            user_data += (column.get_attribute('textContent'),)
+
+        columns_data.append(user_data)
+
+    return columns_data
+
+
 def driver():
     """
     Initialize the Chrome webdriver and return it as an object
