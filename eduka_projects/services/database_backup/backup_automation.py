@@ -44,6 +44,9 @@ class Backup(DatabaseBackup):
         }
 
         self.tabs_id = 'DBTabs'
+        self.errors = []
+        self.success = []
+        self.notifications = {}
 
     def create_backup(self):
 
@@ -185,14 +188,14 @@ class Backup(DatabaseBackup):
             self.notifications["error"] = self.errors
             self.notifications["success"] = self.success
 
-    def run(self, school: str, switch: str) -> None:
+    def run(self, cmd: str) -> None:
         """
         Run the database base backup automation on Enko dashboard
         :param school: (str) school name
-        :param switch: (str) it's the running service / microservice name
+        :param cmd: (str) it's the running service / microservice name
         :return: (None) function does not return a value
         """
-        print("Start " + school + " " + self.service_name)
+        print("Start " + self.school + " " + self.service_name)
         try:
             self.create_backup()
             self.delete_backups()
@@ -200,7 +203,7 @@ class Backup(DatabaseBackup):
             self.errors.append(("EdukaException error occured ", str(e), None))
             logging.critical("Exception occured", exc_info=True)
         finally:
-            file_name = self.autobackup_memoize + os.sep + "mail" + switch + "-" + self.abbr
+            file_name = self.autobackup_memoize + os.sep + "mail" + cmd + "-" + self.abbr
             if serialize(file_name, self.notifications):
                 print("Succcessful serialization")
             else:

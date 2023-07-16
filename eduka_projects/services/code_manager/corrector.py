@@ -1,3 +1,4 @@
+import os
 import datetime
 import random
 
@@ -7,6 +8,7 @@ from eduka_projects.services.code_manager import *
 
 from eduka_projects.bootstrap import platform
 from eduka_projects.utils.mail import EnkoMail
+from eduka_projects.utils.rialization import serialize
 from eduka_projects.utils.eduka_exceptions import EdukaNoJobExecution
 from eduka_projects.services.code_manager import CodeManager
 from eduka_projects.services.code_manager.db_populate import Populate
@@ -18,6 +20,10 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import ElementNotInteractableException
 
 from mysql.connector import errors
+from dotenv import load_dotenv
+
+
+load_dotenv()
 
 
 class Correct(CodeManager):
@@ -26,22 +32,26 @@ class Correct(CodeManager):
         The correct class browse Enko Dashboard in other to correct wrong student and family IDs
         """
         super().__init__()
-        self.blank_students_code = self.columns_data = []
         self.browser = None
         self.school = school
         self.param = self.parameters
+        self.cluster = ""
         self.mailer = EnkoMail(self.service_name, school)
         self.db_init()
+
+        self.wrong_student_list_uri = self.param['enko_education']['schools'][self.school]['base_url'] + \
+                                      self.param['enko_education']['schools'][self.school]['wrong_student_list_uri']
+        self.wrong_family_list_uri = self.param['enko_education']['schools'][self.school]['base_url'] + \
+                                     self.param['enko_education']['schools'][self.school]['wrong_family_list_uri']
 
         self.logins = {
             'email': self.param['enko_education']['schools'][self.school]['login']['email'],
             'password': self.param['enko_education']['schools'][self.school]['login']['password']
         }
 
-        self.columns_data: list
+        self.columns_data: list = []
         self.families = {}
         self.clean_datas = {}
-        self.blank_students_code: list
 
         self.stats = {
             "nber_student_wco": 0,
@@ -51,6 +61,16 @@ class Correct(CodeManager):
             "nber_guardian_wco": 0,
             "nber_guardian_wco_rpl": 0
         }
+        self.notifications = {
+            "errors": {
+                "students_blank_code": [],
+                "no_gender_students": [],
+                "no_clean_code_found": [],
+                "families_blank_code": []
+            }
+        }
+
+        self.no_code_available = []
 
         # Check Database components
         try:
@@ -58,13 +78,30 @@ class Correct(CodeManager):
         except Exception:
             pass
 
+    def code_is_empty(self, data, c_line, group="st") -> bool:
+        result = False
+        strip_data = str(data[0]).strip(" ")
+
+        if strip_data == "":
+            if group == "st":
+                # Student's code is blank
+                self.notifications["errors"]["students_blank_code"].append(
+                    (self.param['enko_education']['schools'][self.school]['base_url'], data[2], data[-1], self.cluster)
+                )
+            else:
+                if strip_data == "":
+                    self.notifications["errors"]["families_blank_code"].append(
+                        (self.wrong_family_list_uri, c_line, self.cluster)
+                    )
+            result = True
+
+        return result
+
     def get_wrong_ids(self):
 
         urls = [
-            self.param['enko_education']['schools'][self.school]['base_url'] +
-            self.param['enko_education']['schools'][self.school]['wrong_student_list_uri'],
-            self.param['enko_education']['schools'][self.school]['base_url'] +
-            self.param['enko_education']['schools'][self.school]['wrong_family_list_uri']
+            self.wrong_student_list_uri,
+            self.wrong_family_list_uri
         ]
 
         for url in urls:
@@ -113,9 +150,9 @@ class Correct(CodeManager):
             + self.param['enko_education']['replacer_uri']
         )
 
-    def db_manipulations(self, old_code, c_platform, cluster, category, acad_year):
+    def db_manipulations(self, old_code, c_platform, category, acad_year):
         # Get the oldest student id
-        query = f"select code_id, code from bank_code where platform='{c_platform}' and cluster='{cluster}' and acad_year='{acad_year}' and category='{category}' and is_used=0 order by code_id asc"
+        query = f"select code_id, code from bank_code where platform='{c_platform}' and cluster='{self.cluster}' and acad_year='{acad_year}' and category='{category}' and is_used=0 order by code_id asc"
 
         with mysql.connector.connect(**self.db_config) as conn:
             global res
@@ -158,13 +195,14 @@ class Correct(CodeManager):
                     self.error_logger.critical("Exception occurred", exc_info=True)
                     print("Exception", str(e))
         else:
-            self.message_text = "No result found for these queries"
-            self.message_desc = ""
+            self.notifications["errors"]["no_clean_code_found"].append(
+                (c_platform, acad_year, category, self.cluster)
+            )
 
     def code_categorizer(self):
         school_caracteristics = ""
         category_map = {"male": "mst", "female": "fst", "family": "fam"}
-        data_inputs = self.get_good_codes_from_excel(self.parameters["environment"]["eduka_code_manager_data_inputs"])
+        data_inputs = self.get_good_codes_from_excel(self.parameters["global"]["eduka_code_manager_data_inputs"])
 
         for data_input in data_inputs:
             if self.param['enko_education']['schools'][self.school]['base_url'] == data_input[0] + "/":
@@ -185,15 +223,21 @@ class Correct(CodeManager):
 
         random.shuffle(self.columns_data)
         db_datas = []
+        data_line_count = 0
 
         for data in self.columns_data:
+            data_line_count += 1
             if len(data) > 4:
                 # Handle family data
                 self.stats["nber_family_wco"] += 1
+                if self.code_is_empty(data, data_line_count, "fam"):
+                    continue
+
                 guardians = []
 
                 # Get all family data except the names
                 for guardian in data[:-1]:
+                    # Avoid empty list
                     if guardian != "":
                         self.stats["nber_guardian_wco"] += 1
                         guardians.append(guardian)
@@ -203,105 +247,80 @@ class Correct(CodeManager):
                 # Handle students
                 self.stats["nber_student_wco"] += 1
 
-                if str(data[0]).strip(" ") == "":
-                    # Student's code is blank
-                    self.blank_students_code.append(
-                        (
-                            self.param['enko_education']['schools'][self.school]['base_url'],
-                            data[2],
-                            data[-1]
-                        )
-                    )
+                if self.code_is_empty(data, data_line_count):
                     continue
+
                 if data[1] == "":
-                    # TODO: Report this error
                     # Skip if student gender is blank
+                    self.notifications["errors"]["no_gender_students"].append(
+                        (self.param['enko_education']['schools'][self.school]['base_url'], data[2], data[-1], self.cluster)
+                    )
                     continue
 
                 # Correct student code
                 # Select a clean code from bank_code table with the appropriate values
                 category = category_map[data[1].lower()]
-                # print(f"Wrong code {data[0]}, gender {data[1]}, full name {data[2]}, email {data[3]}")
 
             c_platform = school_caracteristics[0]
-            cluster = school_caracteristics[6].lower()
+            self.cluster = school_caracteristics[6].lower()
 
             __year = str(datetime.date.today().year)[2:]
-            acad_year = self.build_academic_year(cluster, category, __year)
+            acad_year = self.build_academic_year(self.cluster, category, __year)
             clean_code = ""
 
-            self.db_manipulations(data[0], c_platform, cluster, category, acad_year)
+            self.db_manipulations(data[0], c_platform, category, acad_year)
 
     def code_replacer(self):
         # UserCodeBox
         print("replace bad code on dashboard")
         user_code = []
         person_code = []
+
         user_code_box = WebDriverWait(self.browser, 15, ignored_exceptions=self.ignored_exceptions).until(
             EC.presence_of_element_located((By.ID, 'UserCodeBox')))
 
-        # PersonCodeBox
         person_code_box = WebDriverWait(self.browser, 15, ignored_exceptions=self.ignored_exceptions).until(
             EC.presence_of_element_located((By.ID, 'PersonCodeBox')))
 
-        self.stats = {
-            "nber_student_wco": 0,
-            "nber_student_wco_rpl": 0,
-            "nber_family_wco": 0,
-            "nber_family_wco_rpl": 0,
-            "nber_guardian_wco": 0,
-            "nber_guardian_wco_rpl": 0
-        }
-
         for clean_data in self.clean_datas.keys():
             if type(self.clean_datas[clean_data]) is str:
-                print("Is student data")
-                # person_code_box.click()
-                # person_code_box.send_keys(self.clean_datas[clean_data]+";"+clean_data)
-                # person_code_box.send_keys(Keys.ENTER)
                 person_code.append(self.clean_datas[clean_data] + ";" + clean_data)
                 self.stats["nber_student_wco_rpl"] += 1
             if type(self.clean_datas[clean_data]) is list:
                 i = 0
                 for up_code in self.clean_datas[clean_data]:
                     if i == 0:
-                        print("is Family")
-                        # user_code_box.send_keys(up_code+";"+clean_data)
-                        # user_code_box.send_keys(Keys.ENTER)
                         user_code.append(up_code + ";" + clean_data)
                         self.stats["nber_family_wco_rpl"] += 1
                     else:
-                        # person_code_box.click()
-                        # person_code_box.send_keys(self.clean_datas[clean_data] + ";" + clean_data+"-"+str(i))
-                        # person_code_box.send_keys(Keys.ENTER)
-                        print("Is guardian")
                         person_code.append(up_code + ";" + clean_data + "-" + str(i))
                         self.stats["nber_guardian_wco_rpl"] += 1
 
                     i += 1
-        print("Person ", person_code)
-        person_code_box.click()
-        for pc in person_code[:2]:
-            person_code_box.send_keys(pc)
-            person_code_box.send_keys(Keys.ENTER)
 
-        person_code_btn = WebDriverWait(self.browser, 15, ignored_exceptions=self.ignored_exceptions).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, 'button[data-type = "person"]')))
-        person_code_btn.click()
+        print("Stats:", self.stats, "errors:", self.notifications["errors"])
 
-        self.submit_updates()
-
-        print("Family", user_code)
-        user_code_box.click()
-        for uc in user_code[:2]:
-            user_code_box.send_keys(uc)
-            user_code_box.send_keys(Keys.ENTER)
-        user_code_btn = WebDriverWait(self.browser, 15, ignored_exceptions=self.ignored_exceptions).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, 'button[data-type = "user"]')))
-        user_code_btn.click()
-        time.sleep(5)
-
-        self.submit_updates()
+        # person_code_box.click()
+        # for pc in person_code[:2]:
+        #     person_code_box.send_keys(pc)
+        #     person_code_box.send_keys(Keys.ENTER)
+        #
+        # person_code_btn = WebDriverWait(self.browser, 15, ignored_exceptions=self.ignored_exceptions).until(
+        #     EC.presence_of_element_located((By.CSS_SELECTOR, 'button[data-type = "person"]')))
+        # person_code_btn.click()
+        #
+        # self.submit_updates()
+        #
+        # user_code_box.click()
+        # for uc in user_code[:2]:
+        #     user_code_box.send_keys(uc)
+        #     user_code_box.send_keys(Keys.ENTER)
+        # user_code_btn = WebDriverWait(self.browser, 15, ignored_exceptions=self.ignored_exceptions).until(
+        #     EC.presence_of_element_located((By.CSS_SELECTOR, 'button[data-type = "user"]')))
+        # user_code_btn.click()
+        # time.sleep(5)
+        #
+        # self.submit_updates()
 
     def submit_updates(self):
         while True:
@@ -317,16 +336,20 @@ class Correct(CodeManager):
             except ElementNotInteractableException:
                 print("Waiting for element to be interectable...")
 
-    def run(self) -> None:
+    def run(self, cmd: str) -> None:
         # TODO: Handle mail notification for errors and statistics
         try:
             self.get_wrong_ids()
             self.code_categorizer()
             self.code_replacer()
-            print(self.clean_datas, self.stats)
-            self.notifications["errors"] = self.errors
-            self.notifications["success"] = self.success
-            self.notifications["stats"] = self.stats
+            self.notifications["success"] = {"stats": self.stats, "cluster": self.cluster, "school": self.school}
+
+            # Serialize notification for mailing
+            f_name = "mail" + cmd + "-" + self.param['enko_education']['schools'][self.school]["abbr"]
+            f_name_path = os.path.join(self.autobackup_memoize, f_name)
+            print("self notif ", self.notifications)
+            serialize(f_name_path, self.notifications)
+
         except Exception:
             self.error_logger.critical("ConnectionError occurred", exc_info=True)
         except EdukaNoJobExecution:

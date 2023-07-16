@@ -29,13 +29,13 @@ def deserialize(dir_name, fname):
     :param category: (str) the type of contained in data. It can be mail, memoize, etc.
     :return: (list) function return a list of python object
     """
-    data = None
+    data = []
 
     for f in os.listdir(dir_name):
 
-        if fname.find(f) != -1:
+        if f.find(fname) != -1:
             with open(dir_name + os.sep + f, "rb") as d:
-                data = pickle.loads(d.read())
+                data.append(pickle.loads(d.read()))
 
     return data
 

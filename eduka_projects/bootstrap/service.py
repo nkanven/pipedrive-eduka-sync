@@ -7,7 +7,7 @@ get = {
             {
                 "success":
                     {
-                        "subject": "notification ", "head": "", "body": "<table id='enko_table'><tr><th "
+                        "subject": "notification ", "head": "", "body": "<table class='enko_table'><tr><th "
                                                                         "class='enko_th'>Backup date</th><th "
                                                                         "class='enko_th'>Backup name</th></tr>",
                         "foot": ""

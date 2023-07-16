@@ -41,7 +41,7 @@ class ServiceManager(Bootstrap):
 
                         _service = loader[service](school)
                         print("running ", service)
-                        _service.run()
+                        _service.run(service_name)
                         break
             if service is None:
                 print(f"{service} not found. Please check the command orthograph or contact the admin.")

@@ -11,9 +11,10 @@ from dotenv import load_dotenv
 
 from eduka_projects.bootstrap import Bootstrap, service
 from eduka_projects.utils.rialization import deserialize, delete_serialized
-from eduka_projects.utils.eduka_exceptions import EdukaKeyError
+from eduka_projects.utils.eduka_exceptions import EdukaMailServiceKeyError
 
 load_dotenv()
+
 
 class EnkoMail(Bootstrap):
     """
@@ -31,7 +32,8 @@ class EnkoMail(Bootstrap):
         self.__category: str = ""
         self.__subject: str = ""
         self.__school: str = self.parameters['enko_education']['schools'][school]['label']
-        self.__email_cc_list: list = self.parameters['enko_education']['schools'][school]['comma_seperated_emails'].split(",")
+        self.__email_cc_list: list = self.parameters['enko_education']['schools'][school][
+            'comma_seperated_emails'].split(",")
         self.__email_to: str = self.__email_cc_list[0]
         self.__date: str = str(datetime.now())
         self.__email_from: str = os.getenv('email')
@@ -64,7 +66,7 @@ class EnkoMail(Bootstrap):
     def __email_template(self):
         style = """
             <style>
-                #enko_table, .enko_th, .enko_td {
+                .enko_table, .enko_th, .enko_td {
                     border: 1px solid black;
                     border-collapse: collapse;
                     padding: 10px;
@@ -130,7 +132,7 @@ class EnkoMail(Bootstrap):
         except Exception as e:
             logging.error("Exception occured", exc_info=True)
 
-    def mail_summarized(self):
+    def backup_automation(self):
         """
         Mail summarized for single message using multiple threads
         """
@@ -149,7 +151,7 @@ class EnkoMail(Bootstrap):
                     message_desc += succ[1]
                     message_foot += succ[2] + "</br>"
 
-            #error = bootstrap.service.load[self.__service_name]["mail_template"]["error"]
+            # error = bootstrap.service.load[self.__service_name]["mail_template"]["error"]
 
             if self.__service_name in service.get.keys():
                 try:
@@ -172,3 +174,109 @@ class EnkoMail(Bootstrap):
             else:
                 self.error_logger.info(f"{self.__service_name} key not found in bootstrap.service.get")
 
+    def corrector(self):
+        datas = deserialize(self.autobackup_memoize, self.__category + self.__service_name)
+        stats = sh_stats = nh_stats = families_blank_code = no_gender_students = ""
+        students_blank_code = "<table class='enko_table'><tr><th class='enko_th'>Platform</th><th " \
+                                                   "class='enko_th'>Student name</th><th class='enko_th'>Guardian " \
+                                                   "email</th><th class='enko_th'>Error</th></tr>"
+
+        no_clean_code_found = "<table class='enko_table'><tr><th class='enko_th'>Platform</th><th " \
+                              "class='enko_th'>Academic year</th><th class='enko_th'>Category</th><th " \
+                              "class='enko_th'>Error</th></tr>"
+
+        if datas is not None:
+            for data in datas:
+                if self.__service_name in service.get.keys():
+                    message_title = "<p>Code manager services summary</p>"
+                    if data["success"]["cluster"].lower() == "nh":
+                        nh_stats += "<li>" + str(data["success"]["stats"][
+                                            "nber_student_wco_rpl"]) + " wrong student codes replaced for " + \
+                                    data["success"]["school"] + "<li/>"
+                        nh_stats += "<li>" + str(
+                            data["success"]["stats"]["nber_family_wco"]) + " wrong family codes found for " + \
+                                    data["success"]["school"] + "<li/>"
+                        nh_stats += "<li>" + str(
+                            data["success"]["stats"]["nber_family_wco_rpl"]) + " wrong family codes replaced for " + \
+                                    data["success"]["school"] + "<li/>"
+                        nh_stats += "<li>" + str(
+                            data["success"]["stats"]["nber_guardian_wco"]) + " wrong guardian codes found for " + \
+                                    data["success"]["school"] + "<li/>"
+                        nh_stats += "<li>" + str(
+                            data["success"]["stats"]["nber_guardian_wco"]) + " wrong guardian codes found for " + \
+                                    data["success"]["school"] + "<li/>"
+                        nh_stats += "<li>" + str(data["success"]["stats"][
+                                            "nber_guardian_wco_rpl"]) + " wrong guardian codes replaced for " + \
+                                    data["success"]["school"] + "<li/>"
+
+                    if data["success"]["cluster"].lower() == "sh":
+                        sh_stats += "<li>" + str(data["success"]["stats"][
+                                            "nber_student_wco_rpl"]) + " wrong student codes replaced for " + \
+                                    data["success"]["school"] + "<li/>"
+                        sh_stats += "<li>" + str(
+                            data["success"]["stats"]["nber_family_wco"]) + " wrong family codes found for " + \
+                                    data["success"]["school"] + "<li/>"
+                        sh_stats += "<li>" + str(
+                            data["success"]["stats"]["nber_family_wco_rpl"]) + " wrong family codes replaced for " + \
+                                    data["success"]["school"] + "<li/>"
+                        sh_stats += "<li>" + str(
+                            data["success"]["stats"]["nber_guardian_wco"]) + " wrong guardian codes found for " + \
+                                    data["success"]["school"] + "<li/>"
+                        sh_stats += "<li>" + str(
+                            data["success"]["stats"]["nber_guardian_wco"]) + " wrong guardian codes found for " + \
+                                    data["success"]["school"] + "<li/>"
+                        sh_stats += "<li>" + str(data["success"]["stats"][
+                                            "nber_guardian_wco_rpl"]) + " wrong guardian codes replaced for " + \
+                                    data["success"]["school"] + "<li/>"
+
+                    stats += "<p>Code manager statistics for NH: </p>"
+                    stats += "<ul>" + nh_stats + "</ul>"
+                    stats += "<p>Code manager statistics for SH: </p>"
+                    stats += "<ul>" + sh_stats + "</ul>"
+
+                    for std_bc in data["errors"]["students_blank_code"]:
+                        students_blank_code += f"<tr><td>{std_bc[0]}</td><td>{std_bc[1]}</td><td>{std_bc[2]}</td><td>Student blank code</td></tr>"
+
+                    for ng_std in data["errors"]["no_gender_students"]:
+                        no_gender_students += f"<tr><td>{ng_std[0]}</td><td>{ng_std[1]}</td><td>{ng_std[2]}</td><td>No gender student</td></tr>"
+
+                    students_blank_code += no_gender_students + "</table>"
+
+                    for nccf in data["errors"]["no_clean_code_found"]:
+                        no_clean_code_found += f"<tr><td>{nccf[0]}</td><td>{nccf[1]}</td><td>{nccf[2]}</td><td>No code found</td></tr>"
+                    no_clean_code_found += "</table>"
+
+                    for fbc in data["errors"]["families_blank_code"]:
+                        families_blank_code += "<p>Family blank code found at " + fbc[0] + " line " + fbc[1] + "</p>"
+
+                    errors = students_blank_code + "<hr>" + no_clean_code_found + "<hr>" + families_blank_code
+
+                    try:
+                        success = service.get[self.__service_name]["mail_template"]["success"]
+                        success["head"] = message_title
+                        success["body"] = stats
+
+                        success["subject"] = "Code Manager " + success["subject"] + ""
+
+                        self.set_email_message_desc(
+                            success["body"] + "<div>" + errors + "</div>"
+                        )
+                        self.set_email_message_text(success["head"])
+
+                        self.set_subject(subject=success["subject"])
+                    except KeyError as e:
+                        self.error_logger.info(f"{str(e)} key not found in bootstrap.service.get")
+                else:
+                    self.error_logger.info(f"{self.__service_name} key not found in bootstrap.service.get")
+
+    def mail_builder_selector(self):
+        # Add service mail builder methods here
+        m_select = {
+            "backup_automation": self.backup_automation,
+            "corrector": self.corrector
+        }
+
+        try:
+            m_select[self.__service_name]()
+        except KeyError as e:
+            raise EdukaMailServiceKeyError(self.__service_name, self.__school, str(e))

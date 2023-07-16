@@ -139,7 +139,7 @@ class Populate(CodeManager):
             conn.cursor().executemany(query, self.sql)
             conn.commit()
 
-    def run(self) -> None:
+    def run(self, cmd) -> None:
         """
         This function runs the Populate object. Handles student IDs insertation in bank_code table
         :return: None

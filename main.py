@@ -33,6 +33,7 @@ try:
     import getopt
     from eduka_projects.bootstrap import service
     from eduka_projects.services import ServiceManager
+    from eduka_projects.utils.eduka_exceptions import EdukaMailServiceKeyError
     import concurrent.futures
     from eduka_projects.utils.rialization import deserialize
     from eduka_projects.utils.mail import EnkoMail
@@ -73,8 +74,10 @@ try:
 
     enko_mail = EnkoMail(cmd, school)
     enko_mail.set_email_cc_list(list(unique_emails))
-    enko_mail.mail_summarized()
+    enko_mail.mail_builder_selector()
     enko_mail.send_mail()
+except EdukaMailServiceKeyError:
+    bts.error_logger.critical("Eduka  Mail Service error", exc_info=True)
 except Exception as e:
     print("Program launch error", str(e))
     bts.error_logger.critical("Program launch error", exc_info=True)

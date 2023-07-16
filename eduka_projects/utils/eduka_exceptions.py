@@ -9,7 +9,7 @@ class EdukaException(Exception):
 
 class EdukaKeyError(EdukaException):
     def __init__(self, school, error):
-        super.__init__(school, error)
+        super().__init__(school, error)
         pass
 
     def __str__(self):
@@ -18,8 +18,21 @@ class EdukaKeyError(EdukaException):
 
 class EdukaNoJobExecution(EdukaException):
     def __init__(self, service, school, error):
-        super.__init__(school, error)
+        super().__init__(school, error)
         self.service = service
 
     def __str__(self):
         return "Eduka service " + self.service + " raised a No job execution for " + self.school + " exception. " + self.error
+
+
+class EdukaMailServiceKeyError(EdukaException):
+    def __init__(self, service, school, error):
+        super().__init__(school, error)
+        self.service = service
+
+    def __str__(self):
+        return "Eduka service " + self.service + " raised Mail Service Key error for " + self.school + " exception." \
+                            " Service " + self.error + " not found."
+
+
+
