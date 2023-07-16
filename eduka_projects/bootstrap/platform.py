@@ -35,6 +35,16 @@ def login(url: str, logins: dict) -> webdriver:
         return dvr
 
 
+def locate_element(browser: webdriver, tag: str, name: str, delay: int = 15):
+    return WebDriverWait(browser, delay, ignored_exceptions=bts.ignored_exceptions).until(
+        ec.presence_of_element_located((tag, name)))
+
+
+def locate_elements(browser: webdriver, tag: str, name: str, delay: int = 15):
+    return WebDriverWait(browser, delay, ignored_exceptions=bts.ignored_exceptions).until(
+        ec.presence_of_all_elements_located((tag, name)))
+
+
 def get_tabs(id: str, dvr: webdriver) -> webdriver:
     """
     Get the tab row on Enko dasboard
