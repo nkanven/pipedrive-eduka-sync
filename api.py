@@ -24,6 +24,7 @@ msg = {
 def page_not_found(e):
     return msg, 404
 
+
 @app.errorhandler(500)
 # inbuilt function which takes error as parameter
 def page_not_found(e):
@@ -34,7 +35,7 @@ def page_not_found(e):
 
 @app.route("/")
 def hello():
-    return {"Greetings":"Welcome to Enko Education (EDUKA PROJECTS) Web executable"}
+    return {"Greetings": "Welcome to Enko Education (EDUKA PROJECTS) Web executable"}
 
 
 @app.route("/service/<service_name>")
@@ -48,7 +49,7 @@ def service(service_name):
         return msg, 401
 
     if service_name in os.listdir("eduka_projects/services"):
-        #os.system("source venv/bin/activate && python main.py -s " + service_name)
+        # os.system("source venv/bin/activate && python main.py -s " + service_name)
         python_venv = os.getcwd() + os.sep + "venv/bin/python"
         child = subprocess.Popen([python_venv, 'main.py', '-s', service_name], subprocess.PIPE)
         msg['code'] = 201
@@ -76,13 +77,13 @@ def sub_service(service_name, sub_serv):
         return msg, 401
 
     if service_name in os.listdir("eduka_projects/services"):
-        #os.system("source venv/bin/activate && python main.py -s " + service_name)
+        # os.system("source venv/bin/activate && python main.py -s " + service_name)
         python_venv = os.getcwd() + os.sep + "venv/bin/python"
         child = subprocess.Popen([python_venv, 'main.py', '-s', sub_serv], subprocess.PIPE)
         msg['code'] = 201
         msg['state'] = 'Success'
-        msg['msg'] = "Sub Service " + sub_serv + " of " + service_name +" has been successfuly executed. " \
-                                                 "A mail with be sent when execution terminates"
+        msg['msg'] = "Sub Service " + sub_serv + " of " + service_name + " has been successfuly executed. " \
+                                                                         "A mail with be sent when execution terminates"
 
         """
         Waiting for process to finish
@@ -91,6 +92,7 @@ def sub_service(service_name, sub_serv):
         print("OK OK", rc)"""
 
     return msg, 201
+
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0')

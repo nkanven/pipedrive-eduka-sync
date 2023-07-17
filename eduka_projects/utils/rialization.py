@@ -3,17 +3,17 @@ import os
 import pickle
 
 
-def serialize(fname, data) -> bool:
+def serialize(file_path, data) -> bool:
     """
     Serialize data for later usage
-    :param fname: (str) name of the file to be created for in which the bytes will be stored
+    :param file_path: (str) full path of the file to be created for in which the bytes will be stored
     :param data: (any) the object to store. It can be of any datatype
     :return: (bool) function does True if successfully completed or False if an error occured
     """
 
     result = False
     try:
-        with open(fname, "wb") as d:
+        with open(file_path, "wb") as d:
             d.write(pickle.dumps(data))
         result = True
     except Exception as e:

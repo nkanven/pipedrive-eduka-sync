@@ -32,7 +32,7 @@ try:
     import sys
     import getopt
     from eduka_projects.bootstrap import service
-    from eduka_projects.services import ServiceManager
+    from eduka_projects.services.dispatch import dispatcher
     from eduka_projects.utils.eduka_exceptions import EdukaMailServiceKeyError
     import concurrent.futures
     from eduka_projects.utils.rialization import deserialize
@@ -57,8 +57,7 @@ try:
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         for school in schools:
             print("Work started for", school)
-            sm = ServiceManager()
-            executor.submit(sm.dispatcher, cmd, school)
+            executor.submit(dispatcher, cmd, school)
             # Make space between workers execution
             time.sleep(5)
 
@@ -75,7 +74,7 @@ try:
     enko_mail = EnkoMail(cmd, school)
     enko_mail.set_email_cc_list(list(unique_emails))
     enko_mail.mail_builder_selector()
-    enko_mail.send_mail()
+    # enko_mail.send_mail()
 except EdukaMailServiceKeyError:
     bts.error_logger.critical("Eduka  Mail Service error", exc_info=True)
 except Exception as e:

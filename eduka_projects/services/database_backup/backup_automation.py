@@ -36,13 +36,6 @@ class Backup(DatabaseBackup):
                           self.parameters['enko_education']['database_uri']
         self.bck_max_days = self.parameters['enko_education']['db_backup_max_days']
 
-        self.email = self.parameters['enko_education']['schools'][school]['login']['email']
-        self.password = self.parameters['enko_education']['schools'][school]['login']['password']
-        self.logins = {
-            'email': self.email,
-            'password': self.password
-        }
-
         self.tabs_id = 'DBTabs'
         self.errors = []
         self.success = []
@@ -83,7 +76,7 @@ class Backup(DatabaseBackup):
                 # Exceptional call for private EnkoMail method __get_email_message_desc()
                 self.error_logger.error(f"Execution error occurred {message_desc}")
 
-                browser = platform.login(self.backup_url, self.logins)
+                browser = platform.login(self.backup_url, self.logins(self.school))
 
                 li = platform.get_tabs(self.tabs_id, browser).find_elements(By.TAG_NAME, 'li')
 
@@ -112,7 +105,7 @@ class Backup(DatabaseBackup):
     def delete_backups(self):
         # List available backups and delete old ones if any
         try:
-            browser = platform.login(self.backup_url, self.logins)
+            browser = platform.login(self.backup_url, self.logins(self.school))
             tabs = platform.get_tabs(self.tabs_id, browser)
             tabs.find_elements(By.TAG_NAME, 'li')[2].click()
 
