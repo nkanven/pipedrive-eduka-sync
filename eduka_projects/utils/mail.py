@@ -29,8 +29,8 @@ class EnkoMail(Bootstrap):
         self.__service_name: str = service
         self.__email_message_text: str = ""
         self.__email_message_desc: str = ""
-        self.__category: str = ""
         self.__subject: str = ""
+        self.__category: str = "mail"
         self.__school: str = self.parameters['enko_education']['schools'][school]['label']
         self.__email_cc_list: list = self.parameters['enko_education']['schools'][school][
             'comma_seperated_emails'].split(",")
@@ -38,6 +38,8 @@ class EnkoMail(Bootstrap):
         self.__date: str = str(datetime.now())
         self.__email_from: str = os.getenv('email')
         self.__email_password: str = os.getenv('password')
+
+        self.datas = deserialize(self.autobackup_memoize, self.__category + self.__service_name)
 
     def set_email_message_text(self, email_message_text):
         self.__email_message_text = email_message_text
@@ -59,9 +61,6 @@ class EnkoMail(Bootstrap):
 
     def set_email_cc_list(self, email: list):
         self.__email_cc_list = email
-
-    def set_category(self, category):
-        self.__category = category
 
     def __email_template(self):
         style = """
@@ -136,13 +135,12 @@ class EnkoMail(Bootstrap):
         """
         Mail summarized for single message using multiple threads
         """
-        self.__category = "mail"
-        datas = deserialize(self.autobackup_memoize, self.__category + self.__service_name)
-        if datas is not None:
+
+        if self.datas is not None:
             success_message_desc = message_foot = message_title = message_desc = ""
 
             errors = "<p style=color:red><hr><b>Error(s)</b><hr></p>"
-            for data in datas:
+            for data in self.datas:
                 for error in data['error']:
                     errors += "<p>" + error[0] + " " + error[1] + "</p>"
 
@@ -175,7 +173,6 @@ class EnkoMail(Bootstrap):
                 self.error_logger.info(f"{self.__service_name} key not found in bootstrap.service.get")
 
     def corrector(self):
-        datas = deserialize(self.autobackup_memoize, self.__category + self.__service_name)
         stats = sh_stats = nh_stats = families_blank_code = no_gender_students = ""
         students_blank_code = "<table class='enko_table'><tr><th class='enko_th'>Platform</th><th " \
                                                    "class='enko_th'>Student name</th><th class='enko_th'>Guardian " \
@@ -185,8 +182,8 @@ class EnkoMail(Bootstrap):
                               "class='enko_th'>Academic year</th><th class='enko_th'>Category</th><th " \
                               "class='enko_th'>Error</th></tr>"
 
-        if datas is not None:
-            for data in datas:
+        if self.datas is not None:
+            for data in self.datas:
                 if self.__service_name in service.get.keys():
                     message_title = "<p>Code manager services summary</p>"
                     if data["success"]["cluster"].lower() == "nh":
@@ -269,11 +266,17 @@ class EnkoMail(Bootstrap):
                 else:
                     self.error_logger.info(f"{self.__service_name} key not found in bootstrap.service.get")
 
+    def login_stats(self):
+        if self.datas is not  None:
+            for data in self.datas:
+                print(data)
+
     def mail_builder_selector(self):
         # Add service mail builder methods here
         m_select = {
             "backup_automation": self.backup_automation,
-            "corrector": self.corrector
+            "corrector": self.corrector,
+            "login": self.login_stats
         }
 
         try:
