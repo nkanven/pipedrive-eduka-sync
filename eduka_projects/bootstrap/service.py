@@ -7,9 +7,7 @@ get = {
             {
                 "success":
                     {
-                        "subject": "notification ", "head": "", "body": "<table class='enko_table'><tr><th "
-                                                                        "class='enko_th'>Backup date</th><th "
-                                                                        "class='enko_th'>Backup name</th></tr>",
+                        "subject": "notification ", "head": "", "body": "",
                         "foot": ""
                     },
                 "error":
@@ -33,6 +31,20 @@ get = {
             }
     },
     "db_populate": {
+        "mail_template":
+            {
+                "success":
+                    {
+                        "subject": "notification ", "head": "", "body": "",
+                        "foot": ""
+                    },
+                "error":
+                    {
+                        "subject": "Error ", "head": "", "body": "", "foot": ""
+                    },
+            }
+    },
+    "login": {
         "mail_template":
             {
                 "success":

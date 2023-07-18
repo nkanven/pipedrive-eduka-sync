@@ -125,8 +125,8 @@ class Populate(CodeManager):
         Dispatch data for insertion in bank_code table.
         Return None
         """
-        data_inputs = self.get_good_codes_from_excel(self.parameters["environment"]["eduka_code_manager_data_inputs"])
-        code_bank = self.get_good_codes_from_excel(self.parameters["environment"]["eduka_code_bank_url"], True)
+        data_inputs = self.get_good_codes_from_excel(self.parameters["global"]["eduka_code_manager_data_inputs"])
+        code_bank = self.get_good_codes_from_excel(self.parameters["global"]["eduka_code_bank_url"], True)
 
         for data_input in data_inputs:
             for codes in code_bank:

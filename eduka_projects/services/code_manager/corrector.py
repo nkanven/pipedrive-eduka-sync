@@ -1,6 +1,7 @@
 import os
 import datetime
 import random
+import time
 
 import mysql.connector
 
@@ -22,7 +23,6 @@ from selenium.common.exceptions import ElementNotInteractableException
 from mysql.connector import errors
 from dotenv import load_dotenv
 
-
 load_dotenv()
 
 
@@ -43,11 +43,6 @@ class Correct(CodeManager):
                                       self.param['enko_education']['schools'][self.school]['wrong_student_list_uri']
         self.wrong_family_list_uri = self.param['enko_education']['schools'][self.school]['base_url'] + \
                                      self.param['enko_education']['schools'][self.school]['wrong_family_list_uri']
-
-        self.logins = {
-            'email': self.param['enko_education']['schools'][self.school]['login']['email'],
-            'password': self.param['enko_education']['schools'][self.school]['login']['password']
-        }
 
         self.columns_data: list = []
         self.families = {}
@@ -116,29 +111,13 @@ class Correct(CodeManager):
 
             self.browser = platform.login(
                 url=url,
-                logins=self.logins
+                logins=self.logins(self.school)
             )
 
             # Get printable link list as it content full data
-            breadcrumb = WebDriverWait(self.browser, 15, ignored_exceptions=self.ignored_exceptions).until(
-                EC.presence_of_element_located((By.ID, 'BreadCrumb')))
-            printable_link = WebDriverWait(breadcrumb, 5, ignored_exceptions=self.ignored_exceptions).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, 'span > a')))
-            self.browser.get(printable_link.get_attribute('href'))
+            platform.goto_printable(self.browser)
 
-            list_table = WebDriverWait(self.browser, 15, ignored_exceptions=self.ignored_exceptions).until(
-                EC.presence_of_element_located((By.ID, 'CustomListTable0')))
-            table_rows = list_table.find_elements(By.TAG_NAME, 'tr')
-
-            # Loop through table ignoring thead row
-            for table_row in table_rows[1:]:
-                columns = table_row.find_elements(By.TAG_NAME, 'td')
-                user_data = ()
-
-                for column in columns:
-                    user_data += (column.get_attribute('textContent'),)
-
-                self.columns_data.append(user_data)
+            self.columns_data = platform.get_printable(self.browser)
 
         if self.columns_data.__len__() == 0:
             raise EdukaNoJobExecution(self.service_name, self.school, "No Id to correct found")
@@ -253,7 +232,8 @@ class Correct(CodeManager):
                 if data[1] == "":
                     # Skip if student gender is blank
                     self.notifications["errors"]["no_gender_students"].append(
-                        (self.param['enko_education']['schools'][self.school]['base_url'], data[2], data[-1], self.cluster)
+                        (self.param['enko_education']['schools'][self.school]['base_url'], data[2], data[-1],
+                         self.cluster)
                     )
                     continue
 
@@ -300,27 +280,28 @@ class Correct(CodeManager):
 
         print("Stats:", self.stats, "errors:", self.notifications["errors"])
 
-        # person_code_box.click()
-        # for pc in person_code[:2]:
-        #     person_code_box.send_keys(pc)
-        #     person_code_box.send_keys(Keys.ENTER)
-        #
-        # person_code_btn = WebDriverWait(self.browser, 15, ignored_exceptions=self.ignored_exceptions).until(
-        #     EC.presence_of_element_located((By.CSS_SELECTOR, 'button[data-type = "person"]')))
-        # person_code_btn.click()
-        #
-        # self.submit_updates()
-        #
-        # user_code_box.click()
-        # for uc in user_code[:2]:
-        #     user_code_box.send_keys(uc)
-        #     user_code_box.send_keys(Keys.ENTER)
-        # user_code_btn = WebDriverWait(self.browser, 15, ignored_exceptions=self.ignored_exceptions).until(
-        #     EC.presence_of_element_located((By.CSS_SELECTOR, 'button[data-type = "user"]')))
-        # user_code_btn.click()
-        # time.sleep(5)
-        #
-        # self.submit_updates()
+        person_code_box.click()
+        for pc in person_code:
+            person_code_box.send_keys(pc)
+            person_code_box.send_keys(Keys.ENTER)
+
+        person_code_btn = WebDriverWait(self.browser, 15, ignored_exceptions=self.ignored_exceptions).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, 'button[data-type = "person"]')))
+        time.sleep(15)
+        person_code_btn.click()
+
+        self.submit_updates()
+
+        user_code_box.click()
+        for uc in user_code:
+            user_code_box.send_keys(uc)
+            user_code_box.send_keys(Keys.ENTER)
+        user_code_btn = WebDriverWait(self.browser, 15, ignored_exceptions=self.ignored_exceptions).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, 'button[data-type = "user"]')))
+        user_code_btn.click()
+        time.sleep(5)
+
+        self.submit_updates()
 
     def submit_updates(self):
         while True:

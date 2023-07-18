@@ -9,10 +9,10 @@ Database Backup Module is the code base for Eduka Database Backup service which 
 database backups at a given frequency.
 """
 
-from eduka_projects.bootstrap import Bootstrap
+from eduka_projects.services import ServiceManager
 
 
-class DatabaseBackup(Bootstrap):
+class DatabaseBackup(ServiceManager):
     def __init__(self):
         super().__init__()
         self.service_name = "Database Backup Service"
