@@ -6,8 +6,8 @@ from eduka_projects.bootstrap import platform
 from eduka_projects.utils.rialization import serialize, deserialize
 
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import ElementClickInterceptedException, TimeoutException
+
 
 class Login(Statistics):
 
@@ -22,6 +22,7 @@ class Login(Statistics):
         self.parents_has_connected = self.families_has_connected = self.total_parents = 0
         self.parents_stats = {
             "data": [],
+            "errors": [],
             "p_connected": 0,
             "f_connected": 0,
             "total_parents": 0,
@@ -75,13 +76,12 @@ class Login(Statistics):
 
         if os.path.exists(parents_stats_memo_path):
             store_data = deserialize(self.autobackup_memoize, parents_stats_memo_fname)[0]
-            print(store_data)
             self.parents_stats["data"] = store_data["data"]
             self.parents_stats["p_connected"] = store_data["p_connected"]
             self.parents_stats["f_connected"] = store_data["f_connected"]
             self.parents_stats["total_parents"] = store_data["total_parents"]
+            self.parents_stats["errors"] = store_data["errors"]
 
-            print(store_data["p_connected"], store_data["f_connected"])
         i = 0
 
         for data in self.columns_data:
@@ -98,6 +98,8 @@ class Login(Statistics):
                 try:
                     user_master_items = platform.locate_elements(self.browser, By.CLASS_NAME, "UserMasterItem", 1)
                 except TimeoutException:
+                    self.parents_stats["errors"].append(str(data[0]))
+                    self.parents_stats["data"].append(data)
                     user_search = __user_search(True)
                     continue
 
@@ -128,7 +130,7 @@ class Login(Statistics):
                     print(_content)
 
             self.parents_stats["data"].append(data)
-
+            print(self.parents_stats)
             serialize(parents_stats_memo_path, self.parents_stats)
 
             user_search = __user_search(True)
@@ -140,7 +142,8 @@ class Login(Statistics):
             "f_connected": self.parents_stats["f_connected"],
             "total_parents": self.parents_stats["total_parents"],
             "total_families": self.parents_stats["total_families"],
-            "school": self.parents_stats["school"]
+            "school": self.parents_stats["school"],
+            "errors": self.parents_stats["errors"]
         }
         self.browser.quit()
         serialize(os.path.join(self.autobackup_memoize, "mail" + cmd + self.abbr + ".ep"), mail_stats)

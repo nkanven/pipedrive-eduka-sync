@@ -74,7 +74,6 @@ try:
     enko_mail = EnkoMail(cmd, school)
     enko_mail.set_email_cc_list(list(unique_emails))
     enko_mail.mail_builder_selector()
-    # enko_mail.send_mail()
 except EdukaMailServiceKeyError:
     bts.error_logger.critical("Eduka  Mail Service error", exc_info=True)
 except Exception as e:
