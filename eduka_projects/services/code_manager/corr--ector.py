@@ -2,7 +2,6 @@ import os
 import datetime
 import random
 import time
-import webbrowser
 
 import mysql.connector
 
@@ -65,8 +64,6 @@ class Correct(CodeManager):
                 "families_blank_code": []
             }
         }
-
-        self.code_blocks = {"person": None, "user": None}
 
         self.no_code_available = []
 
@@ -153,7 +150,6 @@ class Correct(CodeManager):
         if res is not None:
             clean_code_id = res[0]
             clean_code = res[1]
-            clean_datas = None
 
             # Update bank_code and replacement_logs tables
             # To insecure consistency, query is wrapped inside a transaction
@@ -168,16 +164,12 @@ class Correct(CodeManager):
                     cursor.execute('use enko_db')
                     cursor.execute(query2, (old_code, clean_code_id))
                     cursor.execute(query3, (clean_code,))
-
-                    try:
-                        clean_datas = self.families[old_code]
-                    except Exception:
-                        clean_datas = old_code
-
-                    # Handle replacement here
-                    self.code_replacer(clean_datas, clean_code)
-
                     conn.commit()
+                    try:
+                        self.clean_datas[clean_code] = self.families[old_code]
+                    except Exception as e:
+                        self.error_logger.error("Error occurred", exc_info=True)
+                        self.clean_datas[clean_code] = old_code
 
                     # print(f"{clean_code_id} for {clean_code} Update")
                 except (errors.InternalError, errors.ProgrammingError, errors.IntegrityError,
@@ -218,15 +210,6 @@ class Correct(CodeManager):
         random.shuffle(self.columns_data)
         db_datas = []
         data_line_count = 0
-
-        user_code_box = WebDriverWait(self.browser, 15, ignored_exceptions=self.ignored_exceptions).until(
-            EC.presence_of_element_located((By.ID, 'UserCodeBox')))
-
-        person_code_box = WebDriverWait(self.browser, 15, ignored_exceptions=self.ignored_exceptions).until(
-            EC.presence_of_element_located((By.ID, 'PersonCodeBox')))
-
-        self.code_blocks["person"] = person_code_box
-        self.code_blocks["user"] = user_code_box
 
         for data in self.columns_data:
             data_line_count += 1
@@ -274,47 +257,57 @@ class Correct(CodeManager):
 
             self.db_manipulations(data[0], c_platform, category, acad_year)
 
-    def code_replacer(self, datas, clean_id):
+    def code_replacer(self):
         # UserCodeBox
         print("replace bad code on dashboard")
-        final_code = ""
+        user_code = []
+        person_code = []
 
-        selector = 'button[data-type = "person"]'
-        code_block = self.code_blocks["person"]
+        user_code_box = WebDriverWait(self.browser, 15, ignored_exceptions=self.ignored_exceptions).until(
+            EC.presence_of_element_located((By.ID, 'UserCodeBox')))
 
-        if type(datas) is str:
-            final_code = datas + ";" + clean_id
-            self.stats["nber_student_wco_rpl"] += 1
-            self.fill_code_for_replacement(final_code, code_block, selector)
-        if type(datas) is list:
-            i = 0
-            for up_code in datas:
-                if i == 0:
-                    final_code = up_code + ";" + clean_id
-                    self.stats["nber_family_wco_rpl"] += 1
-                    self.fill_code_for_replacement(final_code, self.code_blocks["user"], 'button[data-type = "user"]')
-                else:
-                    final_code = up_code + ";" + clean_id + "-" + str(i)
-                    self.stats["nber_guardian_wco_rpl"] += 1
-                    selector = 'button[data-type = "person"]'
-                    self.fill_code_for_replacement(final_code, code_block, selector)
+        person_code_box = WebDriverWait(self.browser, 15, ignored_exceptions=self.ignored_exceptions).until(
+            EC.presence_of_element_located((By.ID, 'PersonCodeBox')))
 
-                i += 1
+        for clean_data in self.clean_datas.keys():
+            if type(self.clean_datas[clean_data]) is str:
+                person_code.append(self.clean_datas[clean_data] + ";" + clean_data)
+                self.stats["nber_student_wco_rpl"] += 1
+            if type(self.clean_datas[clean_data]) is list:
+                i = 0
+                for up_code in self.clean_datas[clean_data]:
+                    if i == 0:
+                        user_code.append(up_code + ";" + clean_data)
+                        self.stats["nber_family_wco_rpl"] += 1
+                    else:
+                        person_code.append(up_code + ";" + clean_data + "-" + str(i))
+                        self.stats["nber_guardian_wco_rpl"] += 1
 
-        # print("Stats:", self.stats, "errors:", self.notifications["errors"])
+                    i += 1
 
-    def fill_code_for_replacement(self, data: str, block: webbrowser, selector: str):
-        block.click()
-        block.send_keys(data)
-        block.send_keys(Keys.ENTER)
+        print("Stats:", self.stats, "errors:", self.notifications["errors"])
 
-        # 'button[data-type = "person"]'  'button[data-type = "user"]'
-        _code_btn = WebDriverWait(self.browser, 15, ignored_exceptions=self.ignored_exceptions).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, selector)))
+        person_code_box.click()
+        for pc in person_code:
+            person_code_box.send_keys(pc)
+            person_code_box.send_keys(Keys.ENTER)
+
+        person_code_btn = WebDriverWait(self.browser, 15, ignored_exceptions=self.ignored_exceptions).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, 'button[data-type = "person"]')))
         time.sleep(15)
-        _code_btn.click()
+        person_code_btn.click()
 
-        exit()
+        self.submit_updates()
+
+        user_code_box.click()
+        for uc in user_code:
+            user_code_box.send_keys(uc)
+            user_code_box.send_keys(Keys.ENTER)
+        user_code_btn = WebDriverWait(self.browser, 15, ignored_exceptions=self.ignored_exceptions).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, 'button[data-type = "user"]')))
+        user_code_btn.click()
+        time.sleep(5)
+
         self.submit_updates()
 
     def submit_updates(self):
