@@ -254,7 +254,6 @@ class Correct(CodeManager):
             data_line_count += 1
             if len(data) > 4:
                 # Handle family data
-                self.stats["nber_family_wco"] += 1
                 if self.code_is_empty(data, data_line_count, "fam"):
                     continue
 
