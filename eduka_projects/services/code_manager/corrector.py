@@ -1,6 +1,7 @@
 import os
 import datetime
 import random
+import time
 
 import mysql.connector
 
@@ -280,18 +281,19 @@ class Correct(CodeManager):
         print("Stats:", self.stats, "errors:", self.notifications["errors"])
 
         person_code_box.click()
-        for pc in person_code[:2]:
+        for pc in person_code:
             person_code_box.send_keys(pc)
             person_code_box.send_keys(Keys.ENTER)
 
         person_code_btn = WebDriverWait(self.browser, 15, ignored_exceptions=self.ignored_exceptions).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, 'button[data-type = "person"]')))
+        time.sleep(15)
         person_code_btn.click()
 
         self.submit_updates()
 
         user_code_box.click()
-        for uc in user_code[:2]:
+        for uc in user_code:
             user_code_box.send_keys(uc)
             user_code_box.send_keys(Keys.ENTER)
         user_code_btn = WebDriverWait(self.browser, 15, ignored_exceptions=self.ignored_exceptions).until(

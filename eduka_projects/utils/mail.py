@@ -1,5 +1,6 @@
 import os
 import logging
+from math import floor
 
 import ssl
 import smtplib
@@ -92,6 +93,26 @@ class EnkoMail(Bootstrap):
             message_desc=self.__get_email_message_desc()
         )
 
+    def construct_message_body(self, head: str, body: str, serv_name: str, errors: str):
+        try:
+            success = service.get[self.__service_name]["mail_template"]["success"]
+            success["head"] = head
+            success["body"] = body
+
+            success["subject"] = serv_name + success["subject"] + ""
+            print(success)
+            self.set_email_message_desc(
+                success["body"] + "<div>" + errors + "</div>"
+            )
+            self.set_email_message_text(success["head"])
+
+            self.set_subject(subject=success["subject"])
+        except KeyError as e:
+            self.error_logger.critical(f"{str(e)} key not found in bootstrap.service.get", exc_info=True)
+        except Exception:
+            print("nooooooo")
+            self.error_logger.error("Exception occured", exc_info=True)
+
     def send_mail(self) -> None:
         """
         Build email components and send message
@@ -149,34 +170,26 @@ class EnkoMail(Bootstrap):
                     message_desc += succ[1]
                     message_foot += succ[2] + "</br>"
 
-            # error = bootstrap.service.load[self.__service_name]["mail_template"]["error"]
-
             if self.__service_name in service.get.keys():
-                try:
-                    success = service.get[self.__service_name]["mail_template"]["success"]
-                    success["head"] = message_title
-                    success["body"] = success["body"] + message_desc + "</table>"
-                    success["foot"] = "<p><b>N.B:</b> " + message_foot + "</p>"
+                body = "<table class='enko_table'><tr><th class='enko_th'>Backup date</th><th " \
+                       "class='enko_th'>Backup name</th></tr>" + message_desc + "</table>"
+                foot = "<p><b>N.B:</b> " + message_foot + "</p>"
 
-                    if message_desc != "":
-                        success_message_desc += "<p>The following backup(s) have been successfully deleted:</p>"
+                if message_desc != "":
+                    success_message_desc += "<p>The following backup(s) have been successfully deleted:</p>"
 
-                    self.set_email_message_desc(
-                        success_message_desc + success["body"] + success["foot"] + "<div>" + errors + "</div>"
-                    )
-                    self.set_email_message_text(success["head"])
+                body = success_message_desc + body + foot
 
-                    self.set_subject(subject=success["subject"])
-                except KeyError as e:
-                    self.error_logger.info(f"{str(e)} key not found in bootstrap.service.get")
+                self.construct_message_body(message_title, body, "Database ", errors)
+                self.send_mail()
             else:
                 self.error_logger.info(f"{self.__service_name} key not found in bootstrap.service.get")
 
     def corrector(self):
         stats = sh_stats = nh_stats = families_blank_code = no_gender_students = ""
         students_blank_code = "<table class='enko_table'><tr><th class='enko_th'>Platform</th><th " \
-                                                   "class='enko_th'>Student name</th><th class='enko_th'>Guardian " \
-                                                   "email</th><th class='enko_th'>Error</th></tr>"
+                              "class='enko_th'>Student name</th><th class='enko_th'>Guardian " \
+                              "email</th><th class='enko_th'>Error</th></tr>"
 
         no_clean_code_found = "<table class='enko_table'><tr><th class='enko_th'>Platform</th><th " \
                               "class='enko_th'>Academic year</th><th class='enko_th'>Category</th><th " \
@@ -188,7 +201,7 @@ class EnkoMail(Bootstrap):
                     message_title = "<p>Code manager services summary</p>"
                     if data["success"]["cluster"].lower() == "nh":
                         nh_stats += "<li>" + str(data["success"]["stats"][
-                                            "nber_student_wco_rpl"]) + " wrong student codes replaced for " + \
+                                                     "nber_student_wco_rpl"]) + " wrong student codes replaced for " + \
                                     data["success"]["school"] + "<li/>"
                         nh_stats += "<li>" + str(
                             data["success"]["stats"]["nber_family_wco"]) + " wrong family codes found for " + \
@@ -203,12 +216,12 @@ class EnkoMail(Bootstrap):
                             data["success"]["stats"]["nber_guardian_wco"]) + " wrong guardian codes found for " + \
                                     data["success"]["school"] + "<li/>"
                         nh_stats += "<li>" + str(data["success"]["stats"][
-                                            "nber_guardian_wco_rpl"]) + " wrong guardian codes replaced for " + \
+                                                     "nber_guardian_wco_rpl"]) + " wrong guardian codes replaced for " + \
                                     data["success"]["school"] + "<li/>"
 
                     if data["success"]["cluster"].lower() == "sh":
                         sh_stats += "<li>" + str(data["success"]["stats"][
-                                            "nber_student_wco_rpl"]) + " wrong student codes replaced for " + \
+                                                     "nber_student_wco_rpl"]) + " wrong student codes replaced for " + \
                                     data["success"]["school"] + "<li/>"
                         sh_stats += "<li>" + str(
                             data["success"]["stats"]["nber_family_wco"]) + " wrong family codes found for " + \
@@ -223,7 +236,7 @@ class EnkoMail(Bootstrap):
                             data["success"]["stats"]["nber_guardian_wco"]) + " wrong guardian codes found for " + \
                                     data["success"]["school"] + "<li/>"
                         sh_stats += "<li>" + str(data["success"]["stats"][
-                                            "nber_guardian_wco_rpl"]) + " wrong guardian codes replaced for " + \
+                                                     "nber_guardian_wco_rpl"]) + " wrong guardian codes replaced for " + \
                                     data["success"]["school"] + "<li/>"
 
                     stats += "<p>Code manager statistics for NH: </p>"
@@ -248,35 +261,42 @@ class EnkoMail(Bootstrap):
 
                     errors = students_blank_code + "<hr>" + no_clean_code_found + "<hr>" + families_blank_code
 
-                    try:
-                        success = service.get[self.__service_name]["mail_template"]["success"]
-                        success["head"] = message_title
-                        success["body"] = stats
-
-                        success["subject"] = "Code Manager " + success["subject"] + ""
-
-                        self.set_email_message_desc(
-                            success["body"] + "<div>" + errors + "</div>"
-                        )
-                        self.set_email_message_text(success["head"])
-
-                        self.set_subject(subject=success["subject"])
-                    except KeyError as e:
-                        self.error_logger.info(f"{str(e)} key not found in bootstrap.service.get")
+                    self.construct_message_body(message_title, stats, "Code Manager ", errors)
+                    self.send_mail()
                 else:
                     self.error_logger.info(f"{self.__service_name} key not found in bootstrap.service.get")
 
     def login_stats(self):
-        if self.datas is not  None:
+        if self.datas is not None:
+            message_title = "<p>Statistics login service summary</p>"
+            body = ""
+            errors = ""
             for data in self.datas:
-                print(data)
+                print("Yo ", data)
+                f_connected_ratio = floor((data['f_connected'] * 100) / data['total_families'])
+                p_connected_ratio = floor((data['p_connected'] * 100) / data['total_parents'])
+                body += f"<div><p>Login statistics for {data['school']}.</p><ul><li>Number of families: {data['total_families']}</li>"
+                body += f"<li>Number of parents/guardians: {data['total_parents']}</li><li>Number of unique parents login: {data['p_connected']}</li>"
+                body += f"<li>Number of unique families login: {data['f_connected']}</li></ul>"
+                body += f"<p>{str(f_connected_ratio)}% of families and {str(p_connected_ratio)}% of parents have logged in since platform launch</p></div>"
+                errors += "<li>" + ", ".join(data['errors']) + "</li>"
+
+            if errors != "":
+                errors = "<p>No available information found for families with the following IDs: </p><ul>" + errors + "</ul>"
+
+            self.construct_message_body(message_title, body, "Statistics ", errors)
+            self.send_mail()
+
+    def db_populate(self):
+        pass
 
     def mail_builder_selector(self):
         # Add service mail builder methods here
         m_select = {
             "backup_automation": self.backup_automation,
             "corrector": self.corrector,
-            "login": self.login_stats
+            "login": self.login_stats,
+            "db_populate": self.db_populate
         }
 
         try:
