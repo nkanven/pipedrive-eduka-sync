@@ -314,7 +314,6 @@ class Correct(CodeManager):
         time.sleep(15)
         _code_btn.click()
 
-        exit()
         self.submit_updates()
 
     def submit_updates(self):
