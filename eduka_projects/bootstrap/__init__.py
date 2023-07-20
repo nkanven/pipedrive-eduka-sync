@@ -1,9 +1,13 @@
 """In this file, we initialize project parameters and modules"""
 
+import os
 import time
 from eduka_projects import EdukaProjects
 
 import pandas as pd
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class Bootstrap(EdukaProjects):
@@ -32,9 +36,11 @@ class Bootstrap(EdukaProjects):
         :return: (list) good_codes is a list of set ordered as follows (0 = male, 1 = female and 2 = family)
         """
         print('get good code from excel')
+
+        url_appen_key = url + "?api_key=" + os.environ.get("api_key")
         good_codes = []
 
-        df = pd.read_excel(url, engine='openpyxl', sheet_name=None)
+        df = pd.read_excel(url_appen_key, engine='openpyxl', sheet_name=None)
 
         start_time = time.time()
         for country in df.keys():
