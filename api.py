@@ -6,7 +6,10 @@ This tunnel allowed anyone with the right api key to execute services from a web
 
 import os
 import subprocess
-from flask import Flask, request
+from flask import Flask, request, send_file
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 app.config['TRAP_HTTP_EXCEPTIONS'] = True
@@ -93,6 +96,9 @@ def sub_service(service_name, sub_serv):
 
     return msg, 201
 
+@app.route("/file/<file_name>")
+def files(file_name):
+    return send_file(f"/home/{os.environ.get('linux_user')}/ftp/files/{file_name}", as_attachment=True)
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0')
