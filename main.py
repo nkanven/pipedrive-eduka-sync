@@ -10,10 +10,10 @@ for an easy code base update and scalability in mind.
 For each new microservice, the developer should:
     1. create the service module in ***eduka-projects.services*** package.
     2. initialize a ***service_name*** in the ***new_module.__init__.py***
-    3. register that service on the *load* Dict situated at ***eduka-projects.bootstrap.service***.
+    3. register that service on the *dispatcher* method situated at ***eduka-projects.service.dispatch***.
         The key name should be the command line parameter for the service. E.g if you intend to execute
-        database_backup, the command line you run is ````python main.py -s database_backup``` which associated
-        with its method **backup** on ***eduka-projects.bootstrap.service***
+        backup_automation, the command line you run is ````python main.py -s backup_automation```. The dispatcher will
+        handle the rest.
 
 For the code base stability and integrity to prevail, developer need to respect this minimal recommendations
 """

@@ -2,6 +2,7 @@ import os
 import datetime
 import random
 import time
+import webbrowser
 
 import mysql.connector
 
@@ -9,7 +10,7 @@ from eduka_projects.services.code_manager import *
 
 from eduka_projects.bootstrap import platform
 from eduka_projects.utils.mail import EnkoMail
-from eduka_projects.utils.rialization import serialize
+from eduka_projects.utils.rialization import serialize, deserialize
 from eduka_projects.utils.eduka_exceptions import EdukaNoJobExecution
 from eduka_projects.services.code_manager import CodeManager
 from eduka_projects.services.code_manager.db_populate import Populate
@@ -18,7 +19,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import ElementNotInteractableException
+from selenium.common.exceptions import ElementNotInteractableException, ElementClickInterceptedException
 
 from mysql.connector import errors
 from dotenv import load_dotenv
@@ -38,13 +39,15 @@ class Correct(CodeManager):
         self.cluster = ""
         self.mailer = EnkoMail(self.service_name, school)
         self.db_init()
-
-        self.wrong_student_list_uri = self.param['enko_education']['schools'][self.school]['base_url'] + \
-                                      self.param['enko_education']['schools'][self.school]['wrong_student_list_uri']
-        self.wrong_family_list_uri = self.param['enko_education']['schools'][self.school]['base_url'] + \
-                                     self.param['enko_education']['schools'][self.school]['wrong_family_list_uri']
+        self.abbr = self.get_school_parameter(self.school, "abbr")
+        self.base_url = self.get_school_parameter(self.school, 'base_url')
+        self.wrong_student_list_uri = self.base_url + self.get_school_parameter(self.school, 'wrong_student_list_uri')
+        self.wrong_family_list_uri = self.base_url + self.get_school_parameter(self.school, 'wrong_family_list_uri')
+        self.id_fname = "idreplaced" + self.abbr + ".ep"
+        self.id_fname_path = os.path.join(self.autobackup_memoize, self.id_fname)
 
         self.columns_data: list = []
+        self._old_code: list = []
         self.families = {}
         self.clean_datas = {}
 
@@ -65,6 +68,8 @@ class Correct(CodeManager):
             }
         }
 
+        self.code_blocks = {"person": None, "user": None}
+
         self.no_code_available = []
 
         # Check Database components
@@ -73,7 +78,14 @@ class Correct(CodeManager):
         except Exception:
             pass
 
-    def code_is_empty(self, data, c_line, group="st") -> bool:
+    def code_is_empty(self, data: list, c_line, group="st") -> bool:
+        """
+        Check if code is empty
+        @param data: list of student or family data
+        @param c_line: family line number
+        @param group: default is st for student.
+        @return: a boolean value
+        """
         result = False
         strip_data = str(data[0]).strip(" ")
 
@@ -81,7 +93,7 @@ class Correct(CodeManager):
             if group == "st":
                 # Student's code is blank
                 self.notifications["errors"]["students_blank_code"].append(
-                    (self.param['enko_education']['schools'][self.school]['base_url'], data[2], data[-1], self.cluster)
+                    (self.base_url, data[2], data[-1], self.cluster)
                 )
             else:
                 if strip_data == "":
@@ -125,7 +137,7 @@ class Correct(CodeManager):
         random.shuffle(self.columns_data)
 
         self.browser.get(
-            self.param['enko_education']['schools'][self.school]['base_url']
+            self.base_url
             + self.param['enko_education']['replacer_uri']
         )
 
@@ -157,12 +169,18 @@ class Correct(CodeManager):
                     cursor.execute('use enko_db')
                     cursor.execute(query2, (old_code, clean_code_id))
                     cursor.execute(query3, (clean_code,))
-                    conn.commit()
+
                     try:
-                        self.clean_datas[clean_code] = self.families[old_code]
-                    except Exception as e:
-                        self.error_logger.error("Error occurred", exc_info=True)
-                        self.clean_datas[clean_code] = old_code
+                        clean_datas = self.families[old_code]
+                    except Exception:
+                        clean_datas = old_code
+
+                    # Handle replacement here. Make sure all went well before storing
+                    if self.code_replacer(clean_datas, clean_code):
+                        conn.commit()
+                    else:
+                        conn.rollback()
+                        exit("Stop execution")
 
                     # print(f"{clean_code_id} for {clean_code} Update")
                 except (errors.InternalError, errors.ProgrammingError, errors.IntegrityError,
@@ -173,10 +191,18 @@ class Correct(CodeManager):
                     conn.rollback()
                     self.error_logger.critical("Exception occurred", exc_info=True)
                     print("Exception", str(e))
+
         else:
             self.notifications["errors"]["no_clean_code_found"].append(
                 (c_platform, acad_year, category, self.cluster)
             )
+
+        corrector_memoize = {
+            "code": self._old_code,
+            "stats": self.stats,
+            "notif": self.notifications
+        }
+        serialize(self.id_fname_path, corrector_memoize)
 
     def code_categorizer(self):
         school_caracteristics = ""
@@ -184,7 +210,7 @@ class Correct(CodeManager):
         data_inputs = self.get_good_codes_from_excel(self.parameters["global"]["eduka_code_manager_data_inputs"])
 
         for data_input in data_inputs:
-            if self.param['enko_education']['schools'][self.school]['base_url'] == data_input[0] + "/":
+            if self.base_url == data_input[0] + "/":
                 school_caracteristics = data_input
                 break
 
@@ -194,21 +220,40 @@ class Correct(CodeManager):
 
         self.browser.get(
 
-            self.param['enko_education']['schools'][self.school]['base_url']
+            self.base_url
             + self.param['enko_education']['replacer_uri']
 
         )
         platform.get_tabs("tabs", self.browser).find_elements(By.TAG_NAME, 'li')[4].click()
 
-        random.shuffle(self.columns_data)
-        db_datas = []
         data_line_count = 0
 
-        for data in self.columns_data:
+        user_code_box = WebDriverWait(self.browser, 15, ignored_exceptions=self.ignored_exceptions).until(
+            EC.presence_of_element_located((By.ID, 'UserCodeBox')))
+
+        person_code_box = WebDriverWait(self.browser, 15, ignored_exceptions=self.ignored_exceptions).until(
+            EC.presence_of_element_located((By.ID, 'PersonCodeBox')))
+
+        self.code_blocks["person"] = person_code_box
+        self.code_blocks["user"] = user_code_box
+
+        if os.path.exists(self.id_fname_path):
+            deserial = deserialize(self.autobackup_memoize, self.id_fname)[0]
+            self._old_code = [] if deserial["code"] is None else deserial["code"]
+            self.stats["nber_family_wco"] = deserial["stats"]["nber_family_wco"]
+            self.stats["nber_guardian_wco"] = deserial["stats"]["nber_guardian_wco"]
+            self.stats["nber_student_wco"] = deserial["stats"]["nber_student_wco"]
+            self.stats["nber_student_wco_rpl"] = deserial["stats"]["nber_student_wco_rpl"]
+            self.stats["nber_family_wco_rpl"] = deserial["stats"]["nber_family_wco_rpl"]
+            self.stats["nber_guardian_wco_rpl"] = deserial["stats"]["nber_guardian_wco_rpl"]
+            self.notifications = deserial["notif"]
+
+        for data in self.columns_data[:1]:
+            print(f"Correct {data}...")
+
             data_line_count += 1
             if len(data) > 4:
                 # Handle family data
-                self.stats["nber_family_wco"] += 1
                 if self.code_is_empty(data, data_line_count, "fam"):
                     continue
 
@@ -232,7 +277,7 @@ class Correct(CodeManager):
                 if data[1] == "":
                     # Skip if student gender is blank
                     self.notifications["errors"]["no_gender_students"].append(
-                        (self.param['enko_education']['schools'][self.school]['base_url'], data[2], data[-1],
+                        (self.base_url, data[2], data[-1],
                          self.cluster)
                     )
                     continue
@@ -250,60 +295,85 @@ class Correct(CodeManager):
 
             self.db_manipulations(data[0], c_platform, category, acad_year)
 
-    def code_replacer(self):
-        # UserCodeBox
+    def code_replacer(self, datas, clean_id) -> bool:
+        result = False
         print("replace bad code on dashboard")
-        user_code = []
-        person_code = []
+        try:
+            selector = 'button[data-type = "person"]'
+            code_block = self.code_blocks["person"]
 
-        user_code_box = WebDriverWait(self.browser, 15, ignored_exceptions=self.ignored_exceptions).until(
-            EC.presence_of_element_located((By.ID, 'UserCodeBox')))
-
-        person_code_box = WebDriverWait(self.browser, 15, ignored_exceptions=self.ignored_exceptions).until(
-            EC.presence_of_element_located((By.ID, 'PersonCodeBox')))
-
-        for clean_data in self.clean_datas.keys():
-            if type(self.clean_datas[clean_data]) is str:
-                person_code.append(self.clean_datas[clean_data] + ";" + clean_data)
+            if type(datas) is str and not self.code_is_stored(datas, self._old_code):
+                final_code = datas + ";" + clean_id
                 self.stats["nber_student_wco_rpl"] += 1
-            if type(self.clean_datas[clean_data]) is list:
+                if self.fill_code_for_replacement(final_code, code_block, selector):
+                    self._old_code.append(datas)
+            if type(datas) is list:
                 i = 0
-                for up_code in self.clean_datas[clean_data]:
-                    if i == 0:
-                        user_code.append(up_code + ";" + clean_data)
-                        self.stats["nber_family_wco_rpl"] += 1
-                    else:
-                        person_code.append(up_code + ";" + clean_data + "-" + str(i))
-                        self.stats["nber_guardian_wco_rpl"] += 1
+                is_filled = False
+                for up_code in datas:
+                    if not self.code_is_stored(up_code, self._old_code):
+                        if i == 0:
+                            final_code = up_code + ";" + clean_id
+                            self.stats["nber_family_wco_rpl"] += 1
+                            if self.fill_code_for_replacement(final_code, self.code_blocks["user"],
+                                                              'button[data-type = "user"]'):
+                                is_filled = True
+                        else:
+                            is_filled = False
+                            final_code = up_code + ";" + clean_id + "-" + str(i)
+                            self.stats["nber_guardian_wco_rpl"] += 1
+                            selector = 'button[data-type = "person"]'
+                            if self.fill_code_for_replacement(final_code, code_block, selector):
+                                is_filled = True
+
+                        if is_filled:
+                            self._old_code.append(up_code)
 
                     i += 1
+            result = True
+            # print("Stats:", self.stats, "errors:", self.notifications["errors"])
+        except Exception:
+            self.error_logger.critical("ConnectionError occurred", exc_info=True)
+        finally:
+            return result
 
-        print("Stats:", self.stats, "errors:", self.notifications["errors"])
+    def code_is_stored(self, code, o_codes) -> bool:
+        # Skip if code has been already replaced
+        result = False
+        if code in o_codes:
+            print(f"{code} has already been corrected")
+            result = True
 
-        person_code_box.click()
-        for pc in person_code:
-            person_code_box.send_keys(pc)
-            person_code_box.send_keys(Keys.ENTER)
+        return result
 
-        person_code_btn = WebDriverWait(self.browser, 15, ignored_exceptions=self.ignored_exceptions).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, 'button[data-type = "person"]')))
-        time.sleep(15)
-        person_code_btn.click()
+    def fill_code_for_replacement(self, data: str, block: webbrowser, selector: str):
+        result = False
+        try:
+            block.clear()
+            try:
+                block.click()
+            except ElementClickInterceptedException:
+                time.sleep(3)
+                block.click()
 
-        self.submit_updates()
+            block.send_keys(data)
+            block.send_keys(Keys.ENTER)
 
-        user_code_box.click()
-        for uc in user_code:
-            user_code_box.send_keys(uc)
-            user_code_box.send_keys(Keys.ENTER)
-        user_code_btn = WebDriverWait(self.browser, 15, ignored_exceptions=self.ignored_exceptions).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, 'button[data-type = "user"]')))
-        user_code_btn.click()
-        time.sleep(5)
+            # 'button[data-type = "person"]'  'button[data-type = "user"]'
+            _code_btn = WebDriverWait(self.browser, 15, ignored_exceptions=self.ignored_exceptions).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, selector)))
+            time.sleep(5)
+            _code_btn.click()
 
-        self.submit_updates()
+            self.submit_updates()
+            result = True
+        except Exception:
+            self.error_logger.critical("ConnectionError occurred", exc_info=True)
+        finally:
+            return result
 
     def submit_updates(self):
+        time.sleep(5)
         while True:
             try:
                 ui_dialog_buttonset = WebDriverWait(self.browser, 15, ignored_exceptions=self.ignored_exceptions).until(
@@ -322,11 +392,10 @@ class Correct(CodeManager):
         try:
             self.get_wrong_ids()
             self.code_categorizer()
-            self.code_replacer()
             self.notifications["success"] = {"stats": self.stats, "cluster": self.cluster, "school": self.school}
 
             # Serialize notification for mailing
-            f_name = "mail" + cmd + "-" + self.param['enko_education']['schools'][self.school]["abbr"]
+            f_name = "mail" + cmd + "-" + self.abbr
             f_name_path = os.path.join(self.autobackup_memoize, f_name)
             print("self notif ", self.notifications)
             serialize(f_name_path, self.notifications)
@@ -335,3 +404,5 @@ class Correct(CodeManager):
             self.error_logger.critical("ConnectionError occurred", exc_info=True)
         except EdukaNoJobExecution:
             self.error_logger.info("EdukaNoJobExecution occurred", exc_info=True)
+        finally:
+            self.browser.quit()
