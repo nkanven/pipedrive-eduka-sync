@@ -6,12 +6,16 @@ from eduka_projects.services.database_backup.backup_automation import Backup
 from eduka_projects.services.code_manager.db_populate import Populate
 from eduka_projects.services.code_manager.corrector import Correct
 from eduka_projects.services.statistics.login import Login
+from eduka_projects.services.pipedrive_synchro.eduka_to_pipedrive import EdukaToPipedrive
+from eduka_projects.services.pipedrive_synchro.pipedrive_to_eduka import PipedriveToEduka
 
 loader = {
     "corrector": Correct,
     "db_populate": Populate,
     "backup_automation": Backup,
-    "login": Login
+    "login": Login,
+    "eduka_to_pipedrive": EdukaToPipedrive,
+    "pipedrive_to_eduka": PipedriveToEduka
 }
 
 

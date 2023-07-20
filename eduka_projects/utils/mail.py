@@ -202,42 +202,42 @@ class EnkoMail(Bootstrap):
                     if data["success"]["cluster"].lower() == "nh":
                         nh_stats += "<li>" + str(data["success"]["stats"][
                                                      "nber_student_wco_rpl"]) + " wrong student codes replaced for " + \
-                                    data["success"]["school"] + "<li/>"
+                                    data["success"]["school"] + "</li>"
                         nh_stats += "<li>" + str(
                             data["success"]["stats"]["nber_family_wco"]) + " wrong family codes found for " + \
-                                    data["success"]["school"] + "<li/>"
+                                    data["success"]["school"] + "</li>"
                         nh_stats += "<li>" + str(
                             data["success"]["stats"]["nber_family_wco_rpl"]) + " wrong family codes replaced for " + \
-                                    data["success"]["school"] + "<li/>"
+                                    data["success"]["school"] + "</li>"
                         nh_stats += "<li>" + str(
                             data["success"]["stats"]["nber_guardian_wco"]) + " wrong guardian codes found for " + \
-                                    data["success"]["school"] + "<li/>"
+                                    data["success"]["school"] + "</li>"
                         nh_stats += "<li>" + str(
                             data["success"]["stats"]["nber_guardian_wco"]) + " wrong guardian codes found for " + \
-                                    data["success"]["school"] + "<li/>"
+                                    data["success"]["school"] + "</li>"
                         nh_stats += "<li>" + str(data["success"]["stats"][
                                                      "nber_guardian_wco_rpl"]) + " wrong guardian codes replaced for " + \
-                                    data["success"]["school"] + "<li/>"
+                                    data["success"]["school"] + "</li>"
 
                     if data["success"]["cluster"].lower() == "sh":
                         sh_stats += "<li>" + str(data["success"]["stats"][
                                                      "nber_student_wco_rpl"]) + " wrong student codes replaced for " + \
-                                    data["success"]["school"] + "<li/>"
+                                    data["success"]["school"] + "</li>"
                         sh_stats += "<li>" + str(
                             data["success"]["stats"]["nber_family_wco"]) + " wrong family codes found for " + \
-                                    data["success"]["school"] + "<li/>"
+                                    data["success"]["school"] + "</li>"
                         sh_stats += "<li>" + str(
                             data["success"]["stats"]["nber_family_wco_rpl"]) + " wrong family codes replaced for " + \
-                                    data["success"]["school"] + "<li/>"
+                                    data["success"]["school"] + "</li>"
                         sh_stats += "<li>" + str(
                             data["success"]["stats"]["nber_guardian_wco"]) + " wrong guardian codes found for " + \
-                                    data["success"]["school"] + "<li/>"
+                                    data["success"]["school"] + "</li>"
                         sh_stats += "<li>" + str(
                             data["success"]["stats"]["nber_guardian_wco"]) + " wrong guardian codes found for " + \
-                                    data["success"]["school"] + "<li/>"
+                                    data["success"]["school"] + "</li>"
                         sh_stats += "<li>" + str(data["success"]["stats"][
                                                      "nber_guardian_wco_rpl"]) + " wrong guardian codes replaced for " + \
-                                    data["success"]["school"] + "<li/>"
+                                    data["success"]["school"] + "</li>"
 
                     stats += "<p>Code manager statistics for NH: </p>"
                     stats += "<ul>" + nh_stats + "</ul>"

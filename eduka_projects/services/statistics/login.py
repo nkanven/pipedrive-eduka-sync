@@ -17,8 +17,8 @@ class Login(Statistics):
         self.guardians: list = []
         self.columns_data: list = []
         self.browser = None
-        self.base_url = self.parameters["enko_education"]["schools"][self.school]["base_url"]
-        self.abbr = self.parameters["enko_education"]["schools"][self.school]["abbr"]
+        self.base_url = self.get_school_parameter(self.school, 'base_url')
+        self.abbr = self.get_school_parameter(self.school, 'abbr')
         self.parents_has_connected = self.families_has_connected = self.total_parents = 0
         self.parents_stats = {
             "data": [],
@@ -27,7 +27,7 @@ class Login(Statistics):
             "f_connected": 0,
             "total_parents": 0,
             "total_families": 0,
-            "school": self.parameters["enko_education"]["schools"][self.school]["label"]
+            "school": self.get_school_parameter(self.school, 'label')
         }
 
     def get_guardians(self):
@@ -42,7 +42,7 @@ class Login(Statistics):
         else:
 
             for gl_url in gardians_list_urls:
-                if self.parameters["enko_education"]["schools"][self.school]["base_url"] == gl_url[2] + "/":
+                if self.base_url == gl_url[2] + "/":
                     # Browse to guardians list page
                     self.browser = platform.login(gl_url[3], self.logins(self.school))
                     platform.goto_printable(self.browser)
@@ -55,7 +55,7 @@ class Login(Statistics):
         return self
 
     def calculate_statistics(self):
-        users_search_url = self.base_url + self.parameters["enko_education"]["schools"][self.school]["users_search_uri"]
+        users_search_url = self.base_url + self.get_school_parameter(self.school, 'users_search_uri')
         self.parents_stats["total_families"] = self.columns_data.__len__()
         parents_stats_memo_fname = "parentstats" + self.abbr + ".ep"
         parents_stats_memo_path = os.path.join(self.autobackup_memoize, parents_stats_memo_fname)

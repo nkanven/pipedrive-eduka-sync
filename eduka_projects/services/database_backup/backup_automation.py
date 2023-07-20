@@ -26,13 +26,12 @@ class Backup(DatabaseBackup):
 
         # DB backup parameters initialization
         self.api_error = -1
-        self.api_key = self.parameters['enko_education']['schools'][school]['api_key']
-        self.abbr = self.parameters['enko_education']['schools'][school]['abbr']
+        self.api_key = self.get_school_parameter(self.school, 'api_key')
+        self.abbr = self.get_school_parameter(self.school, 'abbr')
         self.backup_endpoint_uri = self.parameters['enko_education']['db_backup_api'].replace('INSERT_API_KEY_HERE',
                                                                                               self.api_key)
-        self.backup_endpoint = self.parameters['enko_education']['schools'][school][
-                                   'base_url'] + self.backup_endpoint_uri
-        self.backup_url = self.parameters['enko_education']['schools'][school]['base_url'] + \
+        self.backup_endpoint = self.get_school_parameter(self.school, 'base_url') + self.backup_endpoint_uri
+        self.backup_url = self.get_school_parameter(self.school, 'base_url') + \
                           self.parameters['enko_education']['database_uri']
         self.bck_max_days = self.parameters['enko_education']['db_backup_max_days']
 
