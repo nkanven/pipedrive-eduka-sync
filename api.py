@@ -22,7 +22,7 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config['TRAP_HTTP_EXCEPTIONS'] = True
-key = "XNSS-HSJW-3NGU-8XTJ"
+key = os.environ.get("api_key")
 service_dirs = "eduka_projects/services"
 
 msg400 = {
