@@ -34,12 +34,9 @@ def dispatcher(service_name: str, school: str):
 
             for service_file in os.listdir(os.path.join(services_dirs_path, service_folder)):
                 service_file_dic = service_file.split(".")
-                print(service_name, service_file_dic)
 
-                print(service_name in service_file_dic)
                 if service_name in service_file_dic:
                     service = service_file_dic[0]
-
                     _service = loader[service](school)
                     print("running ", service)
                     _service.run(service_name)

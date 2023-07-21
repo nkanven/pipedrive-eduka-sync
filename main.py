@@ -46,8 +46,8 @@ try:
         if name.strip() == '-s' or name.strip() == '--service':
             cmd = value
 
-    schools = bts.parameters['enko_education']['schools'].keys()
-    # schools: list = ['enko_mali']
+    # schools = bts.parameters['enko_education']['schools'].keys()
+    schools: list = ['enko_mozambique']
 
     """
     Main dispatcher thread pool executor

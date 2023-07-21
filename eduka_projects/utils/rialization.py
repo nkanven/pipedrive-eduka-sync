@@ -17,7 +17,7 @@ def serialize(file_path, data) -> bool:
             d.write(pickle.dumps(data))
         result = True
     except Exception as e:
-        print(str(e))
+        print("Error ", str(e))
     finally:
         return result
 
@@ -53,7 +53,6 @@ def delete_serialized(folder_path, file_name):
 
 def clean_memoize_folder(folder_path):
     for _file in os.listdir(folder_path):
-        print(_file)
         c_time = os.path.getctime(folder_path)
         dt_c = datetime.datetime.fromtimestamp(c_time)
         dt_now = datetime.datetime.now()

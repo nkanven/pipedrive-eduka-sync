@@ -16,7 +16,7 @@ class ServiceManager(Bootstrap):
         @param key: string The name of the parameter called
         @return: str or dict value
         """
-        params = None
+
         if key is None:
             params = self.parameters["enko_education"]["schools"][school]
         else:
