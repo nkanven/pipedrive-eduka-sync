@@ -100,7 +100,6 @@ class EnkoMail(Bootstrap):
             success["body"] = body
 
             success["subject"] = serv_name + success["subject"] + ""
-            print(success)
             self.set_email_message_desc(
                 success["body"] + "<div>" + errors + "</div>"
             )
@@ -110,7 +109,6 @@ class EnkoMail(Bootstrap):
         except KeyError as e:
             self.error_logger.critical(f"{str(e)} key not found in bootstrap.service.get", exc_info=True)
         except Exception:
-            print("nooooooo")
             self.error_logger.error("Exception occured", exc_info=True)
 
     def send_mail(self) -> None:
@@ -272,7 +270,6 @@ class EnkoMail(Bootstrap):
             body = ""
             errors = ""
             for data in self.datas:
-                print("Yo ", data)
                 f_connected_ratio = floor((data['f_connected'] * 100) / data['total_families'])
                 p_connected_ratio = floor((data['p_connected'] * 100) / data['total_parents'])
                 body += f"<div><p>Login statistics for {data['school']}.</p><ul><li>Number of families: {data['total_families']}</li>"

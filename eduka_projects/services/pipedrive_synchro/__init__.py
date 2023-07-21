@@ -32,7 +32,8 @@ class PipedriveService(ServiceManager):
         }
 
         session = self.get_session()
-        response = session.get(url, headers=headers, data=payload)
+        # response = session.get(url, headers=headers, data=payload)
+        response = requests.get(url, headers=headers, data=payload)
 
         return json.loads(response.text)["data"]
 
