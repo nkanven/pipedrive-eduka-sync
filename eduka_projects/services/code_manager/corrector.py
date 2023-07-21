@@ -121,21 +121,23 @@ class Correct(CodeManager):
             except AttributeError:
                 pass
 
+            print("Getting ", url)
             self.browser = platform.login(
                 url=url,
                 logins=self.logins(self.school)
             )
 
             # Get printable link list as it content full data
+            print("Go to printable")
             platform.goto_printable(self.browser)
 
+            print("Getting printable")
             self.columns_data = platform.get_printable(self.browser)
 
         if self.columns_data.__len__() == 0:
             raise EdukaNoJobExecution(self.service_name, self.school, "No Id to correct found")
 
-        random.shuffle(self.columns_data)
-
+        print("Launching ", self.base_url + self.param['enko_education']['replacer_uri'])
         self.browser.get(
             self.base_url
             + self.param['enko_education']['replacer_uri']
@@ -387,6 +389,7 @@ class Correct(CodeManager):
     def run(self, cmd: str) -> None:
         # TODO: Handle mail notification for errors and statistics
         try:
+            print("In run func")
             self.get_wrong_ids()
             self.code_categorizer()
             self.notifications["success"] = {"stats": self.stats, "cluster": self.cluster, "school": self.school}
