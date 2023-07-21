@@ -61,7 +61,6 @@ class EdukaProjects:
             self.my_public_ip = ip.get()
 
         except Exception as e:
-            print("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", str(e))
             logger.error("Exception occured", exc_info=True)
 
     def __str__(self):

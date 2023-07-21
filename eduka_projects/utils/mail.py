@@ -290,13 +290,17 @@ class EnkoMail(Bootstrap):
     def db_populate(self):
         pass
 
+    def pipedrive_to_eduka(self):
+        pass
+
     def mail_builder_selector(self):
         # Add service mail builder methods here
         m_select = {
             "backup_automation": self.backup_automation,
             "corrector": self.corrector,
             "login": self.login_stats,
-            "db_populate": self.db_populate
+            "db_populate": self.db_populate,
+            "pipedrive_to_eduka": self.pipedrive_to_eduka
         }
 
         try:

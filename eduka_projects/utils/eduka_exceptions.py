@@ -25,6 +25,24 @@ class EdukaNoJobExecution(EdukaException):
         return "Eduka service " + self.service + " raised a No job execution for " + self.school + " exception. " + self.error
 
 
+class EdukaPipedriveNoDealsFoundException(EdukaException):
+    def __init__(self, service, school, error):
+        super().__init__(school, error)
+        self.service = service
+
+    def __str__(self):
+        return "Eduka service " + self.service + " raise an exception. " + self.error
+
+
+class EdukaPipedriveNoPipelineFoundException(EdukaException):
+    def __init__(self, service, school, error):
+        super().__init__(school, error)
+        self.service = service
+
+    def __str__(self):
+        return "Eduka service " + self.service + " raise an exception. " + self.error
+
+
 class EdukaMailServiceKeyError(EdukaException):
     def __init__(self, service, school, error):
         super().__init__(school, error)
@@ -32,7 +50,4 @@ class EdukaMailServiceKeyError(EdukaException):
 
     def __str__(self):
         return "Eduka service " + self.service + " raised Mail Service Key error for " + self.school + " exception." \
-                            " Service " + self.error + " not found."
-
-
-
+                                                                                                       " Service " + self.error + " not found."
