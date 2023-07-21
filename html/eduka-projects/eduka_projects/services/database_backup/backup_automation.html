@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.10.0" />
+<title>eduka-projects.eduka_projects.services.database_backup.backup_automation API documentation</title>
+<meta name="description" content="" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>eduka-projects.eduka_projects.services.database_backup.backup_automation</code></h1>
+</header>
+<section id="section-intro">
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">import logging
+import os
+import re
+import time
+from datetime import datetime
+
+from eduka_projects.bootstrap import platform
+from eduka_projects.utils.eduka_exceptions import EdukaException
+from eduka_projects.utils.rialization import serialize, delete_serialized
+from eduka_projects.services.database_backup import DatabaseBackup
+
+import requests
+
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+
+from bs4 import BeautifulSoup
+
+
+class Backup(DatabaseBackup):
+
+    def __init__(self, school):
+        super().__init__()
+        self.school = school
+
+        # DB backup parameters initialization
+        self.api_error = -1
+        self.api_key = self.get_school_parameter(self.school, &#39;api_key&#39;)
+        self.abbr = self.get_school_parameter(self.school, &#39;abbr&#39;)
+        self.backup_endpoint_uri = self.parameters[&#39;enko_education&#39;][&#39;db_backup_api&#39;].replace(&#39;INSERT_API_KEY_HERE&#39;,
+                                                                                              self.api_key)
+        self.backup_endpoint = self.get_school_parameter(self.school, &#39;base_url&#39;) + self.backup_endpoint_uri
+        self.backup_url = self.get_school_parameter(self.school, &#39;base_url&#39;) + \
+                          self.parameters[&#39;enko_education&#39;][&#39;database_uri&#39;]
+        self.bck_max_days = self.parameters[&#39;enko_education&#39;][&#39;db_backup_max_days&#39;]
+
+        self.tabs_id = &#39;DBTabs&#39;
+        self.errors = []
+        self.success = []
+        self.notifications = {}
+
+    def create_backup(self):
+
+        # Create a backup through API if not already done for this task
+        recent_memoize_file = datetime.now().strftime(&#34;%Y%m%d&#34;) + self.abbr + &#34;.ep&#34;
+        create_memo = False
+
+        # Check if today&#39;s task hadn&#39;t already backup the database
+        print(recent_memoize_file, os.listdir(self.autobackup_memoize))
+
+        if recent_memoize_file not in os.listdir(self.autobackup_memoize):
+            try:
+                session = self.get_session()
+                with session.get(self.backup_endpoint) as r:
+                    response_text = r.text
+                create_memo = True
+            except requests.exceptions.ConnectionError as e:
+                self.errors.append(
+                    (&#34;ConnectionError occurred on &#34; + self.school, &#34;Error summary &#34; + str(e))
+                )
+                self.error_logger.critical(&#34;ConnectionError occurred&#34;, exc_info=True)
+                # No need to execute the whole program and delete backups if unable to create a recent one
+                raise EdukaException(self.school, e)
+
+            # Check if API call return any error
+            self.api_error = response_text.find(&#39;ErrorBox&#39;)
+
+            if self.api_error != -1:
+                soup = BeautifulSoup(r.text, features=&#34;html.parser&#34;)
+                message_desc = &#34;API call throw: &#34; + soup.text + &#34;&lt;br&gt;IP: &#34; + self.my_public_ip
+                self.errors.append(
+                    (&#34;&lt;b&gt;Unexpected failure occurred&lt;/b&gt; &#34; + self.school, message_desc, None)
+                )
+                # Exceptional call for private EnkoMail method __get_email_message_desc()
+                self.error_logger.error(f&#34;Execution error occurred {message_desc}&#34;)
+
+                browser = platform.login(self.backup_url, self.logins(self.school))
+
+                li = platform.get_tabs(self.tabs_id, browser).find_elements(By.TAG_NAME, &#39;li&#39;)
+
+                # Create backup with browser if there was an API error
+                li[1].click()
+                backup_button = platform.get_tabs(self.tabs_id, browser).find_element(By.ID, &#39;StartBackup&#39;)
+                backup_button.click()
+                jqibuttons = WebDriverWait(browser, 30, ignored_exceptions=self.ignored_exceptions).until(
+                    EC.presence_of_element_located((By.CLASS_NAME, &#39;jqibuttons&#39;)))
+                jqibuttons.click()
+                browser.quit()
+                create_memo = True
+
+            if create_memo:
+                # Delete unnecessary memos
+                delete_serialized(self.autobackup_memoize, self.abbr)
+
+                # Create recent memo
+                with open(self.autobackup_memoize + os.sep + recent_memoize_file, &#34;w&#34;) as m:
+                    pass
+        else:
+            self.nb = f&#34;Database already store for today for {self.school}&#34;
+            self.error_logger.info(self.nb)
+            print(self.nb)
+
+    def delete_backups(self):
+        # List available backups and delete old ones if any
+        try:
+            browser = platform.login(self.backup_url, self.logins(self.school))
+            tabs = platform.get_tabs(self.tabs_id, browser)
+            tabs.find_elements(By.TAG_NAME, &#39;li&#39;)[2].click()
+
+            backup_list = WebDriverWait(browser, 5, ignored_exceptions=self.ignored_exceptions).until(
+                EC.presence_of_element_located((By.ID, &#39;BackupListbody&#39;)))
+            backups = backup_list.find_elements(By.TAG_NAME, &#39;tr&#39;)
+            tr_len = len(backups)
+            deleted_backups = []
+
+            if tr_len &gt; 1:
+                while tr_len &gt; 0:
+                    # Never delete all backup
+                    if len(backups) == 1:
+                        break
+
+                    backups.reverse()
+                    for bckup in backups:
+                        bckup_date = bckup.find_element(By.CLASS_NAME, &#39;column_date&#39;).get_attribute(&#39;textContent&#39;)
+
+                        parse_date = re.search(&#34;\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$&#34;, bckup_date)
+                        bckup_parsed_date = datetime.strptime(parse_date.group(0), &#34;%d/%m/%Y %H:%M&#34;)
+
+                        date_diff = datetime.now() - bckup_parsed_date
+
+                        # Check if backups are old enough to be deleted
+                        if self.parameters[&#39;enko_education&#39;][&#39;db_backup_max_days&#39;] &lt;= date_diff.days:
+                            # TODO: Get backup time and name
+                            bckup_filename = bckup.find_element(By.CLASS_NAME, &#39;column_filename&#39;).get_attribute(
+                                &#39;textContent&#39;)
+
+                            print(self.abbr, &#34; Delete &#34;, bckup_filename, &#34; Diff &#34;, date_diff.days)
+
+                            # TODO: Delete backup
+                            time.sleep(5)
+                            column_del = WebDriverWait(bckup, 15,
+                                                       ignored_exceptions=self.ignored_exceptions).until(
+                                EC.presence_of_element_located((By.CLASS_NAME, &#39;column_delete&#39;)))
+                            column_del.click()
+                            deleted_backups.append((bckup_parsed_date, bckup_filename))
+                            time.sleep(10)
+                            break
+                    browser.refresh()
+                    tabs = platform.get_tabs(self.tabs_id, browser)
+                    tabs.find_elements(By.TAG_NAME, &#39;li&#39;)[2].click()
+                    backup_list = WebDriverWait(browser, 5, ignored_exceptions=self.ignored_exceptions).until(
+                        EC.presence_of_element_located((By.ID, &#39;BackupListbody&#39;)))
+                    backups = backup_list.find_elements(By.TAG_NAME, &#39;tr&#39;)
+                    tr_len -= 1
+
+            # Send notification mail
+            # TODO: Remove this dummy data
+            # deleted_backups.append((&#34;2023-06-28 16:18&#34;,&#34;backup-enko-mali-com-20230628-1618-ab5d.sql.ctl.eeb&#34;))
+            message_desc = &#34;&#34;
+            message_text = &#34;No database backup eligible for removal was found on &#34; + self.school
+            if len(deleted_backups) &gt; 0:
+                message_text = &#34;&lt;b&gt;Removal of &#34; + str(self.bck_max_days) + &#34; days(s) old database backup(s)&lt;/b&gt;&#34;
+
+                for deleted_backup in deleted_backups:
+                    message_desc += &#34;&lt;tr&gt;&lt;td class=&#39;enko_td&#39;&gt;&#34; + str(deleted_backup[0]) + &#34;&lt;/td&gt;&lt;td class=&#39;enko_td&#39;&gt;&#34; \
+                                    + str(deleted_backup[1]) + &#34;&lt;/td&gt;&#34;
+
+            self.nb = f&#34;A new database backup has been created already for {self.school}&#34; if self.nb == &#34;&#34; else self.nb
+            self.success.append((message_text, message_desc, self.nb))
+
+            browser.quit()
+        except Exception as e:
+            # Send error message and quit
+            self.error_logger.error(&#34;Exception occured&#34;, exc_info=True)
+            self.errors.append(
+                (&#34;ConnectionError occurred on &#34; + self.school, &#34;Error summary &#34; + str(e), None)
+            )
+        finally:
+            self.notifications[&#34;error&#34;] = self.errors
+            self.notifications[&#34;success&#34;] = self.success
+
+    def run(self, cmd: str) -&gt; None:
+        &#34;&#34;&#34;
+        Run the database base backup automation on Enko dashboard
+        :param school: (str) school name
+        :param cmd: (str) it&#39;s the running service / microservice name
+        :return: (None) function does not return a value
+        &#34;&#34;&#34;
+        print(&#34;Start &#34; + self.school + &#34; &#34; + self.service_name)
+        try:
+            self.create_backup()
+            self.delete_backups()
+        except EdukaException as e:
+            self.errors.append((&#34;EdukaException error occured &#34;, str(e), None))
+            logging.critical(&#34;Exception occured&#34;, exc_info=True)
+        finally:
+            file_name = self.autobackup_memoize + os.sep + &#34;mail&#34; + cmd + &#34;-&#34; + self.abbr
+            if serialize(file_name, self.notifications):
+                print(&#34;Succcessful serialization&#34;)
+            else:
+                print(&#34;Fail to serialize&#34;)</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="eduka-projects.eduka_projects.services.database_backup.backup_automation.Backup"><code class="flex name class">
+<span>class <span class="ident">Backup</span></span>
+<span>(</span><span>school)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Define global scope project parameters and methods used in the whole project</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Backup(DatabaseBackup):
+
+    def __init__(self, school):
+        super().__init__()
+        self.school = school
+
+        # DB backup parameters initialization
+        self.api_error = -1
+        self.api_key = self.get_school_parameter(self.school, &#39;api_key&#39;)
+        self.abbr = self.get_school_parameter(self.school, &#39;abbr&#39;)
+        self.backup_endpoint_uri = self.parameters[&#39;enko_education&#39;][&#39;db_backup_api&#39;].replace(&#39;INSERT_API_KEY_HERE&#39;,
+                                                                                              self.api_key)
+        self.backup_endpoint = self.get_school_parameter(self.school, &#39;base_url&#39;) + self.backup_endpoint_uri
+        self.backup_url = self.get_school_parameter(self.school, &#39;base_url&#39;) + \
+                          self.parameters[&#39;enko_education&#39;][&#39;database_uri&#39;]
+        self.bck_max_days = self.parameters[&#39;enko_education&#39;][&#39;db_backup_max_days&#39;]
+
+        self.tabs_id = &#39;DBTabs&#39;
+        self.errors = []
+        self.success = []
+        self.notifications = {}
+
+    def create_backup(self):
+
+        # Create a backup through API if not already done for this task
+        recent_memoize_file = datetime.now().strftime(&#34;%Y%m%d&#34;) + self.abbr + &#34;.ep&#34;
+        create_memo = False
+
+        # Check if today&#39;s task hadn&#39;t already backup the database
+        print(recent_memoize_file, os.listdir(self.autobackup_memoize))
+
+        if recent_memoize_file not in os.listdir(self.autobackup_memoize):
+            try:
+                session = self.get_session()
+                with session.get(self.backup_endpoint) as r:
+                    response_text = r.text
+                create_memo = True
+            except requests.exceptions.ConnectionError as e:
+                self.errors.append(
+                    (&#34;ConnectionError occurred on &#34; + self.school, &#34;Error summary &#34; + str(e))
+                )
+                self.error_logger.critical(&#34;ConnectionError occurred&#34;, exc_info=True)
+                # No need to execute the whole program and delete backups if unable to create a recent one
+                raise EdukaException(self.school, e)
+
+            # Check if API call return any error
+            self.api_error = response_text.find(&#39;ErrorBox&#39;)
+
+            if self.api_error != -1:
+                soup = BeautifulSoup(r.text, features=&#34;html.parser&#34;)
+                message_desc = &#34;API call throw: &#34; + soup.text + &#34;&lt;br&gt;IP: &#34; + self.my_public_ip
+                self.errors.append(
+                    (&#34;&lt;b&gt;Unexpected failure occurred&lt;/b&gt; &#34; + self.school, message_desc, None)
+                )
+                # Exceptional call for private EnkoMail method __get_email_message_desc()
+                self.error_logger.error(f&#34;Execution error occurred {message_desc}&#34;)
+
+                browser = platform.login(self.backup_url, self.logins(self.school))
+
+                li = platform.get_tabs(self.tabs_id, browser).find_elements(By.TAG_NAME, &#39;li&#39;)
+
+                # Create backup with browser if there was an API error
+                li[1].click()
+                backup_button = platform.get_tabs(self.tabs_id, browser).find_element(By.ID, &#39;StartBackup&#39;)
+                backup_button.click()
+                jqibuttons = WebDriverWait(browser, 30, ignored_exceptions=self.ignored_exceptions).until(
+                    EC.presence_of_element_located((By.CLASS_NAME, &#39;jqibuttons&#39;)))
+                jqibuttons.click()
+                browser.quit()
+                create_memo = True
+
+            if create_memo:
+                # Delete unnecessary memos
+                delete_serialized(self.autobackup_memoize, self.abbr)
+
+                # Create recent memo
+                with open(self.autobackup_memoize + os.sep + recent_memoize_file, &#34;w&#34;) as m:
+                    pass
+        else:
+            self.nb = f&#34;Database already store for today for {self.school}&#34;
+            self.error_logger.info(self.nb)
+            print(self.nb)
+
+    def delete_backups(self):
+        # List available backups and delete old ones if any
+        try:
+            browser = platform.login(self.backup_url, self.logins(self.school))
+            tabs = platform.get_tabs(self.tabs_id, browser)
+            tabs.find_elements(By.TAG_NAME, &#39;li&#39;)[2].click()
+
+            backup_list = WebDriverWait(browser, 5, ignored_exceptions=self.ignored_exceptions).until(
+                EC.presence_of_element_located((By.ID, &#39;BackupListbody&#39;)))
+            backups = backup_list.find_elements(By.TAG_NAME, &#39;tr&#39;)
+            tr_len = len(backups)
+            deleted_backups = []
+
+            if tr_len &gt; 1:
+                while tr_len &gt; 0:
+                    # Never delete all backup
+                    if len(backups) == 1:
+                        break
+
+                    backups.reverse()
+                    for bckup in backups:
+                        bckup_date = bckup.find_element(By.CLASS_NAME, &#39;column_date&#39;).get_attribute(&#39;textContent&#39;)
+
+                        parse_date = re.search(&#34;\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$&#34;, bckup_date)
+                        bckup_parsed_date = datetime.strptime(parse_date.group(0), &#34;%d/%m/%Y %H:%M&#34;)
+
+                        date_diff = datetime.now() - bckup_parsed_date
+
+                        # Check if backups are old enough to be deleted
+                        if self.parameters[&#39;enko_education&#39;][&#39;db_backup_max_days&#39;] &lt;= date_diff.days:
+                            # TODO: Get backup time and name
+                            bckup_filename = bckup.find_element(By.CLASS_NAME, &#39;column_filename&#39;).get_attribute(
+                                &#39;textContent&#39;)
+
+                            print(self.abbr, &#34; Delete &#34;, bckup_filename, &#34; Diff &#34;, date_diff.days)
+
+                            # TODO: Delete backup
+                            time.sleep(5)
+                            column_del = WebDriverWait(bckup, 15,
+                                                       ignored_exceptions=self.ignored_exceptions).until(
+                                EC.presence_of_element_located((By.CLASS_NAME, &#39;column_delete&#39;)))
+                            column_del.click()
+                            deleted_backups.append((bckup_parsed_date, bckup_filename))
+                            time.sleep(10)
+                            break
+                    browser.refresh()
+                    tabs = platform.get_tabs(self.tabs_id, browser)
+                    tabs.find_elements(By.TAG_NAME, &#39;li&#39;)[2].click()
+                    backup_list = WebDriverWait(browser, 5, ignored_exceptions=self.ignored_exceptions).until(
+                        EC.presence_of_element_located((By.ID, &#39;BackupListbody&#39;)))
+                    backups = backup_list.find_elements(By.TAG_NAME, &#39;tr&#39;)
+                    tr_len -= 1
+
+            # Send notification mail
+            # TODO: Remove this dummy data
+            # deleted_backups.append((&#34;2023-06-28 16:18&#34;,&#34;backup-enko-mali-com-20230628-1618-ab5d.sql.ctl.eeb&#34;))
+            message_desc = &#34;&#34;
+            message_text = &#34;No database backup eligible for removal was found on &#34; + self.school
+            if len(deleted_backups) &gt; 0:
+                message_text = &#34;&lt;b&gt;Removal of &#34; + str(self.bck_max_days) + &#34; days(s) old database backup(s)&lt;/b&gt;&#34;
+
+                for deleted_backup in deleted_backups:
+                    message_desc += &#34;&lt;tr&gt;&lt;td class=&#39;enko_td&#39;&gt;&#34; + str(deleted_backup[0]) + &#34;&lt;/td&gt;&lt;td class=&#39;enko_td&#39;&gt;&#34; \
+                                    + str(deleted_backup[1]) + &#34;&lt;/td&gt;&#34;
+
+            self.nb = f&#34;A new database backup has been created already for {self.school}&#34; if self.nb == &#34;&#34; else self.nb
+            self.success.append((message_text, message_desc, self.nb))
+
+            browser.quit()
+        except Exception as e:
+            # Send error message and quit
+            self.error_logger.error(&#34;Exception occured&#34;, exc_info=True)
+            self.errors.append(
+                (&#34;ConnectionError occurred on &#34; + self.school, &#34;Error summary &#34; + str(e), None)
+            )
+        finally:
+            self.notifications[&#34;error&#34;] = self.errors
+            self.notifications[&#34;success&#34;] = self.success
+
+    def run(self, cmd: str) -&gt; None:
+        &#34;&#34;&#34;
+        Run the database base backup automation on Enko dashboard
+        :param school: (str) school name
+        :param cmd: (str) it&#39;s the running service / microservice name
+        :return: (None) function does not return a value
+        &#34;&#34;&#34;
+        print(&#34;Start &#34; + self.school + &#34; &#34; + self.service_name)
+        try:
+            self.create_backup()
+            self.delete_backups()
+        except EdukaException as e:
+            self.errors.append((&#34;EdukaException error occured &#34;, str(e), None))
+            logging.critical(&#34;Exception occured&#34;, exc_info=True)
+        finally:
+            file_name = self.autobackup_memoize + os.sep + &#34;mail&#34; + cmd + &#34;-&#34; + self.abbr
+            if serialize(file_name, self.notifications):
+                print(&#34;Succcessful serialization&#34;)
+            else:
+                print(&#34;Fail to serialize&#34;)</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>eduka_projects.services.database_backup.DatabaseBackup</li>
+<li>eduka_projects.services.ServiceManager</li>
+<li>eduka_projects.bootstrap.Bootstrap</li>
+<li>eduka_projects.EdukaProjects</li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="eduka-projects.eduka_projects.services.database_backup.backup_automation.Backup.create_backup"><code class="name flex">
+<span>def <span class="ident">create_backup</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def create_backup(self):
+
+    # Create a backup through API if not already done for this task
+    recent_memoize_file = datetime.now().strftime(&#34;%Y%m%d&#34;) + self.abbr + &#34;.ep&#34;
+    create_memo = False
+
+    # Check if today&#39;s task hadn&#39;t already backup the database
+    print(recent_memoize_file, os.listdir(self.autobackup_memoize))
+
+    if recent_memoize_file not in os.listdir(self.autobackup_memoize):
+        try:
+            session = self.get_session()
+            with session.get(self.backup_endpoint) as r:
+                response_text = r.text
+            create_memo = True
+        except requests.exceptions.ConnectionError as e:
+            self.errors.append(
+                (&#34;ConnectionError occurred on &#34; + self.school, &#34;Error summary &#34; + str(e))
+            )
+            self.error_logger.critical(&#34;ConnectionError occurred&#34;, exc_info=True)
+            # No need to execute the whole program and delete backups if unable to create a recent one
+            raise EdukaException(self.school, e)
+
+        # Check if API call return any error
+        self.api_error = response_text.find(&#39;ErrorBox&#39;)
+
+        if self.api_error != -1:
+            soup = BeautifulSoup(r.text, features=&#34;html.parser&#34;)
+            message_desc = &#34;API call throw: &#34; + soup.text + &#34;&lt;br&gt;IP: &#34; + self.my_public_ip
+            self.errors.append(
+                (&#34;&lt;b&gt;Unexpected failure occurred&lt;/b&gt; &#34; + self.school, message_desc, None)
+            )
+            # Exceptional call for private EnkoMail method __get_email_message_desc()
+            self.error_logger.error(f&#34;Execution error occurred {message_desc}&#34;)
+
+            browser = platform.login(self.backup_url, self.logins(self.school))
+
+            li = platform.get_tabs(self.tabs_id, browser).find_elements(By.TAG_NAME, &#39;li&#39;)
+
+            # Create backup with browser if there was an API error
+            li[1].click()
+            backup_button = platform.get_tabs(self.tabs_id, browser).find_element(By.ID, &#39;StartBackup&#39;)
+            backup_button.click()
+            jqibuttons = WebDriverWait(browser, 30, ignored_exceptions=self.ignored_exceptions).until(
+                EC.presence_of_element_located((By.CLASS_NAME, &#39;jqibuttons&#39;)))
+            jqibuttons.click()
+            browser.quit()
+            create_memo = True
+
+        if create_memo:
+            # Delete unnecessary memos
+            delete_serialized(self.autobackup_memoize, self.abbr)
+
+            # Create recent memo
+            with open(self.autobackup_memoize + os.sep + recent_memoize_file, &#34;w&#34;) as m:
+                pass
+    else:
+        self.nb = f&#34;Database already store for today for {self.school}&#34;
+        self.error_logger.info(self.nb)
+        print(self.nb)</code></pre>
+</details>
+</dd>
+<dt id="eduka-projects.eduka_projects.services.database_backup.backup_automation.Backup.delete_backups"><code class="name flex">
+<span>def <span class="ident">delete_backups</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def delete_backups(self):
+    # List available backups and delete old ones if any
+    try:
+        browser = platform.login(self.backup_url, self.logins(self.school))
+        tabs = platform.get_tabs(self.tabs_id, browser)
+        tabs.find_elements(By.TAG_NAME, &#39;li&#39;)[2].click()
+
+        backup_list = WebDriverWait(browser, 5, ignored_exceptions=self.ignored_exceptions).until(
+            EC.presence_of_element_located((By.ID, &#39;BackupListbody&#39;)))
+        backups = backup_list.find_elements(By.TAG_NAME, &#39;tr&#39;)
+        tr_len = len(backups)
+        deleted_backups = []
+
+        if tr_len &gt; 1:
+            while tr_len &gt; 0:
+                # Never delete all backup
+                if len(backups) == 1:
+                    break
+
+                backups.reverse()
+                for bckup in backups:
+                    bckup_date = bckup.find_element(By.CLASS_NAME, &#39;column_date&#39;).get_attribute(&#39;textContent&#39;)
+
+                    parse_date = re.search(&#34;\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$&#34;, bckup_date)
+                    bckup_parsed_date = datetime.strptime(parse_date.group(0), &#34;%d/%m/%Y %H:%M&#34;)
+
+                    date_diff = datetime.now() - bckup_parsed_date
+
+                    # Check if backups are old enough to be deleted
+                    if self.parameters[&#39;enko_education&#39;][&#39;db_backup_max_days&#39;] &lt;= date_diff.days:
+                        # TODO: Get backup time and name
+                        bckup_filename = bckup.find_element(By.CLASS_NAME, &#39;column_filename&#39;).get_attribute(
+                            &#39;textContent&#39;)
+
+                        print(self.abbr, &#34; Delete &#34;, bckup_filename, &#34; Diff &#34;, date_diff.days)
+
+                        # TODO: Delete backup
+                        time.sleep(5)
+                        column_del = WebDriverWait(bckup, 15,
+                                                   ignored_exceptions=self.ignored_exceptions).until(
+                            EC.presence_of_element_located((By.CLASS_NAME, &#39;column_delete&#39;)))
+                        column_del.click()
+                        deleted_backups.append((bckup_parsed_date, bckup_filename))
+                        time.sleep(10)
+                        break
+                browser.refresh()
+                tabs = platform.get_tabs(self.tabs_id, browser)
+                tabs.find_elements(By.TAG_NAME, &#39;li&#39;)[2].click()
+                backup_list = WebDriverWait(browser, 5, ignored_exceptions=self.ignored_exceptions).until(
+                    EC.presence_of_element_located((By.ID, &#39;BackupListbody&#39;)))
+                backups = backup_list.find_elements(By.TAG_NAME, &#39;tr&#39;)
+                tr_len -= 1
+
+        # Send notification mail
+        # TODO: Remove this dummy data
+        # deleted_backups.append((&#34;2023-06-28 16:18&#34;,&#34;backup-enko-mali-com-20230628-1618-ab5d.sql.ctl.eeb&#34;))
+        message_desc = &#34;&#34;
+        message_text = &#34;No database backup eligible for removal was found on &#34; + self.school
+        if len(deleted_backups) &gt; 0:
+            message_text = &#34;&lt;b&gt;Removal of &#34; + str(self.bck_max_days) + &#34; days(s) old database backup(s)&lt;/b&gt;&#34;
+
+            for deleted_backup in deleted_backups:
+                message_desc += &#34;&lt;tr&gt;&lt;td class=&#39;enko_td&#39;&gt;&#34; + str(deleted_backup[0]) + &#34;&lt;/td&gt;&lt;td class=&#39;enko_td&#39;&gt;&#34; \
+                                + str(deleted_backup[1]) + &#34;&lt;/td&gt;&#34;
+
+        self.nb = f&#34;A new database backup has been created already for {self.school}&#34; if self.nb == &#34;&#34; else self.nb
+        self.success.append((message_text, message_desc, self.nb))
+
+        browser.quit()
+    except Exception as e:
+        # Send error message and quit
+        self.error_logger.error(&#34;Exception occured&#34;, exc_info=True)
+        self.errors.append(
+            (&#34;ConnectionError occurred on &#34; + self.school, &#34;Error summary &#34; + str(e), None)
+        )
+    finally:
+        self.notifications[&#34;error&#34;] = self.errors
+        self.notifications[&#34;success&#34;] = self.success</code></pre>
+</details>
+</dd>
+<dt id="eduka-projects.eduka_projects.services.database_backup.backup_automation.Backup.run"><code class="name flex">
+<span>def <span class="ident">run</span></span>(<span>self, cmd: str) ‑> None</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Run the database base backup automation on Enko dashboard
+:param school: (str) school name
+:param cmd: (str) it's the running service / microservice name
+:return: (None) function does not return a value</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def run(self, cmd: str) -&gt; None:
+    &#34;&#34;&#34;
+    Run the database base backup automation on Enko dashboard
+    :param school: (str) school name
+    :param cmd: (str) it&#39;s the running service / microservice name
+    :return: (None) function does not return a value
+    &#34;&#34;&#34;
+    print(&#34;Start &#34; + self.school + &#34; &#34; + self.service_name)
+    try:
+        self.create_backup()
+        self.delete_backups()
+    except EdukaException as e:
+        self.errors.append((&#34;EdukaException error occured &#34;, str(e), None))
+        logging.critical(&#34;Exception occured&#34;, exc_info=True)
+    finally:
+        file_name = self.autobackup_memoize + os.sep + &#34;mail&#34; + cmd + &#34;-&#34; + self.abbr
+        if serialize(file_name, self.notifications):
+            print(&#34;Succcessful serialization&#34;)
+        else:
+            print(&#34;Fail to serialize&#34;)</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="eduka-projects.eduka_projects.services.database_backup" href="index.html">eduka-projects.eduka_projects.services.database_backup</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="eduka-projects.eduka_projects.services.database_backup.backup_automation.Backup" href="#eduka-projects.eduka_projects.services.database_backup.backup_automation.Backup">Backup</a></code></h4>
+<ul class="">
+<li><code><a title="eduka-projects.eduka_projects.services.database_backup.backup_automation.Backup.create_backup" href="#eduka-projects.eduka_projects.services.database_backup.backup_automation.Backup.create_backup">create_backup</a></code></li>
+<li><code><a title="eduka-projects.eduka_projects.services.database_backup.backup_automation.Backup.delete_backups" href="#eduka-projects.eduka_projects.services.database_backup.backup_automation.Backup.delete_backups">delete_backups</a></code></li>
+<li><code><a title="eduka-projects.eduka_projects.services.database_backup.backup_automation.Backup.run" href="#eduka-projects.eduka_projects.services.database_backup.backup_automation.Backup.run">run</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
+</footer>
+</body>
+</html>

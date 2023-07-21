@@ -93,7 +93,7 @@ class Correct(CodeManager):
             if group == "st":
                 # Student's code is blank
                 self.notifications["errors"]["students_blank_code"].append(
-                    (self.base_url, data[2], data[-1], self.cluster)
+                    (self.base_url, data[2], data[-2], self.cluster)
                 )
             else:
                 if strip_data == "":
@@ -252,7 +252,7 @@ class Correct(CodeManager):
             print(f"Correct {data}...")
 
             data_line_count += 1
-            if len(data) > 4:
+            if data[-1] == "fam":
                 # Handle family data
                 if self.code_is_empty(data, data_line_count, "fam"):
                     continue
@@ -260,7 +260,7 @@ class Correct(CodeManager):
                 guardians = []
 
                 # Get all family data except the names
-                for guardian in data[:-1]:
+                for guardian in data[:-2]:
                     # Avoid empty list
                     if guardian != "":
                         self.stats["nber_guardian_wco"] += 1
@@ -269,6 +269,7 @@ class Correct(CodeManager):
                 category = "fam"
             else:
                 # Handle students
+                category = category_map[data[1].lower()]
                 self.stats["nber_student_wco"] += 1
 
                 if self.code_is_empty(data, data_line_count):
@@ -277,14 +278,10 @@ class Correct(CodeManager):
                 if data[1] == "":
                     # Skip if student gender is blank
                     self.notifications["errors"]["no_gender_students"].append(
-                        (self.base_url, data[2], data[-1],
+                        (self.base_url, data[2], data[-2],
                          self.cluster)
                     )
                     continue
-
-                # Correct student code
-                # Select a clean code from bank_code table with the appropriate values
-                category = category_map[data[1].lower()]
 
             c_platform = school_caracteristics[0]
             self.cluster = school_caracteristics[6].lower()

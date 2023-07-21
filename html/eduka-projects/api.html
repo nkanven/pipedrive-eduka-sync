@@ -37,95 +37,188 @@ This tunnel allowed anyone with the right api key to execute services from a web
 &#34;&#34;&#34;
 
 import os
+import sys
+
+sys.path.append(&#39;.&#39;)
+
+print(sys.path)
+
 import subprocess
-from flask import Flask, request
+from flask import Flask, request, send_file
+from dotenv import load_dotenv
+from eduka_projects.bootstrap import Bootstrap
+
+bts = Bootstrap()
+
+load_dotenv()
 
 app = Flask(__name__)
 app.config[&#39;TRAP_HTTP_EXCEPTIONS&#39;] = True
-key = &#34;XNSS-HSJW-3NGU-8XTJ&#34;
+key = os.environ.get(&#34;api_key&#34;)
+service_dirs = &#34;eduka_projects/services&#34;
 
-msg = {
+msg400 = {
+    &#39;code&#39;: 400,
+    &#39;state&#39;: &#39;error&#39;,
+    &#39;msg&#39;: &#34;The server cannot or will not process the request due to an apparent client error. Please check the instruction command&#34;
+}
+msg401 = {
+    &#39;code&#39;: 401,
+    &#39;state&#39;: &#39;error&#39;,
+    &#39;msg&#39;: &#34;invalid authentication credentials for the requested resource.&#34;
+}
+
+msg404 = {
     &#39;code&#39;: 404,
     &#39;state&#39;: &#39;error&#39;,
     &#39;msg&#39;: &#34;The requested URL was not found on the server.&#34;
 }
+msg500 = {
+    &#39;code&#39;: 500,
+    &#39;state&#39;: &#39;error&#39;,
+    &#39;msg&#39;: &#34;Internal server error&#34;
+}
+
+msg200 = {
+    &#39;code&#39;: 200,
+    &#39;state&#39;: &#39;Success&#39;,
+    &#39;msg&#39;: &#34;Authorized&#34;
+}
+
+msg201 = {
+    &#39;code&#39;: 201,
+    &#39;state&#39;: &#39;Success&#39;,
+    &#39;msg&#39;: &#34;Service service_name  has been successfuly executed. A mail with be sent when execution terminates&#34;,
+    &#39;msg_sub&#39;: &#34;Sub Service  sub_serv  of service_name  has been successfuly executed. A mail with be sent when execution terminates&#34;
+}
+
+notif = {
+    400: msg400,
+    401: msg401,
+    404: msg404,
+    500: msg500,
+    200: msg200,
+    201: msg201
+}
+
+
+def auth(key, api_key):
+    if key != api_key:
+        return notif[401], 401
+    return notif[200], 200
 
 
 @app.errorhandler(404)
 # inbuilt function which takes error as parameter
 def page_not_found(e):
-    return msg, 404
+    api_key = request.args.get(&#34;api_key&#34;)
+    result, code = auth(key, api_key)
+    if code == 401:
+        return result, 401
+
+    return notif[404], 404
+
 
 @app.errorhandler(500)
 # inbuilt function which takes error as parameter
-def page_not_found(e):
-    msg[&#39;code&#39;] = 500
-    msg[&#39;msg&#39;] = &#34;Internal server error&#34;
-    return msg, 500
+def internal_server_error(e):
+    api_key = request.args.get(&#34;api_key&#34;)
+    result, code = auth(key, api_key)
+    if code == 401:
+        return result, 401
+
+    return notif[500], 500
 
 
 @app.route(&#34;/&#34;)
 def hello():
-    return {&#34;Greetings&#34;:&#34;Welcome to Enko Education (EDUKA PROJECTS) Web executable&#34;}
+    result, code = auth(key, request.args.get(&#34;api_key&#34;))
+    if code == 401:
+        return result, 401
+    return {&#34;Greetings&#34;: &#34;Welcome to Enko Education (EDUKA PROJECTS) Web executable&#34;}
 
 
-@app.route(&#34;/service/&lt;service_name&gt;&#34;)
-def service(service_name):
-    api_key = request.args.get(&#34;api_key&#34;)
+@app.route(&#34;/service/&lt;module&gt;/&lt;service&gt;&#34;)
+def sub_service(module, service):
+    py_service = service + &#34;.py&#34;
+    result, code = auth(key, request.args.get(&#34;api_key&#34;))
+    if code == 401:
+        return result, 401
 
-    if key != api_key:
-        msg[&#39;code&#39;] = 401
-        msg[&#39;state&#39;] = &#39;Rejected&#39;
-        msg[&#39;msg&#39;] = &#34;You are not authorized to access this resource&#34;
-        return msg, 401
+    _service_dirs = os.listdir(service_dirs)
 
-    if service_name in os.listdir(&#34;services&#34;):
-        #os.system(&#34;source venv/bin/activate &amp;&amp; python main.py -s &#34; + service_name)
-        python_venv = os.getcwd() + os.sep + &#34;venv/bin/python&#34;
-        child = subprocess.Popen([python_venv, &#39;main.py&#39;, &#39;-s&#39;, service_name], subprocess.PIPE)
-        msg[&#39;code&#39;] = 201
-        msg[&#39;state&#39;] = &#39;Success&#39;
-        msg[&#39;msg&#39;] = &#34;Service &#34; + service_name + &#34; has been successfuly executed. &#34; \
-                                                 &#34;A mail with be sent when execution terminates&#34;
+    if module in _service_dirs:
+        # os.system(&#34;source venv/bin/activate &amp;&amp; python main.py -s &#34; + service_name)
+        module_dir_path = os.path.join(service_dirs, module)
+        print(os.listdir(module_dir_path))
 
-        &#34;&#34;&#34;
-        Waiting for process to finish
-        streamdata = child.communicate()[0]
-        rc = child.returncode
-        print(&#34;OK OK&#34;, rc)&#34;&#34;&#34;
+        if py_service in os.listdir(module_dir_path):
+            python_venv = os.getcwd() + os.sep + &#34;venv/bin/python&#34;
+            print(python_venv)
+            child = subprocess.Popen([python_venv, &#39;main.py&#39;, &#39;-s&#39;, service], subprocess.PIPE)
+            notif[201][&#39;msg&#39;] = notif[201][&#39;msg_sub&#39;].replace(&#34;sub_serv&#34;,
+                                                              &#34; &#34;.join(service.split(&#34;_&#34;)).capitalize()).replace(
+                &#34;service_name&#34;, module)
+            notif[201].pop(&#34;msg_sub&#34;)
 
-    return msg, 201
+            &#34;&#34;&#34;
+            Waiting for process to finish
+            streamdata = child.communicate()[0]
+            rc = child.returncode
+            print(&#34;OK OK&#34;, rc)&#34;&#34;&#34;
+
+            return notif[201], 201
+
+    return notif[400], 400
 
 
-@app.route(&#34;/service/&lt;service_name&gt;/&lt;sub_serv&gt;&#34;)
-def sub_service(service_name, sub_serv):
-    api_key = request.args.get(&#34;api_key&#34;)
+@app.route(&#34;/list-endpoints&#34;)
+def list_web_endpoints():
+    uri = []
+    try:
+        result, code = auth(key, request.args.get(&#34;api_key&#34;))
+        if code == 401:
+            return result, 401
 
-    if key != api_key:
-        msg[&#39;code&#39;] = 401
-        msg[&#39;state&#39;] = &#39;Rejected&#39;
-        msg[&#39;msg&#39;] = &#34;You are not authorized to access this resource&#34;
-        return msg, 401
+        for module in os.listdir(service_dirs):
+            _path = module
+            module_dir = os.path.join(service_dirs, module)
+            if os.path.isdir(module_dir):
+                for l_service in os.listdir(module_dir):
+                    if l_service.endswith(&#34;py&#34;) and &#34;__&#34; not in l_service:
+                        uri.append(&#34;/service/&#34; + os.path.join(module, l_service.split(&#34;.&#34;)[0]) + &#34;?api_key=&#34;)
+        uri = {
+            &#34;code&#34;: 201,
+            &#34;endpoints&#34;: uri
+        }
+    except Exception:
+        bts.error_logger.critical(&#34;API Exception occured&#34;, exc_info=True)
+        uri = notif[500]
+    finally:
+        return uri
 
-    if service_name in os.listdir(&#34;services&#34;):
-        #os.system(&#34;source venv/bin/activate &amp;&amp; python main.py -s &#34; + service_name)
-        python_venv = os.getcwd() + os.sep + &#34;venv/bin/python&#34;
-        child = subprocess.Popen([python_venv, &#39;main.py&#39;, &#39;-s&#39;, sub_serv], subprocess.PIPE)
-        msg[&#39;code&#39;] = 201
-        msg[&#39;state&#39;] = &#39;Success&#39;
-        msg[&#39;msg&#39;] = &#34;Sub Service &#34; + sub_serv + &#34; of &#34; + service_name +&#34; has been successfuly executed. &#34; \
-                                                 &#34;A mail with be sent when execution terminates&#34;
 
-        &#34;&#34;&#34;
-        Waiting for process to finish
-        streamdata = child.communicate()[0]
-        rc = child.returncode
-        print(&#34;OK OK&#34;, rc)&#34;&#34;&#34;
+@app.route(&#34;/file/&lt;file_name&gt;&#34;)
+def files(file_name):
+    print(auth(key, request.args.get(&#34;api_key&#34;)))
+    result, code = auth(key, request.args.get(&#34;api_key&#34;))
+    if code == 401:
+        return result, 401
 
-    return msg, 201
+    file_path = f&#34;/home/{os.environ.get(&#39;linux_user&#39;)}/ftp/files/{file_name}&#34;
+
+    if os.path.exists(file_path):
+        return send_file(file_path, as_attachment=True)
+    else:
+        return {&#34;error&#34;: 404,
+                &#34;msg&#34;: f&#34;File {file_name} does not exists. Please check the file name and retry or contact admin.&#34;}
+
 
 if __name__ == &#34;__main__&#34;:
-    app.run(host=&#39;0.0.0.0&#39;)</code></pre>
+    try:
+        app.run(host=&#39;0.0.0.0&#39;)
+    except Exception:
+        bts.error_logger.critical(&#34;API Exception occured&#34;, exc_info=True)</code></pre>
 </details>
 </section>
 <section>
@@ -135,6 +228,46 @@ if __name__ == &#34;__main__&#34;:
 <section>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
+<dt id="eduka-projects.api.auth"><code class="name flex">
+<span>def <span class="ident">auth</span></span>(<span>key, api_key)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def auth(key, api_key):
+    if key != api_key:
+        return notif[401], 401
+    return notif[200], 200</code></pre>
+</details>
+</dd>
+<dt id="eduka-projects.api.files"><code class="name flex">
+<span>def <span class="ident">files</span></span>(<span>file_name)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@app.route(&#34;/file/&lt;file_name&gt;&#34;)
+def files(file_name):
+    print(auth(key, request.args.get(&#34;api_key&#34;)))
+    result, code = auth(key, request.args.get(&#34;api_key&#34;))
+    if code == 401:
+        return result, 401
+
+    file_path = f&#34;/home/{os.environ.get(&#39;linux_user&#39;)}/ftp/files/{file_name}&#34;
+
+    if os.path.exists(file_path):
+        return send_file(file_path, as_attachment=True)
+    else:
+        return {&#34;error&#34;: 404,
+                &#34;msg&#34;: f&#34;File {file_name} does not exists. Please check the file name and retry or contact admin.&#34;}</code></pre>
+</details>
+</dd>
 <dt id="eduka-projects.api.hello"><code class="name flex">
 <span>def <span class="ident">hello</span></span>(<span>)</span>
 </code></dt>
@@ -146,7 +279,65 @@ if __name__ == &#34;__main__&#34;:
 </summary>
 <pre><code class="python">@app.route(&#34;/&#34;)
 def hello():
-    return {&#34;Greetings&#34;:&#34;Welcome to Enko Education (EDUKA PROJECTS) Web executable&#34;}</code></pre>
+    result, code = auth(key, request.args.get(&#34;api_key&#34;))
+    if code == 401:
+        return result, 401
+    return {&#34;Greetings&#34;: &#34;Welcome to Enko Education (EDUKA PROJECTS) Web executable&#34;}</code></pre>
+</details>
+</dd>
+<dt id="eduka-projects.api.internal_server_error"><code class="name flex">
+<span>def <span class="ident">internal_server_error</span></span>(<span>e)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@app.errorhandler(500)
+# inbuilt function which takes error as parameter
+def internal_server_error(e):
+    api_key = request.args.get(&#34;api_key&#34;)
+    result, code = auth(key, api_key)
+    if code == 401:
+        return result, 401
+
+    return notif[500], 500</code></pre>
+</details>
+</dd>
+<dt id="eduka-projects.api.list_web_endpoints"><code class="name flex">
+<span>def <span class="ident">list_web_endpoints</span></span>(<span>)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@app.route(&#34;/list-endpoints&#34;)
+def list_web_endpoints():
+    uri = []
+    try:
+        result, code = auth(key, request.args.get(&#34;api_key&#34;))
+        if code == 401:
+            return result, 401
+
+        for module in os.listdir(service_dirs):
+            _path = module
+            module_dir = os.path.join(service_dirs, module)
+            if os.path.isdir(module_dir):
+                for l_service in os.listdir(module_dir):
+                    if l_service.endswith(&#34;py&#34;) and &#34;__&#34; not in l_service:
+                        uri.append(&#34;/service/&#34; + os.path.join(module, l_service.split(&#34;.&#34;)[0]) + &#34;?api_key=&#34;)
+        uri = {
+            &#34;code&#34;: 201,
+            &#34;endpoints&#34;: uri
+        }
+    except Exception:
+        bts.error_logger.critical(&#34;API Exception occured&#34;, exc_info=True)
+        uri = notif[500]
+    finally:
+        return uri</code></pre>
 </details>
 </dd>
 <dt id="eduka-projects.api.page_not_found"><code class="name flex">
@@ -158,53 +349,19 @@ def hello():
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">@app.errorhandler(500)
+<pre><code class="python">@app.errorhandler(404)
 # inbuilt function which takes error as parameter
 def page_not_found(e):
-    msg[&#39;code&#39;] = 500
-    msg[&#39;msg&#39;] = &#34;Internal server error&#34;
-    return msg, 500</code></pre>
-</details>
-</dd>
-<dt id="eduka-projects.api.service"><code class="name flex">
-<span>def <span class="ident">service</span></span>(<span>service_name)</span>
-</code></dt>
-<dd>
-<div class="desc"></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">@app.route(&#34;/service/&lt;service_name&gt;&#34;)
-def service(service_name):
     api_key = request.args.get(&#34;api_key&#34;)
+    result, code = auth(key, api_key)
+    if code == 401:
+        return result, 401
 
-    if key != api_key:
-        msg[&#39;code&#39;] = 401
-        msg[&#39;state&#39;] = &#39;Rejected&#39;
-        msg[&#39;msg&#39;] = &#34;You are not authorized to access this resource&#34;
-        return msg, 401
-
-    if service_name in os.listdir(&#34;services&#34;):
-        #os.system(&#34;source venv/bin/activate &amp;&amp; python main.py -s &#34; + service_name)
-        python_venv = os.getcwd() + os.sep + &#34;venv/bin/python&#34;
-        child = subprocess.Popen([python_venv, &#39;main.py&#39;, &#39;-s&#39;, service_name], subprocess.PIPE)
-        msg[&#39;code&#39;] = 201
-        msg[&#39;state&#39;] = &#39;Success&#39;
-        msg[&#39;msg&#39;] = &#34;Service &#34; + service_name + &#34; has been successfuly executed. &#34; \
-                                                 &#34;A mail with be sent when execution terminates&#34;
-
-        &#34;&#34;&#34;
-        Waiting for process to finish
-        streamdata = child.communicate()[0]
-        rc = child.returncode
-        print(&#34;OK OK&#34;, rc)&#34;&#34;&#34;
-
-    return msg, 201</code></pre>
+    return notif[404], 404</code></pre>
 </details>
 </dd>
 <dt id="eduka-projects.api.sub_service"><code class="name flex">
-<span>def <span class="ident">sub_service</span></span>(<span>service_name, sub_serv)</span>
+<span>def <span class="ident">sub_service</span></span>(<span>module, service)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -212,32 +369,38 @@ def service(service_name):
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">@app.route(&#34;/service/&lt;service_name&gt;/&lt;sub_serv&gt;&#34;)
-def sub_service(service_name, sub_serv):
-    api_key = request.args.get(&#34;api_key&#34;)
+<pre><code class="python">@app.route(&#34;/service/&lt;module&gt;/&lt;service&gt;&#34;)
+def sub_service(module, service):
+    py_service = service + &#34;.py&#34;
+    result, code = auth(key, request.args.get(&#34;api_key&#34;))
+    if code == 401:
+        return result, 401
 
-    if key != api_key:
-        msg[&#39;code&#39;] = 401
-        msg[&#39;state&#39;] = &#39;Rejected&#39;
-        msg[&#39;msg&#39;] = &#34;You are not authorized to access this resource&#34;
-        return msg, 401
+    _service_dirs = os.listdir(service_dirs)
 
-    if service_name in os.listdir(&#34;services&#34;):
-        #os.system(&#34;source venv/bin/activate &amp;&amp; python main.py -s &#34; + service_name)
-        python_venv = os.getcwd() + os.sep + &#34;venv/bin/python&#34;
-        child = subprocess.Popen([python_venv, &#39;main.py&#39;, &#39;-s&#39;, sub_serv], subprocess.PIPE)
-        msg[&#39;code&#39;] = 201
-        msg[&#39;state&#39;] = &#39;Success&#39;
-        msg[&#39;msg&#39;] = &#34;Sub Service &#34; + sub_serv + &#34; of &#34; + service_name +&#34; has been successfuly executed. &#34; \
-                                                 &#34;A mail with be sent when execution terminates&#34;
+    if module in _service_dirs:
+        # os.system(&#34;source venv/bin/activate &amp;&amp; python main.py -s &#34; + service_name)
+        module_dir_path = os.path.join(service_dirs, module)
+        print(os.listdir(module_dir_path))
 
-        &#34;&#34;&#34;
-        Waiting for process to finish
-        streamdata = child.communicate()[0]
-        rc = child.returncode
-        print(&#34;OK OK&#34;, rc)&#34;&#34;&#34;
+        if py_service in os.listdir(module_dir_path):
+            python_venv = os.getcwd() + os.sep + &#34;venv/bin/python&#34;
+            print(python_venv)
+            child = subprocess.Popen([python_venv, &#39;main.py&#39;, &#39;-s&#39;, service], subprocess.PIPE)
+            notif[201][&#39;msg&#39;] = notif[201][&#39;msg_sub&#39;].replace(&#34;sub_serv&#34;,
+                                                              &#34; &#34;.join(service.split(&#34;_&#34;)).capitalize()).replace(
+                &#34;service_name&#34;, module)
+            notif[201].pop(&#34;msg_sub&#34;)
 
-    return msg, 201</code></pre>
+            &#34;&#34;&#34;
+            Waiting for process to finish
+            streamdata = child.communicate()[0]
+            rc = child.returncode
+            print(&#34;OK OK&#34;, rc)&#34;&#34;&#34;
+
+            return notif[201], 201
+
+    return notif[400], 400</code></pre>
 </details>
 </dd>
 </dl>
@@ -260,9 +423,12 @@ def sub_service(service_name, sub_serv):
 </li>
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
+<li><code><a title="eduka-projects.api.auth" href="#eduka-projects.api.auth">auth</a></code></li>
+<li><code><a title="eduka-projects.api.files" href="#eduka-projects.api.files">files</a></code></li>
 <li><code><a title="eduka-projects.api.hello" href="#eduka-projects.api.hello">hello</a></code></li>
+<li><code><a title="eduka-projects.api.internal_server_error" href="#eduka-projects.api.internal_server_error">internal_server_error</a></code></li>
+<li><code><a title="eduka-projects.api.list_web_endpoints" href="#eduka-projects.api.list_web_endpoints">list_web_endpoints</a></code></li>
 <li><code><a title="eduka-projects.api.page_not_found" href="#eduka-projects.api.page_not_found">page_not_found</a></code></li>
-<li><code><a title="eduka-projects.api.service" href="#eduka-projects.api.service">service</a></code></li>
 <li><code><a title="eduka-projects.api.sub_service" href="#eduka-projects.api.sub_service">sub_service</a></code></li>
 </ul>
 </li>

@@ -4,8 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.10.0" />
-<title>eduka-projects.main API documentation</title>
-<meta name="description" content="Eduka Projects V1 …" />
+<title>eduka-projects.eduka_projects.services.statistics API documentation</title>
+<meta name="description" content="&#34;
+Statistics Module …" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
 <link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
@@ -19,129 +20,87 @@
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>eduka-projects.main</code></h1>
+<h1 class="title">Module <code>eduka-projects.eduka_projects.services.statistics</code></h1>
 </header>
 <section id="section-intro">
-<h1 id="eduka-projects-v1">Eduka Projects V1</h1>
-<p>This project aims to consolidate all <strong>Enko Education</strong> microservices around a main service manager
-for an easy code base update and scalability in mind.</p>
-<h2 id="comprehension-recommendations">Comprehension / Recommendations</h2>
-<p><strong>Eduka Projects</strong> is a basket of service manager via a main unit also acting as the entry point
-For each new microservice, the developer should:
-1. create the service module in <strong><em>eduka-projects.services</em></strong> package.
-2. initialize a <strong><em>service_name</em></strong> in the <strong><em>new_module.<strong>init</strong>.py</em></strong>
-3. register that service on the <em>dispatcher</em> method situated at <strong><em>eduka-projects.service.dispatch</em></strong>.
-The key name should be the command line parameter for the service. E.g if you intend to execute
-backup_automation, the command line you run is <code>`python main.py -s backup_automation</code>. The dispatcher will
-handle the rest.</p>
-<p>For the code base stability and integrity to prevail, developer need to respect this minimal recommendations</p>
+<p>"</p>
+<h1 id="statistics-module">Statistics Module</h1>
+<h2 id="file-usage">File Usage</h2>
+<p>This file Initialize global functions and parameters for statistics service</p>
+<h2 id="service-description">Service description</h2>
+<p>Statistics Module is the code base for Eduka statistics service which role is to provide various statistics for
+analytical purpose.</p>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">&#34;&#34;&#34;
-# Eduka Projects V1
+<pre><code class="python">&#34;&#34;&#34;&#34;
+# Statistics Module
 
-This project aims to consolidate all **Enko Education** microservices around a main service manager
-for an easy code base update and scalability in mind.
+## File Usage
+This file Initialize global functions and parameters for statistics service
 
-## Comprehension / Recommendations
-
-**Eduka Projects** is a basket of service manager via a main unit also acting as the entry point
-For each new microservice, the developer should:
-    1. create the service module in ***eduka-projects.services*** package.
-    2. initialize a ***service_name*** in the ***new_module.__init__.py***
-    3. register that service on the *dispatcher* method situated at ***eduka-projects.service.dispatch***.
-        The key name should be the command line parameter for the service. E.g if you intend to execute
-        backup_automation, the command line you run is ````python main.py -s backup_automation```. The dispatcher will
-        handle the rest.
-
-For the code base stability and integrity to prevail, developer need to respect this minimal recommendations
+## Service description
+Statistics Module is the code base for Eduka statistics service which role is to provide various statistics for
+analytical purpose.
 &#34;&#34;&#34;
 
-# TODO: Convert KeyError in mail class and check api and all the code base
+from eduka_projects.services import ServiceManager
 
-import time
-import datetime
 
-start_time = time.time()
-from eduka_projects.bootstrap import Bootstrap
-
-bts = Bootstrap()
-
-try:
-    import sys
-    import getopt
-    from eduka_projects.bootstrap import service
-    from eduka_projects.services.dispatch import dispatcher
-    from eduka_projects.utils.eduka_exceptions import EdukaMailServiceKeyError
-    import concurrent.futures
-    from eduka_projects.utils.rialization import deserialize
-    from eduka_projects.utils.mail import EnkoMail
-
-    # Read command arguments
-    argv = sys.argv[1:]
-    cmd = &#34;&#34;
-    options, args = getopt.getopt(argv, &#34;s:&#34;, [&#34;service =&#34;])
-    for name, value in options:
-        if name.strip() == &#39;-s&#39; or name.strip() == &#39;--service&#39;:
-            cmd = value
-
-    schools = bts.parameters[&#39;enko_education&#39;][&#39;schools&#39;].keys()
-    # schools: list = [&#39;enko_mali&#39;]
-
-    &#34;&#34;&#34;
-    Main dispatcher thread pool executor
-    &#34;&#34;&#34;
-
-    print(&#34;Eduka Projects Services Started...&#34;)
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-        for school in schools:
-            print(&#34;Work started for&#34;, school)
-            executor.submit(dispatcher, cmd, school)
-            # Make space between workers execution
-            time.sleep(5)
-
-    print(&#34;Thread work done...&#34;)
-
-    # From all schools, get unique emails
-    emails = []
-    for school in schools:
-        for email in bts.parameters[&#39;enko_education&#39;][&#39;schools&#39;][school][&#34;comma_seperated_emails&#34;].split(&#34;,&#34;):
-            emails.append(email.strip(&#34; &#34;))
-
-    unique_emails = set(emails)
-
-    enko_mail = EnkoMail(cmd, school)
-    enko_mail.set_email_cc_list(list(unique_emails))
-    enko_mail.mail_builder_selector()
-except EdukaMailServiceKeyError:
-    bts.error_logger.critical(&#34;Eduka  Mail Service error&#34;, exc_info=True)
-except Exception as e:
-    print(&#34;Program launch error&#34;, str(e))
-    #bts.error_logger.critical(&#34;Program launch error&#34;, exc_info=True)
-
-end_time = time.time()
-total_time = end_time - start_time
-time_format = str(datetime.timedelta(seconds=total_time))
-print(f&#34;Program took {time_format} to run&#34;)</code></pre>
+class Statistics(ServiceManager):
+    def __init__(self):
+        super().__init__()
+        self.service_name = &#34;Statistics Service&#34;</code></pre>
 </details>
 </section>
 <section>
+<h2 class="section-title" id="header-submodules">Sub-modules</h2>
+<dl>
+<dt><code class="name"><a title="eduka-projects.eduka_projects.services.statistics.login" href="login.html">eduka-projects.eduka_projects.services.statistics.login</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
 </section>
 <section>
 </section>
 <section>
 </section>
 <section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="eduka-projects.eduka_projects.services.statistics.Statistics"><code class="flex name class">
+<span>class <span class="ident">Statistics</span></span>
+</code></dt>
+<dd>
+<div class="desc"><p>Define global scope project parameters and methods used in the whole project</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Statistics(ServiceManager):
+    def __init__(self):
+        super().__init__()
+        self.service_name = &#34;Statistics Service&#34;</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>eduka_projects.services.ServiceManager</li>
+<li>eduka_projects.bootstrap.Bootstrap</li>
+<li>eduka_projects.EdukaProjects</li>
+</ul>
+</dd>
+</dl>
 </section>
 </article>
 <nav id="sidebar">
 <h1>Index</h1>
 <div class="toc">
 <ul>
-<li><a href="#eduka-projects-v1">Eduka Projects V1</a><ul>
-<li><a href="#comprehension-recommendations">Comprehension / Recommendations</a></li>
+<li><a href="#statistics-module">Statistics Module</a><ul>
+<li><a href="#file-usage">File Usage</a></li>
+<li><a href="#service-description">Service description</a></li>
 </ul>
 </li>
 </ul>
@@ -149,7 +108,19 @@ print(f&#34;Program took {time_format} to run&#34;)</code></pre>
 <ul id="index">
 <li><h3>Super-module</h3>
 <ul>
-<li><code><a title="eduka-projects" href="index.html">eduka-projects</a></code></li>
+<li><code><a title="eduka-projects.eduka_projects.services" href="../index.html">eduka-projects.eduka_projects.services</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-submodules">Sub-modules</a></h3>
+<ul>
+<li><code><a title="eduka-projects.eduka_projects.services.statistics.login" href="login.html">eduka-projects.eduka_projects.services.statistics.login</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="eduka-projects.eduka_projects.services.statistics.Statistics" href="#eduka-projects.eduka_projects.services.statistics.Statistics">Statistics</a></code></h4>
+</li>
 </ul>
 </li>
 </ul>
