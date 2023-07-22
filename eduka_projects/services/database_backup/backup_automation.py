@@ -158,9 +158,9 @@ class Backup(DatabaseBackup):
             # TODO: Remove this dummy data
             # deleted_backups.append(("2023-06-28 16:18","backup-enko-mali-com-20230628-1618-ab5d.sql.ctl.eeb"))
             message_desc = ""
-            message_text = "No database backup eligible for removal was found on " + self.school
+            message_text = "<b>No database backup eligible for removal was found on " + self.school + "</b>"
             if len(deleted_backups) > 0:
-                message_text = "<b>Removal of " + str(self.bck_max_days) + " days(s) old database backup(s)</b>"
+                message_text = "<b>Removal of " + str(self.bck_max_days) + " days(s) old database backup(s) on " + self.school +"</b>"
 
                 for deleted_backup in deleted_backups:
                     message_desc += "<tr><td class='enko_td'>" + str(deleted_backup[0]) + "</td><td class='enko_td'>" \
