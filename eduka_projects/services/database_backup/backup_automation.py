@@ -14,6 +14,7 @@ import requests
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 
 from bs4 import BeautifulSoup
 
@@ -176,9 +177,6 @@ class Backup(DatabaseBackup):
             self.errors.append(
                 ("ConnectionError occurred on " + self.school, "Error summary " + str(e), None)
             )
-        finally:
-            self.notifications["error"] = self.errors
-            self.notifications["success"] = self.success
 
     def run(self, cmd: str) -> None:
         """
@@ -194,7 +192,17 @@ class Backup(DatabaseBackup):
         except EdukaException as e:
             self.errors.append(("EdukaException error occured ", str(e), None))
             logging.critical("Exception occured", exc_info=True)
+        except TimeoutException as e:
+            self.errors.append(("Selenium Time out occured ", str(e), None))
+            logging.critical("Selenium time out exception occured", exc_info=True)
+            self.errors.append(
+                ("Web browser error occured on " + self.school, "Error summary " + str(e), None)
+            )
         finally:
+
+            self.notifications["error"] = self.errors
+            self.notifications["success"] = self.success
+
             file_name = self.autobackup_memoize + os.sep + "mail" + cmd + "-" + self.abbr
             if serialize(file_name, self.notifications):
                 print("Succcessful serialization")
