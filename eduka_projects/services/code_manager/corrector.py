@@ -250,7 +250,7 @@ class Correct(CodeManager):
             self.stats["nber_guardian_wco_rpl"] = deserial["stats"]["nber_guardian_wco_rpl"]
             self.notifications = deserial["notif"]
 
-        for data in self.columns_data[:1]:
+        for data in self.columns_data:
             print(f"Correct {data}...")
 
             data_line_count += 1
