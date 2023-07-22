@@ -46,14 +46,14 @@ try:
         if name.strip() == '-s' or name.strip() == '--service':
             cmd = value
 
-    # schools = bts.parameters['enko_education']['schools'].keys()
-    schools: list = ['enko_mozambique']
+    schools = bts.parameters['enko_education']['schools'].keys()
+    # schools: list = ['enko_mozambique']
 
     """
     Main dispatcher thread pool executor
     """
 
-    print("Eduka Projects Services Started...")
+    print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " Eduka Projects Services Started...")
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         for school in schools:
             print("Work started for", school)

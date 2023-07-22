@@ -19,15 +19,19 @@ def login(url: str, logins: dict) -> webdriver:
     :return: (webdriver) drv
     """
     try:
+        print("trying ", url)
         dvr = driver()
         dvr.get(url)
+        print("Got url")
         email = dvr.find_element(By.ID, 'txLogin')
         password = dvr.find_element(By.ID, 'txPass')
         submit = dvr.find_element(By.ID, 'btConnect')
+        print("Found elements")
         email.send_keys(logins['email'])
         password.send_keys(logins['password'])
         submit.click()
     except Exception as e:
+        print("Platform login failed", str(e))
         bts.error_logger.critical("Platform login failed", exc_info=True)
         sys.exit("Service stop due to platform login exception")
         # Todo: Send error message and return None

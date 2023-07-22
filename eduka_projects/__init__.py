@@ -80,8 +80,11 @@ class EdukaProjects:
         else:
             # this parameter tells Chrome that it should be run without UI (Headless)
             self.chrome_options.add_argument("--headless")
-            self.chrome_options.add_argument('--no-sandbox')
-            self.chrome_options.add_argument('--disable-dev-shm-usage')
+            self.chrome_options.add_argument("--disable-gpu")
+            self.chrome_options.add_argument("--no-sandbox")
+            self.chrome_options.add_argument("enable-automation")
+            self.chrome_options.add_argument("--disable-infobars")
+            self.chrome_options.add_argument("--disable-dev-shm-usage")
             self.chrome_options.headless = True
 
     @staticmethod
