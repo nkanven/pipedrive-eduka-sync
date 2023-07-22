@@ -164,14 +164,14 @@ class EnkoMail(Bootstrap):
                     errors += "<p>" + error[0] + " " + error[1] + "</p>"
 
                 for succ in data['success']:
-                    message_title += "<p>" + succ[0] + " for " + self.__school + "</p>"
+                    message_title += "<p>" + succ[0] + "</p>"
                     message_desc += succ[1]
-                    message_foot += succ[2] + "</br>"
+                    message_foot += "<p>" + succ[2] + "</p>"
 
             if self.__service_name in service.get.keys():
                 body = "<table class='enko_table'><tr><th class='enko_th'>Backup date</th><th " \
                        "class='enko_th'>Backup name</th></tr>" + message_desc + "</table>"
-                foot = "<p><b>N.B:</b> " + message_foot + "</p>"
+                foot = "<div><b>N.B:</b> " + message_foot + "</div>"
 
                 if message_desc != "":
                     success_message_desc += "<p>The following backup(s) have been successfully deleted:</p>"
