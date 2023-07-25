@@ -43,12 +43,15 @@ class EdukaProjects:
             paramter_fname = "parameters"
             parameter_store_path = os.path.join(self.autobackup_memoize, paramter_fname + ".ep")
 
-            if not os.path.exists(parameter_store_path):
-                json_file = requests.get(os.getenv('parameters_url'))
-                self.parameters = json_file.json()
-                serialize(parameter_store_path, self.parameters)
-            else:
-                self.parameters = deserialize(self.autobackup_memoize, paramter_fname)[0]
+            json_file = requests.get(os.getenv('parameters_url'))
+            self.parameters = json_file.json()
+
+            # if not os.path.exists(parameter_store_path):
+            #     json_file = requests.get(os.getenv('parameters_url'))
+            #     self.parameters = json_file.json()
+            #     serialize(parameter_store_path, self.parameters)
+            # else:
+            #     self.parameters = deserialize(self.autobackup_memoize, paramter_fname)[0]
 
             self.ignored_exceptions = (NoSuchElementException, StaleElementReferenceException,)
             self.error_logger = logger
