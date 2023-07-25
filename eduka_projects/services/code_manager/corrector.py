@@ -349,11 +349,14 @@ class Correct(CodeManager):
         result = False
         try:
             block.clear()
-            try:
-                block.click()
-            except ElementClickInterceptedException:
-                time.sleep(3)
-                block.click()
+
+            while True:
+                try:
+                    block.click()
+                    break
+                except ElementClickInterceptedException:
+                    print("Click intercepted! Retrying")
+                    time.sleep(1)
 
             block.send_keys(data)
             block.send_keys(Keys.ENTER)
