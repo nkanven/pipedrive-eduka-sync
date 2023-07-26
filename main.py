@@ -55,22 +55,22 @@ try:
 
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " Eduka Projects Services Started...")
 
-    # for school in schools:
-    #     try:
+    for school in schools:
+        try:
+            print("Work started for", school)
+            dispatcher(cmd, school)
+            # Make space between workers execution
+            time.sleep(2)
+        except Exception as e:
+            print("Exception occured while running " + school + " " + cmd, str(e))
+            bts.error_logger.critical("Exception occured while running " + school + " " + cmd, exc_info=True)
+
+    # with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+    #     for school in schools:
     #         print("Work started for", school)
-    #         dispatcher(cmd, school)
+    #         executor.submit(dispatcher, cmd, school)
     #         # Make space between workers execution
     #         time.sleep(5)
-    #     except Exception as e:
-    #         print("Exception occured while running " + school + " " + cmd, str(e))
-    #         bts.error_logger.critical("Exception occured while running " + school + " " + cmd, exc_info=True)
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-        for school in schools:
-            print("Work started for", school)
-            executor.submit(dispatcher, cmd, school)
-            # Make space between workers execution
-            time.sleep(5)
 
     print("Thread work done...")
 

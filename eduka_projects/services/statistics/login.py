@@ -106,13 +106,13 @@ class Login(Statistics):
             for user_master_item in user_master_items:
                 self.parents_stats["total_parents"] += 1
                 a_gardian_has_connect = False
-                print(f"{str(i)} / {self.parents_stats['total_families']}")
-                try:
-                    user_master_item.click()
-                except ElementClickInterceptedException:
-                    print("Element click intercepted, wait 5s")
-                    time.sleep(5)
-                    user_master_item.click()
+                print(f"{str(i)} / {self.parents_stats['total_families']} {self.school}")
+                while True:
+                    try:
+                        user_master_item.click()
+                        break
+                    except ElementClickInterceptedException:
+                        print("Element click intercepted, wait 5s")
 
                 last_login = platform.locate_element(self.browser, By.ID, "spDateLastActivity")
 

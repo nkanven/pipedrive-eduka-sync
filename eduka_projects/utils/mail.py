@@ -146,7 +146,7 @@ class EnkoMail(Bootstrap):
                 logging.error("Exception occured", exc_info=True)
             else:
                 print("Mail sent successfully")
-                delete_serialized(self.autobackup_memoize, self.__category + self.__service_name)
+                # delete_serialized(self.autobackup_memoize, self.__category + self.__service_name)
         except Exception as e:
             logging.error("Exception occured", exc_info=True)
 
