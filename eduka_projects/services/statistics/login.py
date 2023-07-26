@@ -127,10 +127,10 @@ class Login(Statistics):
                 if a_gardian_has_connect:
                     self.parents_stats["f_connected"] += 1
 
-                    print(_content)
+                    #print(_content)
 
             self.parents_stats["data"].append(data)
-            print(self.parents_stats)
+            #print(self.parents_stats)
             serialize(parents_stats_memo_path, self.parents_stats)
 
             user_search = __user_search(True)

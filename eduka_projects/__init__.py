@@ -46,6 +46,8 @@ class EdukaProjects:
             json_file = requests.get(os.getenv('parameters_url'))
             self.parameters = json_file.json()
 
+            print(self.parameters)
+
             # if not os.path.exists(parameter_store_path):
             #     json_file = requests.get(os.getenv('parameters_url'))
             #     self.parameters = json_file.json()
