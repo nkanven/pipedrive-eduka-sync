@@ -30,28 +30,30 @@ class Login(Statistics):
             "school": self.get_school_parameter(self.school, 'label')
         }
 
-    def get_guardians(self):
+    def _get_guardians(self):
 
-        gardians_list_urls = self.get_good_codes_from_excel(self.parameters["global"]["eduka_login_stats"])
-        guardian_memo_file = "gardians" + self.abbr + ".ep"
+        self.columns_data = self.get_guardians(self.abbr, self.base_url, self.school)
 
-        gardians_memo_path = os.path.join(self.autobackup_memoize, guardian_memo_file)
-
-        if os.path.exists(gardians_memo_path):
-            self.columns_data = deserialize(self.autobackup_memoize, guardian_memo_file)[0]
-        else:
-
-            for gl_url in gardians_list_urls:
-                if self.base_url == gl_url[2] + "/":
-                    # Browse to guardians list page
-                    self.browser = platform.login(gl_url[3], self.logins(self.school))
-                    platform.goto_printable(self.browser)
-
-                    self.columns_data = platform.get_printable(self.browser)
-
-                    serialize(gardians_memo_path, self.columns_data)
-                    self.browser.quit()
-                    break
+        # gardians_list_urls = self.get_good_codes_from_excel(self.parameters["global"]["eduka_login_stats"])
+        # guardian_memo_file = "gardians" + self.abbr + ".ep"
+        #
+        # gardians_memo_path = os.path.join(self.autobackup_memoize, guardian_memo_file)
+        #
+        # if os.path.exists(gardians_memo_path):
+        #     self.columns_data = deserialize(self.autobackup_memoize, guardian_memo_file)[0]
+        # else:
+        #
+        #     for gl_url in gardians_list_urls:
+        #         if self.base_url == gl_url[2] + "/":
+        #             # Browse to guardians list page
+        #             self.browser = platform.login(gl_url[3], self.logins(self.school))
+        #             platform.goto_printable(self.browser)
+        #
+        #             self.columns_data = platform.get_printable(self.browser)
+        #
+        #             serialize(gardians_memo_path, self.columns_data)
+        #             self.browser.quit()
+        #             break
         return self
 
     def calculate_statistics(self):
@@ -136,7 +138,7 @@ class Login(Statistics):
             user_search = __user_search(True)
 
     def run(self, cmd: str) -> None:
-        self.get_guardians().calculate_statistics()
+        self._get_guardians().calculate_statistics()
         mail_stats = {
             "p_connected": self.parents_stats["p_connected"],
             "f_connected": self.parents_stats["f_connected"],

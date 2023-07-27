@@ -3,9 +3,16 @@
 
 This service objective is to synchronize deals from PipeDrive to Eduka Platform, and from Eduka Platform to PipeDrive
 """
+import time
+import csv
+
 import requests
 from eduka_projects.services import ServiceManager
+from eduka_projects.bootstrap import platform
 from eduka_projects.utils.eduka_exceptions import EdukaPipedriveNoPipelineFoundException
+
+from selenium.webdriver.common.by import By
+from selenium.common.exceptions import TimeoutException
 import xlsxwriter
 
 import json
@@ -34,7 +41,7 @@ class PipedriveService(ServiceManager):
             url += "&" + key + "=" + str(value)
 
         url = url.replace("?", f"{path}?")
-        print(url)
+        # print(url)
 
         payload = {}
         headers = {
@@ -92,6 +99,13 @@ class PipedriveService(ServiceManager):
         finally:
             return deals
 
+    def create_eduka_file(self, file_name, heads, content):
+        with open(f'{file_name}.csv', "w") as f:
+            write = csv.writer(f, delimiter=",")
+            write.writerow(heads)
+            write.writerows(content)
+
+
     def create_xlsx(self, file_name, heads, contents):
         # Create a workbook and add a worksheet.
         workbook = xlsxwriter.Workbook(f'{file_name}.xlsx')
@@ -99,7 +113,7 @@ class PipedriveService(ServiceManager):
         # Add a bold format to use to highlight cells.
         bold = workbook.add_format({'bold': 1})
         # Adjust the column width.
-        worksheet.set_column(1, 1, 15)
+        worksheet.set_column(1, 1, 35)
         i = 0
         row = 1
         col = 0
@@ -108,14 +122,28 @@ class PipedriveService(ServiceManager):
             worksheet.write(f"{chr(letter)}1", head, bold)
             i += 1
 
-        for family_id, student_first_name, student_last_name, gender, school_bcode, parent_first_name, parent_last_name, email, phone in contents:
-            worksheet.write_string(row, col, family_id)
-            worksheet.write_string(row, col + 1, student_first_name)
-            worksheet.write_string(row, col + 2, gender)
-            worksheet.write_string(row, col + 3, school_bcode)
-            worksheet.write_string(row, col + 4, parent_first_name)
-            worksheet.write_string(row, col + 5, email)
-            worksheet.write_string(row, col + 6, phone)
+        for family_id, student_id, student_first_name, student_last_name, gender, school_bcode, parent_id, parent_first_name, parent_last_name, email, phone, deal_id in contents:
+            worksheet.write_string(row, col, str(family_id))
+            worksheet.write_string(row, col + 1, student_id)
+            worksheet.write_string(row, col + 2, student_first_name)
+            worksheet.write_string(row, col + 3, student_last_name)
+            worksheet.write_string(row, col + 4, self.gender[str(gender)])
+            worksheet.write_string(row, col + 5, school_bcode)
+            worksheet.write_string(row, col + 6, parent_id)
+            worksheet.write_string(row, col + 7, parent_first_name)
+            worksheet.write_string(row, col + 8, parent_last_name)
+            worksheet.write_string(row, col + 9, email)
+            worksheet.write_string(row, col + 10, phone)
+            worksheet.write_string(row, col + 11, str(deal_id))
             row += 1
 
         workbook.close()
+
+    def get_family_id(self, abbr, base_url, school, parent_email):
+        fam_id = None
+        family_ids = self.get_guardians(abbr, base_url, school)
+        for family_id in family_ids:
+            if family_id[2] == parent_email:
+                fam_id = family_id[0]
+        print("Family ", fam_id)
+        return fam_id
