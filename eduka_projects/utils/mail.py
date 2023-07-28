@@ -305,14 +305,15 @@ class EnkoMail(Bootstrap):
             excel_contents += ([self.__date, "% families logins"] + r_families,)
 
             print(excel_heads, excel_contents)
-            self.create_xlsx("login_statistics", excel_heads, excel_contents)
-            errors_clean = errors.replace("<li>","").replace("</li>", "")
+            excel_fname = datetime.now().strftime("%y%m%d") + "_Stats-login"
+            self.create_xlsx(excel_fname, excel_heads, excel_contents)
+            errors_clean = errors.replace("<li>", "").replace("</li>", "")
             if errors_clean != "":
                 errors = "<p>No available information found for families with the following IDs: </p><ul>" + errors + "</ul>"
             else:
                 errors = errors_clean
 
-            excel_url = "<p>Download the Excel report: <a href='http://" + self.get_ip_address() + "/assets/login_statistics.xlsx'><b>Login Statistics Report</b></a></p>"
+            excel_url = "<p>Download the Excel report: <a href='http://" + self.get_ip_address() + "/assets/" + excel_fname + ".xlsx'><b>Login Statistics Report</b></a></p>"
             body = body + excel_url
             self.construct_message_body(message_title, body, "Statistics ", errors)
             self.send_mail()
