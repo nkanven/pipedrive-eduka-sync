@@ -237,14 +237,8 @@ class EnkoMail(Bootstrap):
                     for ng_std in data["errors"]["no_gender_students"]:
                         no_gender_students += f"<tr><td>{ng_std[0]}</td><td>{ng_std[1]}</td><td>{ng_std[2]}</td><td>No gender student</td></tr>"
 
-                    students_blank_code = "</table>"
-                    no_gender_students = "</table>"
-
-                    students_blank_code += no_gender_students
-
                     for nccf in data["errors"]["no_clean_code_found"]:
                         no_clean_code_found += f"<tr><td>{nccf[0]}</td><td>{nccf[1]}</td><td>{nccf[2]}</td><td>No code found</td></tr>"
-                    no_clean_code_found += "</table>"
 
                     for fbc in data["errors"]["families_blank_code"]:
                         families_blank_code += "<p>Family blank code found at " + fbc[0] + " line " + fbc[1] + "</p>"
@@ -254,6 +248,11 @@ class EnkoMail(Bootstrap):
                 stats += "<p>Code manager statistics for SH: </p>"
                 stats += "<ul>" + sh_stats + "</ul>"
 
+                students_blank_code = "</table>"
+                no_gender_students = "</table>"
+
+                students_blank_code += no_gender_students
+                no_clean_code_found += "</table>"
                 errors = students_blank_code + "<hr>" + no_clean_code_found + "<hr>" + families_blank_code
 
                 self.construct_message_body(message_title, stats, "Code Manager ", errors)
