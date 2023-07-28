@@ -1,10 +1,11 @@
 import datetime
 import time
 
+import requests as requests
+
 from eduka_projects.services.pipedrive_synchro import PipedriveService
-from eduka_projects.bootstrap import platform
 from eduka_projects.utils.eduka_exceptions import EdukaPipedriveNoDealsFoundException, \
-    EdukaPipedriveNoPipelineFoundException
+    EdukaPipedriveNoPipelineFoundException, EdukaPipedriveImportException
 
 
 class PipedriveToEduka(PipedriveService):
@@ -13,6 +14,7 @@ class PipedriveToEduka(PipedriveService):
         self.school = school
         self.service_name = "Pipedrive to Eduka"
         self.clean_deals = []
+        self.base_url = self.get_school_parameter(self.school, "base_url")
 
         # TODO: Use training pipeline
 
@@ -107,15 +109,12 @@ class PipedriveToEduka(PipedriveService):
 
     def parse_data(self):
         print("Total deals", self.clean_deals.__len__())
-        i = 1000
+        i = 1000 #TODO: Place to handle just a few number of deals. To be removed
         sync_data = ()
         for deals in self.clean_deals:
             for deal in deals:
                 product = self.get_product_code(deal["id"])
                 if product is not None:
-                    # print("Store this value ", product[0])
-                    # print("For deal", deal)
-
                     product_id = product[0]["product_id"]
                     student_first_name = deal["88a0962f7916a41085bf8545f3b9433485140da5"]
                     student_last_name = deal["525ad777ef8851736fd9a46986d5c5c26541fdc5"]
@@ -128,7 +127,8 @@ class PipedriveToEduka(PipedriveService):
                     student_id = str(datetime.datetime.now().timestamp()).split(".")[0]
                     time.sleep(1)
                     parent_id = str(datetime.datetime.now().timestamp()).split(".")[0]
-                    family_id = self.get_family_id(self.get_school_parameter(self.school, "abbr"), self.get_school_parameter(self.school, "base_url"), self.school, parent_email)
+                    time.sleep(1)
+                    family_id = self.get_family_id(self.get_school_parameter(self.school, "abbr"), self.base_url, self.school, parent_email)
 
                     print(family_id, student_id, school_branch_code, product_id, student_first_name, student_last_name, gender,
                           parent_first_name, parent_last_name, parent_email, parent_phone)
@@ -143,7 +143,7 @@ class PipedriveToEduka(PipedriveService):
                         )
                     else:
                         sync_data += (
-                            ["", student_id, student_first_name, student_last_name, gender, school_branch_code, parent_id, parent_first_name, parent_last_name, parent_email, parent_phone, deal["id"]],
+                            [str(datetime.datetime.now().timestamp()).split(".")[0], student_id, student_first_name, student_last_name, gender, school_branch_code, parent_id, parent_first_name, parent_last_name, parent_email, parent_phone, deal["id"]],
                         )
                     i += 1
 
@@ -154,7 +154,31 @@ class PipedriveToEduka(PipedriveService):
                  "Parent ID", "Firs name (parent)", "Last name (parent)", "Email address (parent)", "Mobile phone number (parent)", "Deal ID"]
         self.create_xlsx("pipedrive_to_eduka", heads, sync_data)
 
+    def import_to_eduka(self):
+        endpoint = self.base_url + "api.php?K=" + self.get_school_parameter(self.school, "api_key") \
+                   + "&A=IMPORTDATA&PROFILE=" + self.get_school_parameter(self.school,
+                                                                          "import_profile_id_for_pipedrive_sync") \
+                   + "&FILEURL=http://" + self.get_ip_address() + "/pipedrive/pipedrive_to_eduka.xlsx" \
+                                                                  "&SEPARATOR=comma&ASYNC=0"
+
+        try:
+            response_text = "Import Failed"
+            session = self.get_session()
+            with session.get(endpoint) as r:
+                if "OK-PROCESSED" in r.text:
+                    response_text = "Import successful"
+        except requests.exceptions.ConnectionError as e:
+            self.errors.append(
+                ("ConnectionError occurred on " + self.school, "Error summary " + str(e))
+            )
+            self.error_logger.critical("ConnectionError occurred", exc_info=True)
+            raise EdukaPipedriveImportException(self.service_name, self.school, str(e))
+        finally:
+            return response_text
+
     def run(self, cmd: str):
+        # print(self.get_ip_address(), self.import_to_eduka())
+        # exit()
         try:
             pipelines = []
             stages = []
@@ -168,6 +192,11 @@ class PipedriveToEduka(PipedriveService):
             self.check_conditions()
             # print("Clean deals ", self.clean_deals.__len__(), self.clean_deals)
             self.parse_data()
+            print(self.import_to_eduka())
         except EdukaPipedriveNoDealsFoundException as e:
             print(str(e))
             self.error_logger.critical("Eduka Pipedrive Not Deals Found Exception occured", exc_info=True)
+        except EdukaPipedriveImportException as e:
+            print(str(e))
+            self.error_logger.critical("Eduka Pipedrive Pipedrive import Exception occured", exc_info=True)
+

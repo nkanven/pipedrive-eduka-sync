@@ -101,3 +101,9 @@ class EdukaProjects:
     # TODO: Work on project execution text
     def verbose(self, text):
         print(text)
+
+    def get_ip_address(self):
+        url = 'https://api.ipify.org'
+        response = requests.get(url)
+        ip_address = response.text
+        return ip_address

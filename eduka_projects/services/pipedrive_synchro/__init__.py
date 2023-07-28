@@ -23,8 +23,8 @@ class PipedriveService(ServiceManager):
         super().__init__()
         self.pipedrive_params = self.parameters["global"]["pipedrive"]
         self.gender = {
-            "103": "f",
-            "102": "g"
+            "103": "F",
+            "102": "G"
         }
 
     def ask_pipedrive(self, endpoint, **kwargs):
