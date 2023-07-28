@@ -51,3 +51,12 @@ class EdukaMailServiceKeyError(EdukaException):
     def __str__(self):
         return "Eduka service " + self.service + " raised Mail Service Key error for " + self.school + " exception." \
                                                                                                        " Service " + self.error + " not found."
+
+class EdukaPipedriveImportException(EdukaException):
+    def __init__(self, service, school, error):
+        super().__init__(school, error)
+        self.service = service
+
+    def __str__(self):
+        return "Eduka service " + self.service + " raised Pipedrive import exception for " + self.school + " exception." \
+                                                                                                       " Message: " + self.error + "."

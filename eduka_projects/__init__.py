@@ -46,8 +46,6 @@ class EdukaProjects:
             json_file = requests.get(os.getenv('parameters_url'))
             self.parameters = json_file.json()
 
-            print(self.parameters)
-
             # if not os.path.exists(parameter_store_path):
             #     json_file = requests.get(os.getenv('parameters_url'))
             #     self.parameters = json_file.json()
@@ -103,3 +101,9 @@ class EdukaProjects:
     # TODO: Work on project execution text
     def verbose(self, text):
         print(text)
+
+    def get_ip_address(self):
+        url = 'https://api.ipify.org'
+        response = requests.get(url)
+        ip_address = response.text
+        return ip_address

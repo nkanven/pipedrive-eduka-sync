@@ -36,7 +36,7 @@ class EnkoMail(Bootstrap):
         self.__email_cc_list: list = self.parameters['enko_education']['schools'][school][
             'comma_seperated_emails'].split(",")
         self.__email_to: str = self.__email_cc_list[0]
-        self.__date: str = str(datetime.now())
+        self.__date: str = datetime.now().strftime("%Y/%m/%d")
         self.__email_from: str = os.getenv('email')
         self.__email_password: str = os.getenv('password')
 
@@ -146,7 +146,7 @@ class EnkoMail(Bootstrap):
                 logging.error("Exception occured", exc_info=True)
             else:
                 print("Mail sent successfully")
-                delete_serialized(self.autobackup_memoize, self.__category + self.__service_name)
+                # delete_serialized(self.autobackup_memoize, self.__category + self.__service_name)
         except Exception as e:
             logging.error("Exception occured", exc_info=True)
 
@@ -266,21 +266,54 @@ class EnkoMail(Bootstrap):
 
     def login_stats(self):
         if self.datas is not None:
+            excel_heads = ['', '']
+            excel_contents = ()
+            n_families = []
+            n_parents = []
+            n_cfamilies = []
+            n_cparents = []
+            r_families = []
+            r_parents = []
+
             message_title = "<p>Statistics login service summary</p>"
             body = ""
             errors = ""
             for data in self.datas:
                 f_connected_ratio = floor((data['f_connected'] * 100) / data['total_families'])
                 p_connected_ratio = floor((data['p_connected'] * 100) / data['total_parents'])
+
+                n_families.append(data['total_families'])
+                n_parents.append(data['total_parents'])
+                n_cfamilies.append(data['f_connected'])
+                n_cparents.append(data['p_connected'])
+                r_parents.append(p_connected_ratio)
+                r_families.append(f_connected_ratio)
+
+                excel_heads.append(data['school'])
+
                 body += f"<div><p>Login statistics for {data['school']}.</p><ul><li>Number of families: {data['total_families']}</li>"
                 body += f"<li>Number of parents/guardians: {data['total_parents']}</li><li>Number of unique parents login: {data['p_connected']}</li>"
                 body += f"<li>Number of unique families login: {data['f_connected']}</li></ul>"
                 body += f"<p>{str(f_connected_ratio)}% of families and {str(p_connected_ratio)}% of parents have logged in since platform launch</p></div>"
                 errors += "<li>" + ", ".join(data['errors']) + "</li>"
 
-            if errors != "":
-                errors = "<p>No available information found for families with the following IDs: </p><ul>" + errors + "</ul>"
+            excel_contents += ([self.__date, "Nb of families"] + n_families,)
+            excel_contents += ([self.__date, "Nb of guardians"] + n_parents,)
+            excel_contents += ([self.__date, "Gardians logins"] + n_cparents,)
+            excel_contents += ([self.__date, "Families logins"] + n_cfamilies,)
+            excel_contents += ([self.__date, "% gardians logins"] + r_parents,)
+            excel_contents += ([self.__date, "% families logins"] + r_families,)
 
+            print(excel_heads, excel_contents)
+            self.create_xlsx("login_statistics", excel_heads, excel_contents)
+            errors_clean = errors.replace("<li>","").replace("</li>", "")
+            if errors_clean != "":
+                errors = "<p>No available information found for families with the following IDs: </p><ul>" + errors + "</ul>"
+            else:
+                errors = errors_clean
+
+            excel_url = "<p>Download the Excel report: <a href='http://" + self.get_ip_address() + "/assets/login_statistics.xlsx'><b>Login Statistics Report</b></a></p>"
+            body = body + excel_url
             self.construct_message_body(message_title, body, "Statistics ", errors)
             self.send_mail()
 

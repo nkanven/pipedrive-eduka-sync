@@ -168,15 +168,29 @@ def list_web_endpoints():
 
 @app.route("/file/<file_name>")
 def files(file_name):
-    print(auth(key, request.args.get("api_key")))
-    result, code = auth(key, request.args.get("api_key"))
-    if code == 401:
-        return result, 401
+    # print(auth(key, request.args.get("api_key")))
+    # result, code = auth(key, request.args.get("api_key"))
+    # if code == 401:
+    #     return result, 401
 
     file_path = f"/home/{os.environ.get('linux_user')}/ftp/files/{file_name}"
 
     if os.path.exists(file_path):
         return send_file(file_path, as_attachment=True)
+    else:
+        return {"error": 404,
+                "msg": f"File {file_name} does not exists. Please check the file name and retry or contact admin."}
+
+
+@app.route("/assets/<file_name>")
+def assets(file_name):
+    # print(auth(key, request.args.get("api_key")))
+    # result, code = auth(key, request.args.get("api_key"))
+    # if code == 401:
+    #     return result, 401
+
+    if os.path.exists(file_name):
+        return send_file(file_name, as_attachment=True)
     else:
         return {"error": 404,
                 "msg": f"File {file_name} does not exists. Please check the file name and retry or contact admin."}
