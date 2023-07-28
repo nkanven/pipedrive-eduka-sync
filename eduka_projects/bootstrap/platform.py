@@ -1,5 +1,6 @@
 """Platform initializes the browser driver and handles the browser navigation throughout enko admin dashboard"""
 import sys
+import time
 
 from eduka_projects.bootstrap import Bootstrap
 from selenium import webdriver
@@ -66,8 +67,10 @@ def goto_printable(browser):
     @return:
     """
     # Get printable link list as it content full data
+
     breadcrumb = WebDriverWait(browser, 15, ignored_exceptions=bts.ignored_exceptions).until(
         ec.presence_of_element_located((By.ID, 'BreadCrumb')))
+
     printable_link = WebDriverWait(breadcrumb, 5, ignored_exceptions=bts.ignored_exceptions).until(
         ec.presence_of_element_located((By.CSS_SELECTOR, 'span > a')))
 
