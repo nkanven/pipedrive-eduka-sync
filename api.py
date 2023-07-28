@@ -14,9 +14,7 @@ print(sys.path)
 import subprocess
 from flask import Flask, request, send_file
 from dotenv import load_dotenv
-from eduka_projects.bootstrap import Bootstrap
 
-bts = Bootstrap()
 
 load_dotenv()
 
@@ -159,8 +157,9 @@ def list_web_endpoints():
             "code": 201,
             "endpoints": uri
         }
-    except Exception:
-        bts.error_logger.critical("API Exception occured", exc_info=True)
+    except Exception as e:
+        print(str(e))
+        # bts.error_logger.critical("API Exception occured", exc_info=True)
         uri = notif[500]
     finally:
         return uri
@@ -199,5 +198,6 @@ def assets(file_name):
 if __name__ == "__main__":
     try:
         app.run(host='0.0.0.0')
-    except Exception:
-        bts.error_logger.critical("API Exception occured", exc_info=True)
+    except Exception as e:
+        # bts.error_logger.critical("API Exception occured", exc_info=True)
+        print(str(e))
