@@ -182,8 +182,8 @@ def files(file_name):
                 "msg": f"File {file_name} does not exists. Please check the file name and retry or contact admin."}
 
 
-@app.route("/pipedrive/<file_name>")
-def pipedrive(file_name):
+@app.route("/assets/<file_name>")
+def assets(file_name):
     # print(auth(key, request.args.get("api_key")))
     # result, code = auth(key, request.args.get("api_key"))
     # if code == 401:

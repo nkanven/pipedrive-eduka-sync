@@ -99,7 +99,6 @@ def get_printable(browser) -> list:
         user_data += (category,)
         columns_data.append(user_data)
 
-    print(columns_data)
     return columns_data
 
 

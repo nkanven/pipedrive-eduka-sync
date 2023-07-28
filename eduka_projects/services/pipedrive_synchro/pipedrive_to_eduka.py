@@ -67,7 +67,7 @@ class PipedriveToEduka(PipedriveService):
 
         for blank_student_id in blank_student_ids:
             if blank_student_id['f138752f358c149c11bce02f6003a718d36d3575'] is not None \
-                    and blank_student_id['f138752f358c149c11bce02f6003a718d36d3575'] in self.gender.keys():
+                    and blank_student_id['f138752f358c149c11bce02f6003a718d36d3575'] in self.pipedrive_gender.keys():
                 students_with_gender.append(blank_student_id)
 
         print(f"{students_with_gender.__len__()} students with gender")
@@ -158,7 +158,7 @@ class PipedriveToEduka(PipedriveService):
         endpoint = self.base_url + "api.php?K=" + self.get_school_parameter(self.school, "api_key") \
                    + "&A=IMPORTDATA&PROFILE=" + self.get_school_parameter(self.school,
                                                                           "import_profile_id_for_pipedrive_sync") \
-                   + "&FILEURL=http://" + self.get_ip_address() + "/pipedrive/pipedrive_to_eduka.xlsx" \
+                   + "&FILEURL=http://" + self.get_ip_address() + "/assets/pipedrive_to_eduka.xlsx" \
                                                                   "&SEPARATOR=comma&ASYNC=0"
 
         try:

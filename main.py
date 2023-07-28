@@ -40,9 +40,11 @@ try:
 
     # Read command arguments
     argv = sys.argv[1:]
+    print(argv)
     cmd = ""
     options, args = getopt.getopt(argv, "s:", ["service ="])
     for name, value in options:
+        print(name, value)
         if name.strip() == '-s' or name.strip() == '--service':
             cmd = value
 
@@ -55,22 +57,22 @@ try:
 
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " Eduka Projects Services Started...")
 
-    for school in schools:
-        try:
-            print("Work started for", school)
-            dispatcher(cmd, school)
-            # Make space between workers execution
-            time.sleep(2)
-        except Exception as e:
-            print("Exception occured while running " + school + " " + cmd, str(e))
-            bts.error_logger.critical("Exception occured while running " + school + " " + cmd, exc_info=True)
-
-    # with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-    #     for school in schools:
+    # for school in schools:
+    #     try:
     #         print("Work started for", school)
-    #         executor.submit(dispatcher, cmd, school)
+    #         dispatcher(cmd, school)
     #         # Make space between workers execution
-    #         time.sleep(5)
+    #         time.sleep(2)
+    #     except Exception as e:
+    #         print("Exception occured while running " + school + " " + cmd, str(e))
+    #         bts.error_logger.critical("Exception occured while running " + school + " " + cmd, exc_info=True)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        for school in schools:
+            print("Work started for", school)
+            executor.submit(dispatcher, cmd, school)
+            # Make space between workers execution
+            time.sleep(5)
 
     print("Thread work done...")
 
