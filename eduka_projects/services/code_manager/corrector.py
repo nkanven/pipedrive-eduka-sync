@@ -216,7 +216,7 @@ class Correct(CodeManager):
         serialize(self.id_fname_path, corrector_memoize)
 
     def code_categorizer(self):
-        category_map = {"male": "mst", "female": "fst", "family": "fam"}
+        category_map = {"male": "mst", "Garçon": "mst", "female": "fst", "Fille": "fst", "family": "fam"}
 
         if self.school_caracteristics.__len__() == 0:
             print("Couldn't find the school. Exit the program")
