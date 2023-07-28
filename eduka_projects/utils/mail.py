@@ -122,7 +122,7 @@ class EnkoMail(Bootstrap):
             receivers = self.__email_cc_list
 
             email_message = MIMEMultipart()
-            email_message['From'] = self.__service_name + ' <' + self.__email_from + '>'
+            email_message['From'] = "Eduka Service " + self.__service_name.capitalize() + ' <' + self.__email_from + '>'
             email_message['To'] = self.__email_to
             email_message['Subject'] = self.__service_name + " " + self.__get_subject() \
                                        + " - " + self.__date
@@ -192,27 +192,24 @@ class EnkoMail(Bootstrap):
         no_clean_code_found = "<table class='enko_table'><tr><th class='enko_th'>Platform</th><th " \
                               "class='enko_th'>Academic year</th><th class='enko_th'>Category</th><th " \
                               "class='enko_th'>Error</th></tr>"
+        message_title = "<p>Code manager services summary</p>"
 
         if self.datas is not None:
-            for data in self.datas:
-                if self.__service_name in service.get.keys():
-                    message_title = "<p>Code manager services summary</p>"
+            if self.__service_name in service.get.keys():
+                for data in self.datas:
                     if data["success"]["cluster"].lower() == "nh":
                         nh_stats += "<li>" + str(data["success"]["stats"][
                                                      "nber_student_wco_rpl"]) + " wrong student codes replaced for " + \
                                     data["success"]["school"] + "</li>"
-                        nh_stats += "<li>" + str(
-                            data["success"]["stats"]["nber_family_wco"]) + " wrong family codes found for " + \
-                                    data["success"]["school"] + "</li>"
+                        # nh_stats += "<li>" + str(
+                        #     data["success"]["stats"]["nber_family_wco"]) + " wrong family codes found for " + \
+                        #             data["success"]["school"] + "</li>"
                         nh_stats += "<li>" + str(
                             data["success"]["stats"]["nber_family_wco_rpl"]) + " wrong family codes replaced for " + \
                                     data["success"]["school"] + "</li>"
-                        nh_stats += "<li>" + str(
-                            data["success"]["stats"]["nber_guardian_wco"]) + " wrong guardian codes found for " + \
-                                    data["success"]["school"] + "</li>"
-                        nh_stats += "<li>" + str(
-                            data["success"]["stats"]["nber_guardian_wco"]) + " wrong guardian codes found for " + \
-                                    data["success"]["school"] + "</li>"
+                        # nh_stats += "<li>" + str(
+                        #     data["success"]["stats"]["nber_guardian_wco"]) + " wrong guardian codes found for " + \
+                        #             data["success"]["school"] + "</li>"
                         nh_stats += "<li>" + str(data["success"]["stats"][
                                                      "nber_guardian_wco_rpl"]) + " wrong guardian codes replaced for " + \
                                     data["success"]["school"] + "</li>"
@@ -221,26 +218,18 @@ class EnkoMail(Bootstrap):
                         sh_stats += "<li>" + str(data["success"]["stats"][
                                                      "nber_student_wco_rpl"]) + " wrong student codes replaced for " + \
                                     data["success"]["school"] + "</li>"
-                        sh_stats += "<li>" + str(
-                            data["success"]["stats"]["nber_family_wco"]) + " wrong family codes found for " + \
-                                    data["success"]["school"] + "</li>"
+                        # sh_stats += "<li>" + str(
+                        #     data["success"]["stats"]["nber_family_wco"]) + " wrong family codes found for " + \
+                        #             data["success"]["school"] + "</li>"
                         sh_stats += "<li>" + str(
                             data["success"]["stats"]["nber_family_wco_rpl"]) + " wrong family codes replaced for " + \
                                     data["success"]["school"] + "</li>"
-                        sh_stats += "<li>" + str(
-                            data["success"]["stats"]["nber_guardian_wco"]) + " wrong guardian codes found for " + \
-                                    data["success"]["school"] + "</li>"
-                        sh_stats += "<li>" + str(
-                            data["success"]["stats"]["nber_guardian_wco"]) + " wrong guardian codes found for " + \
-                                    data["success"]["school"] + "</li>"
+                        # sh_stats += "<li>" + str(
+                        #     data["success"]["stats"]["nber_guardian_wco"]) + " wrong guardian codes found for " + \
+                        #             data["success"]["school"] + "</li>"
                         sh_stats += "<li>" + str(data["success"]["stats"][
                                                      "nber_guardian_wco_rpl"]) + " wrong guardian codes replaced for " + \
                                     data["success"]["school"] + "</li>"
-
-                    stats += "<p>Code manager statistics for NH: </p>"
-                    stats += "<ul>" + nh_stats + "</ul>"
-                    stats += "<p>Code manager statistics for SH: </p>"
-                    stats += "<ul>" + sh_stats + "</ul>"
 
                     for std_bc in data["errors"]["students_blank_code"]:
                         students_blank_code += f"<tr><td>{std_bc[0]}</td><td>{std_bc[1]}</td><td>{std_bc[2]}</td><td>Student blank code</td></tr>"
@@ -248,7 +237,10 @@ class EnkoMail(Bootstrap):
                     for ng_std in data["errors"]["no_gender_students"]:
                         no_gender_students += f"<tr><td>{ng_std[0]}</td><td>{ng_std[1]}</td><td>{ng_std[2]}</td><td>No gender student</td></tr>"
 
-                    students_blank_code += no_gender_students + "</table>"
+                    students_blank_code = "</table>"
+                    no_gender_students = "</table>"
+
+                    students_blank_code += no_gender_students
 
                     for nccf in data["errors"]["no_clean_code_found"]:
                         no_clean_code_found += f"<tr><td>{nccf[0]}</td><td>{nccf[1]}</td><td>{nccf[2]}</td><td>No code found</td></tr>"
@@ -257,12 +249,17 @@ class EnkoMail(Bootstrap):
                     for fbc in data["errors"]["families_blank_code"]:
                         families_blank_code += "<p>Family blank code found at " + fbc[0] + " line " + fbc[1] + "</p>"
 
-                    errors = students_blank_code + "<hr>" + no_clean_code_found + "<hr>" + families_blank_code
+                stats += "<p>Code manager statistics for NH: </p>"
+                stats += "<ul>" + nh_stats + "</ul>"
+                stats += "<p>Code manager statistics for SH: </p>"
+                stats += "<ul>" + sh_stats + "</ul>"
 
-                    self.construct_message_body(message_title, stats, "Code Manager ", errors)
-                    self.send_mail()
-                else:
-                    self.error_logger.info(f"{self.__service_name} key not found in bootstrap.service.get")
+                errors = students_blank_code + "<hr>" + no_clean_code_found + "<hr>" + families_blank_code
+
+                self.construct_message_body(message_title, stats, "Code Manager ", errors)
+                self.send_mail()
+            else:
+                self.error_logger.info(f"{self.__service_name} key not found in bootstrap.service.get")
 
     def login_stats(self):
         if self.datas is not None:

@@ -57,7 +57,7 @@ class PipedriveToEduka(PipedriveService):
 
         for not_won_loss in not_won_losses:
             # Blank student Id field
-            if not_won_loss["0dfe2a7c991908de1eb76779d5a99487c3955f9b"] is None:
+            if not_won_loss[self.get_pipedrive_param_name_for["student id"]] is None:
                 blank_student_ids.append(not_won_loss)
 
         print(f"{blank_student_ids.__len__()} blank students id deals")
@@ -66,8 +66,8 @@ class PipedriveToEduka(PipedriveService):
             # raise EdukaPipedriveNoDealsFoundException(self.service_name, self.school, error)
 
         for blank_student_id in blank_student_ids:
-            if blank_student_id['f138752f358c149c11bce02f6003a718d36d3575'] is not None \
-                    and blank_student_id['f138752f358c149c11bce02f6003a718d36d3575'] in self.pipedrive_gender.keys():
+            if blank_student_id[self.get_pipedrive_param_name_for["gender"]] is not None \
+                    and blank_student_id[self.get_pipedrive_param_name_for["gender"]] in self.pipedrive_gender.keys():
                 students_with_gender.append(blank_student_id)
 
         print(f"{students_with_gender.__len__()} students with gender")
@@ -76,8 +76,8 @@ class PipedriveToEduka(PipedriveService):
             # raise EdukaPipedriveNoDealsFoundException(self.service_name, self.school, error)
 
         for student_with_gender in students_with_gender:
-            if student_with_gender['f6bbcc60845993baedec912a5d4b2056d92fe5a8'] is not None \
-                    and student_with_gender['f6bbcc60845993baedec912a5d4b2056d92fe5a8'].find("@") != -1:
+            if student_with_gender[self.get_pipedrive_param_name_for["email"]] is not None \
+                    and student_with_gender[self.get_pipedrive_param_name_for["email"]].find("@") != -1:
                 parent_with_emails.append(student_with_gender)
 
         # print(parent_with_emails)
@@ -98,7 +98,7 @@ class PipedriveToEduka(PipedriveService):
 
         # Get Student first name
         for deals_with_product in deals_with_products:
-            if deals_with_product["88a0962f7916a41085bf8545f3b9433485140da5"] is not None:
+            if deals_with_product[self.get_pipedrive_param_name_for["student first name"]] is not None:
                 self.clean_deals.append(deals_with_product)
 
         print(f"{self.clean_deals.__len__()} clean deals left")
@@ -116,14 +116,14 @@ class PipedriveToEduka(PipedriveService):
                 product = self.get_product_code(deal["id"])
                 if product is not None:
                     product_id = product[0]["product_id"]
-                    student_first_name = deal["88a0962f7916a41085bf8545f3b9433485140da5"]
-                    student_last_name = deal["525ad777ef8851736fd9a46986d5c5c26541fdc5"]
-                    gender = deal["f138752f358c149c11bce02f6003a718d36d3575"]
+                    student_first_name = deal[self.get_pipedrive_param_name_for["student first name"]]
+                    student_last_name = deal[self.get_pipedrive_param_name_for["student last name"]]
+                    gender = deal[self.get_pipedrive_param_name_for["email"]]
                     school_branch_code = self.get_school_branch_code(product_id)
-                    parent_first_name = deal["dc4ec04f55ae86eab296ce0ada292a9237c77a35"]
-                    parent_last_name = deal["bb03d0847076fe0486020b79c21dc58b06b43251"]
-                    parent_email = deal["f6bbcc60845993baedec912a5d4b2056d92fe5a8"]
-                    parent_phone = deal["116182a46dd67c25cdd4ced5ec4f7d0ed1526f15"]
+                    parent_first_name = deal[self.get_pipedrive_param_name_for["parent first name"]]
+                    parent_last_name = deal[self.get_pipedrive_param_name_for["parent last name"]]
+                    parent_email = deal[self.get_pipedrive_param_name_for["email"]]
+                    parent_phone = deal[self.get_pipedrive_param_name_for["phone"]]
                     student_id = str(datetime.datetime.now().timestamp()).split(".")[0]
                     time.sleep(1)
                     parent_id = str(datetime.datetime.now().timestamp()).split(".")[0]
@@ -182,13 +182,15 @@ class PipedriveToEduka(PipedriveService):
         try:
             pipelines = []
             stages = []
-            for pl in self.ask_pipedrive("pipeline"):
+            for pl in self.ask_pipedrive("users"):
                 pipelines.append(pl)
                 # print(f"{pl['id']}, {pl['name']}, {pl['url_title']}, {pl['active']}")
+                print(pl['id'], pl['email'], sep=",")
 
             # print(pipelines)
 
             # print(self.get_deals_from_stage_by_pipeline(161, "admitted"))
+            exit()
             self.check_conditions()
             # print("Clean deals ", self.clean_deals.__len__(), self.clean_deals)
             self.parse_data()
