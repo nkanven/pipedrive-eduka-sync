@@ -2,15 +2,19 @@
 
 import os
 import time
+from typing import Dict
+
 from eduka_projects import EdukaProjects
 
 import pandas as pd
 from dotenv import load_dotenv
+import xlsxwriter
 
 load_dotenv()
 
 
 class Bootstrap(EdukaProjects):
+    pipedrive_gender: dict[str, str]
     # message_text is the first part of the mail, like an intro and message_desc is the description
     message_text = message_desc = ""
 
@@ -29,6 +33,10 @@ class Bootstrap(EdukaProjects):
 
     def __init__(self):
         super().__init__()
+        self.pipedrive_gender = {
+            "103": "F",
+            "102": "G"
+        }
 
     def get_good_codes_from_excel(self, url: str, code_bank: bool = False) -> list:
         """
@@ -68,4 +76,46 @@ class Bootstrap(EdukaProjects):
         duration = time.time() - start_time
         print(f"Looping through all excel in {duration} seconds")
         return good_codes
+
+    def create_xlsx(self, file_name, heads, contents):
+        # Create a workbook and add a worksheet.
+        workbook = xlsxwriter.Workbook(f'{file_name}.xlsx')
+        worksheet = workbook.add_worksheet()
+        # Add a bold format to use to highlight cells.
+        bold = workbook.add_format({'bold': 1})
+        # Adjust the column width.
+        worksheet.set_column(1, 1, 35)
+        i = 0
+        row = 1
+        col = 0
+        for head in heads:
+            letter = 65 + i
+            worksheet.write(f"{chr(letter)}1", head, bold)
+            i += 1
+
+        # for family_id, student_id, student_first_name, student_last_name, gender, school_bcode, parent_id, parent_first_name, parent_last_name, email, phone, deal_id in contents:
+        for content in contents:
+            # worksheet.write_string(row, col, str(family_id))
+            # worksheet.write_string(row, col + 1, student_id)
+            # worksheet.write_string(row, col + 2, student_first_name)
+            # worksheet.write_string(row, col + 3, student_last_name)
+            # worksheet.write_string(row, col + 4, self.gender[str(gender)])
+            # worksheet.write_string(row, col + 5, school_bcode)
+            # worksheet.write_string(row, col + 6, parent_id)
+            # worksheet.write_string(row, col + 7, parent_first_name)
+            # worksheet.write_string(row, col + 8, parent_last_name)
+            # worksheet.write_string(row, col + 9, email)
+            # worksheet.write_string(row, col + 10, phone)
+            # worksheet.write_string(row, col + 11, str(deal_id))
+
+            worksheet.write_string(row, col, str(content[0]))
+            j = 1
+            for _c in content[1:]:
+                if str(_c) == "102" or str(_c) == "103":
+                    _c = self.pipedrive_gender[str(_c)]
+                worksheet.write_string(row, col + j, str(_c))
+                j += 1
+            row += 1
+
+        workbook.close()
 
