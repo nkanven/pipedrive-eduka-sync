@@ -36,7 +36,7 @@ class EnkoMail(Bootstrap):
         self.__email_cc_list: list = self.parameters['enko_education']['schools'][school][
             'comma_seperated_emails'].split(",")
         self.__email_to: str = self.__email_cc_list[0]
-        self.__date: str = str(datetime.now())
+        self.__date: str = datetime.now().strftime("%Y/%m/%d")
         self.__email_from: str = os.getenv('email')
         self.__email_password: str = os.getenv('password')
 
@@ -297,18 +297,20 @@ class EnkoMail(Bootstrap):
                 body += f"<p>{str(f_connected_ratio)}% of families and {str(p_connected_ratio)}% of parents have logged in since platform launch</p></div>"
                 errors += "<li>" + ", ".join(data['errors']) + "</li>"
 
-            excel_contents += ([datetime.now().strftime("%Y/%m/%d"), "Nb of families"] + n_families,)
-            excel_contents += ([datetime.now().strftime("%Y/%m/%d"), "Nb of guardians"] + n_parents,)
-            excel_contents += ([datetime.now().strftime("%Y/%m/%d"), "Gardians logins"] + n_cparents,)
-            excel_contents += ([datetime.now().strftime("%Y/%m/%d"), "Families logins"] + n_cfamilies,)
-            excel_contents += ([datetime.now().strftime("%Y/%m/%d"), "% gardians logins"] + r_parents,)
-            excel_contents += ([datetime.now().strftime("%Y/%m/%d"), "% families logins"] + r_families,)
+            excel_contents += ([self.__date, "Nb of families"] + n_families,)
+            excel_contents += ([self.__date, "Nb of guardians"] + n_parents,)
+            excel_contents += ([self.__date, "Gardians logins"] + n_cparents,)
+            excel_contents += ([self.__date, "Families logins"] + n_cfamilies,)
+            excel_contents += ([self.__date, "% gardians logins"] + r_parents,)
+            excel_contents += ([self.__date, "% families logins"] + r_families,)
 
             print(excel_heads, excel_contents)
             self.create_xlsx("login_statistics", excel_heads, excel_contents)
-
-            if errors != "":
+            errors_clean = errors.replace("<li>","").replace("</li>", "")
+            if errors_clean != "":
                 errors = "<p>No available information found for families with the following IDs: </p><ul>" + errors + "</ul>"
+            else:
+                errors = errors_clean
 
             excel_url = "<p>Download the Excel report: <a href='http://" + self.get_ip_address() + "/assets/login_statistics.xlsx'><b>Login Statistics Report</b></a></p>"
             body = body + excel_url
