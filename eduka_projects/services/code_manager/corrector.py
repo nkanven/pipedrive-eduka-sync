@@ -296,7 +296,6 @@ class Correct(CodeManager):
             clean_code = ""
 
             self.db_manipulations(data[0], c_platform, category, acad_year)
-            break
 
     def code_replacer(self, datas, clean_id) -> bool:
         result = False

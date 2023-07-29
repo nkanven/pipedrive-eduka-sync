@@ -320,6 +320,9 @@ class EnkoMail(Bootstrap):
     def pipedrive_to_eduka(self):
         pass
 
+    def eduka_to_pipedrive(self):
+        pass
+
     def mail_builder_selector(self):
         # Add service mail builder methods here
         m_select = {
@@ -327,7 +330,8 @@ class EnkoMail(Bootstrap):
             "corrector": self.corrector,
             "login": self.login_stats,
             "db_populate": self.db_populate,
-            "pipedrive_to_eduka": self.pipedrive_to_eduka
+            "pipedrive_to_eduka": self.pipedrive_to_eduka,
+            "eduka_to_pipedrive": self.eduka_to_pipedrive
         }
 
         try:

@@ -19,6 +19,7 @@ class PipedriveService(ServiceManager):
     def __init__(self):
         super().__init__()
         self.pipedrive_params = self.parameters["global"]["pipedrive"]
+        self.genders = {"male": 102, "female": 103, "garçon": 102, "fille": 103}
         self.get_pipedrive_param_name_for = {
             "student id": "0dfe2a7c991908de1eb76779d5a99487c3955f9b",
             "student first name": "88a0962f7916a41085bf8545f3b9433485140da5",
@@ -31,25 +32,28 @@ class PipedriveService(ServiceManager):
             "product_code": "e33b8f35c28748baa1b2ee05980ca89c2588db1e"
         }
 
-    def get_pipedrive_endpoint(self, point):
-        return self.pipedrive_params["base_url"] + self.pipedrive_params["endpoints"][point] + "?api_token=" + \
+    def get_pipedrive_endpoint(self, point, endpoint_as_given=False):
+        endpoint = point if endpoint_as_given else self.pipedrive_params["endpoints"][point]
+        return self.pipedrive_params["base_url"] + endpoint + "?api_token=" + \
             self.pipedrive_params["api_token"]
 
-    def post_to_pipedrive(self, endpoint, params):
-        url = self.get_pipedrive_endpoint(endpoint)
+    def post_to_pipedrive(self, endpoint, params, endpoint_as_given=False):
+        url = self.get_pipedrive_endpoint(endpoint, endpoint_as_given)
         payload = json.dumps(params)
         headers = {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
         }
 
-        exit(payload)
+        # exit(payload)
         response = requests.request("POST", url, headers=headers, data=payload)
 
-        return response.text
+        return json.loads(response.text)
 
     def create_deal(self, data: dict):
-        self.post_to_pipedrive("deals", data)
+        deal = self.post_to_pipedrive("deals", data)
+        print(deal)
+        return deal["data"]["id"]
 
     def ask_pipedrive(self, endpoint, **kwargs):
         url = self.get_pipedrive_endpoint(endpoint)
@@ -76,6 +80,16 @@ class PipedriveService(ServiceManager):
         response = requests.get(url, headers=headers, data=payload)
 
         return json.loads(response.text)["data"]
+
+    def add_product_to_a_deal(self, deal_id, product_id):
+        endpoint = f"deals/{deal_id}/products"
+        self.post_to_pipedrive(
+            endpoint, {
+                "product_id": product_id,
+                "item_price": 0,
+                "quantity": 1
+            }, endpoint_as_given=True
+        )
 
     def get_admitted_stage_id(self, pipeline_id, stage_name="admitted"):
         stage_id = None
@@ -152,9 +166,21 @@ class PipedriveService(ServiceManager):
         product_id = None
 
         for product in self.get_products()[0]:
-            if product[self.get_pipedrive_param_name_for["product_code"]] == school_code:
-                product_id = product["id"]
-                break
-        # print(self.get_products())
+            print("product", product)
+            try:
+                if product[self.get_pipedrive_param_name_for["product_code"]] == school_code:
+                    product_id = product["id"]
+                    break
+            except TypeError:
+                pass
 
         return product_id
+
+    def get_pipeline_with_product_id(self, product_id, school):
+        pipelines = self.get_school_parameter(school, "pipedrive_pipelines")
+        pipeline_id = None
+        for key, value in pipelines.items():
+            if str(product_id) in value['productID_list'].split(","):
+                pipeline_id = key
+                break
+        return pipeline_id
