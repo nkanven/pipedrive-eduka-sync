@@ -3,11 +3,14 @@
 
 This service objective is to synchronize deals from PipeDrive to Eduka Platform, and from Eduka Platform to PipeDrive
 """
+import os
 import time
 import csv
 
 import requests
 from eduka_projects.services import ServiceManager
+from eduka_projects.utils.rialization import serialize, deserialize
+from eduka_projects.utils.eduka_exceptions import EdukaPipedriveNameParameterException
 
 import json
 
@@ -16,10 +19,44 @@ class PipedriveService(ServiceManager):
     def __init__(self):
         super().__init__()
         self.pipedrive_params = self.parameters["global"]["pipedrive"]
+        self.genders = {"male": 102, "female": 103, "garçon": 102, "fille": 103}
+        self.get_pipedrive_param_name_for = {
+            "student id": "0dfe2a7c991908de1eb76779d5a99487c3955f9b",
+            "student first name": "88a0962f7916a41085bf8545f3b9433485140da5",
+            "student last name": "525ad777ef8851736fd9a46986d5c5c26541fdc5",
+            "gender": "f138752f358c149c11bce02f6003a718d36d3575",
+            "parent first name": "dc4ec04f55ae86eab296ce0ada292a9237c77a35",
+            "parent last name": "bb03d0847076fe0486020b79c21dc58b06b43251",
+            "email": "f6bbcc60845993baedec912a5d4b2056d92fe5a8",
+            "phone": "116182a46dd67c25cdd4ced5ec4f7d0ed1526f15",
+            "product_code": "e33b8f35c28748baa1b2ee05980ca89c2588db1e"
+        }
+
+    def get_pipedrive_endpoint(self, point, endpoint_as_given=False):
+        endpoint = point if endpoint_as_given else self.pipedrive_params["endpoints"][point]
+        return self.pipedrive_params["base_url"] + endpoint + "?api_token=" + \
+            self.pipedrive_params["api_token"]
+
+    def post_to_pipedrive(self, endpoint, params, endpoint_as_given=False):
+        url = self.get_pipedrive_endpoint(endpoint, endpoint_as_given)
+        payload = json.dumps(params)
+        headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        }
+
+        # exit(payload)
+        response = requests.request("POST", url, headers=headers, data=payload)
+
+        return json.loads(response.text)
+
+    def create_deal(self, data: dict):
+        deal = self.post_to_pipedrive("deals", data)
+        print(deal)
+        return deal["data"]["id"]
 
     def ask_pipedrive(self, endpoint, **kwargs):
-        url = self.pipedrive_params["base_url"] + self.pipedrive_params["endpoints"][endpoint] + "?api_token=" + \
-              self.pipedrive_params["api_token"]
+        url = self.get_pipedrive_endpoint(endpoint)
 
         path = ""
 
@@ -30,8 +67,8 @@ class PipedriveService(ServiceManager):
 
             url += "&" + key + "=" + str(value)
 
-        url = url.replace("?", f"{path}?")
-        # print(url)
+        url = url.replace("?", f"{path}?") + "&limit=1000"
+        print(url)
 
         payload = {}
         headers = {
@@ -43,6 +80,16 @@ class PipedriveService(ServiceManager):
         response = requests.get(url, headers=headers, data=payload)
 
         return json.loads(response.text)["data"]
+
+    def add_product_to_a_deal(self, deal_id, product_id):
+        endpoint = f"deals/{deal_id}/products"
+        self.post_to_pipedrive(
+            endpoint, {
+                "product_id": product_id,
+                "item_price": 0,
+                "quantity": 1
+            }, endpoint_as_given=True
+        )
 
     def get_admitted_stage_id(self, pipeline_id, stage_name="admitted"):
         stage_id = None
@@ -95,7 +142,6 @@ class PipedriveService(ServiceManager):
             write.writerow(heads)
             write.writerows(content)
 
-
     def get_family_id(self, abbr, base_url, school, parent_email):
         fam_id = None
         family_ids = self.get_guardians(abbr, base_url, school)
@@ -104,3 +150,37 @@ class PipedriveService(ServiceManager):
                 fam_id = family_id[0]
         print("Family ", fam_id)
         return fam_id
+
+    def get_products(self):
+        product_fname = "pipedriveproducts.ep"
+        product_path = os.path.join(self.autobackup_memoize, product_fname)
+        if os.path.exists(product_path):
+            products = deserialize(self.autobackup_memoize, product_fname)
+        else:
+            products = self.ask_pipedrive("products")
+            serialize(product_path, products)
+
+        return products
+
+    def get_product_id_from_school_code(self, school_code):
+        product_id = None
+
+        for product in self.get_products()[0]:
+            print("product", product)
+            try:
+                if product[self.get_pipedrive_param_name_for["product_code"]] == school_code:
+                    product_id = product["id"]
+                    break
+            except TypeError:
+                pass
+
+        return product_id
+
+    def get_pipeline_with_product_id(self, product_id, school):
+        pipelines = self.get_school_parameter(school, "pipedrive_pipelines")
+        pipeline_id = None
+        for key, value in pipelines.items():
+            if str(product_id) in value['productID_list'].split(","):
+                pipeline_id = key
+                break
+        return pipeline_id

@@ -11,7 +11,7 @@ from eduka_projects.services.code_manager import *
 from eduka_projects.bootstrap import platform
 from eduka_projects.utils.mail import EnkoMail
 from eduka_projects.utils.rialization import serialize, deserialize
-from eduka_projects.utils.eduka_exceptions import EdukaNoJobExecution
+from eduka_projects.utils.eduka_exceptions import EdukaNoJobExecution, EdukaException
 from eduka_projects.services.code_manager import CodeManager
 from eduka_projects.services.code_manager.db_populate import Populate
 
@@ -36,7 +36,6 @@ class Correct(CodeManager):
         self.browser = None
         self.school = school
         self.param = self.parameters
-        self.cluster = ""
         self.mailer = EnkoMail(self.service_name, school)
         self.db_init()
         self.abbr = self.get_school_parameter(self.school, "abbr")
@@ -67,6 +66,14 @@ class Correct(CodeManager):
                 "families_blank_code": []
             }
         }
+
+        data_inputs = self.get_good_codes_from_excel(self.parameters["global"]["eduka_code_manager_data_inputs"])
+        self.school_caracteristics = []
+        for data_input in data_inputs:
+            if self.base_url == data_input[0] + "/":
+                self.school_caracteristics = data_input
+                break
+        self.cluster = self.school_caracteristics[6].lower()
 
         self.code_blocks = {"person": None, "user": None}
 
@@ -132,16 +139,18 @@ class Correct(CodeManager):
             platform.goto_printable(self.browser)
 
             print("Getting printable")
-            self.columns_data = platform.get_printable(self.browser)
-
-        if self.columns_data.__len__() == 0:
-            raise EdukaNoJobExecution(self.service_name, self.school, "No Id to correct found")
+            self.columns_data += platform.get_printable(self.browser)
 
         print("Launching ", self.base_url + self.param['enko_education']['replacer_uri'])
         self.browser.get(
             self.base_url
             + self.param['enko_education']['replacer_uri']
         )
+
+        if self.columns_data.__len__() == 0:
+            raise EdukaNoJobExecution(self.service_name, self.school, "No Id to correct found")
+
+        print(self.columns_data, self.columns_data.__len__())
 
     def db_manipulations(self, old_code, c_platform, category, acad_year):
         # Get the oldest student id
@@ -207,18 +216,11 @@ class Correct(CodeManager):
         serialize(self.id_fname_path, corrector_memoize)
 
     def code_categorizer(self):
-        school_caracteristics = ""
-        category_map = {"male": "mst", "female": "fst", "family": "fam"}
-        data_inputs = self.get_good_codes_from_excel(self.parameters["global"]["eduka_code_manager_data_inputs"])
+        category_map = {"male": "mst", "Garçon": "mst", "female": "fst", "Fille": "fst", "family": "fam"}
 
-        for data_input in data_inputs:
-            if self.base_url == data_input[0] + "/":
-                school_caracteristics = data_input
-                break
-
-        if school_caracteristics == "":
-            # TODO: Handle this failure
+        if self.school_caracteristics.__len__() == 0:
             print("Couldn't find the school. Exit the program")
+            raise EdukaException(self.school, "Couldn't find the school. Exit the program")
 
         self.browser.get(
 
@@ -252,6 +254,8 @@ class Correct(CodeManager):
 
         for data in self.columns_data:
             print(f"Correct {data}...")
+            if data.__len__() == 0:
+                continue
 
             data_line_count += 1
             if data[-1] == "fam":
@@ -271,22 +275,21 @@ class Correct(CodeManager):
                 category = "fam"
             else:
                 # Handle students
+                if data[1].lower() not in category_map:
+                    # Skip if student gender is blank
+                    self.notifications["errors"]["no_gender_students"].append(
+                        (self.base_url, data[2], data[-3],
+                         self.cluster)
+                    )
+                    continue
+
                 category = category_map[data[1].lower()]
                 self.stats["nber_student_wco"] += 1
 
                 if self.code_is_empty(data, data_line_count):
                     continue
 
-                if data[1] == "":
-                    # Skip if student gender is blank
-                    self.notifications["errors"]["no_gender_students"].append(
-                        (self.base_url, data[2], data[-2],
-                         self.cluster)
-                    )
-                    continue
-
-            c_platform = school_caracteristics[0]
-            self.cluster = school_caracteristics[6].lower()
+            c_platform = self.school_caracteristics[0]
 
             __year = str(datetime.date.today().year)[2:]
             acad_year = self.build_academic_year(self.cluster, category, __year)

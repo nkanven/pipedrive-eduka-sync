@@ -50,7 +50,7 @@ try:
 
     schools = bts.parameters['enko_education']['schools'].keys()
     # schools: list = ['enko_mozambique']
-
+    #
     """
     Main dispatcher thread pool executor
     """
@@ -58,21 +58,22 @@ try:
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " Eduka Projects Services Started...")
 
     # for school in schools:
-    #     try:
-    #         print("Work started for", school)
-    #         dispatcher(cmd, school)
-    #         # Make space between workers execution
-    #         time.sleep(2)
-    #     except Exception as e:
-    #         print("Exception occured while running " + school + " " + cmd, str(e))
-    #         bts.error_logger.critical("Exception occured while running " + school + " " + cmd, exc_info=True)
+    #     if "enko_botho" == school:
+    #         try:
+    #             print("Work started for", school)
+    #             dispatcher(cmd, school)
+    #             # Make space between workers execution
+    #             # time.sleep(200)
+    #         except Exception as e:
+    #             print("Exception occured while running " + school + " " + cmd, str(e))
+    #             bts.error_logger.critical("Exception occured while running " + school + " " + cmd, exc_info=True)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         for school in schools:
             print("Work started for", school)
             executor.submit(dispatcher, cmd, school)
             # Make space between workers execution
-            time.sleep(5)
+            time.sleep(3)
 
     print("Thread work done...")
 
