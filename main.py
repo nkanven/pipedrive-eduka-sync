@@ -58,12 +58,12 @@ try:
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " Eduka Projects Services Started...")
 
     # for school in schools:
-    #     if school == "enko_mali":
+    #     if "enko_botho" == school:
     #         try:
     #             print("Work started for", school)
     #             dispatcher(cmd, school)
     #             # Make space between workers execution
-    #             time.sleep(200)
+    #             # time.sleep(200)
     #         except Exception as e:
     #             print("Exception occured while running " + school + " " + cmd, str(e))
     #             bts.error_logger.critical("Exception occured while running " + school + " " + cmd, exc_info=True)
@@ -73,7 +73,7 @@ try:
             print("Work started for", school)
             executor.submit(dispatcher, cmd, school)
             # Make space between workers execution
-            time.sleep(5)
+            time.sleep(3)
 
     print("Thread work done...")
 
