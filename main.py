@@ -57,23 +57,23 @@ try:
 
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " Eduka Projects Services Started...")
 
-    for school in schools:
-        if "enko_botho" == school:
-            try:
-                print("Work started for", school)
-                dispatcher(cmd, school)
-                # Make space between workers execution
-                # time.sleep(200)
-            except Exception as e:
-                print("Exception occured while running " + school + " " + cmd, str(e))
-                bts.error_logger.critical("Exception occured while running " + school + " " + cmd, exc_info=True)
+    # for school in schools:
+    #     if "enko_botho" == school:
+    #         try:
+    #             print("Work started for", school)
+    #             dispatcher(cmd, school)
+    #             # Make space between workers execution
+    #             # time.sleep(200)
+    #         except Exception as e:
+    #             print("Exception occured while running " + school + " " + cmd, str(e))
+    #             bts.error_logger.critical("Exception occured while running " + school + " " + cmd, exc_info=True)
 
-    # with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-    #     for school in schools:
-    #         print("Work started for", school)
-    #         executor.submit(dispatcher, cmd, school)
-    #         # Make space between workers execution
-    #         time.sleep(5)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        for school in schools:
+            print("Work started for", school)
+            executor.submit(dispatcher, cmd, school)
+            # Make space between workers execution
+            time.sleep(3)
 
     print("Thread work done...")
 
@@ -87,7 +87,7 @@ try:
 
     enko_mail = EnkoMail(cmd, school)
     enko_mail.set_email_cc_list(list(unique_emails))
-    # enko_mail.mail_builder_selector()
+    enko_mail.mail_builder_selector()
 except EdukaMailServiceKeyError:
     bts.error_logger.critical("Eduka  Mail Service error", exc_info=True)
 except Exception as e:
