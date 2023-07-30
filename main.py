@@ -83,6 +83,12 @@ try:
         for email in bts.parameters['enko_education']['schools'][school]["comma_seperated_emails"].split(","):
             emails.append(email.strip(" "))
 
+    # Add extra emails for login statistics
+    if cmd == "login":
+        for email in bts.parameters["global"]["login_stat_recipients"].split(","):
+            emails.append(email.strip(" "))
+
+    # Only keep unique emails
     unique_emails = set(emails)
 
     enko_mail = EnkoMail(cmd, school)

@@ -44,6 +44,6 @@ def dispatcher(service_name: str, school: str):
         if service is None:
             print(f"{service} not found. Please check the command orthograph or contact the admin.")
         else:
-            print(f"{service} has been successfully executed. Check out your e-mail for notification summary")
+            print(f"{service} {school} has been successfully executed. Check out your e-mail for notification summary")
     except Exception as e:
         edkp.error_logger.critical("Exception occured", exc_info=True)

@@ -44,7 +44,13 @@ class Correct(CodeManager):
         self.wrong_family_list_uri = self.base_url + self.get_school_parameter(self.school, 'wrong_family_list_uri')
         self.id_fname = "idreplaced" + self.abbr + ".ep"
         self.id_fname_path = os.path.join(self.autobackup_memoize, self.id_fname)
+        self.lock = os.path.join(self.autobackup_memoize, self.get_school_parameter(self.school, "country_code") + ".lock")
 
+        # For exceptional countries
+        self.same_country_codes = {
+            "enko_waca": "https://enko-dakar-senegal.com",
+            "enko_dakar": "https://enko-dakar-senegal.com",
+        }
         self.columns_data: list = []
         self._old_code: list = []
         self.families = {}
@@ -154,6 +160,12 @@ class Correct(CodeManager):
 
     def db_manipulations(self, old_code, c_platform, category, acad_year):
         # Get the oldest student id
+        print("DB Manipulations......")
+        try:
+            c_platform = self.same_country_codes[self.school]
+        except KeyError:
+            pass
+
         query = f"select code_id, code from bank_code where platform='{c_platform}' and cluster='{self.cluster}' and acad_year='{acad_year}' and category='{category}' and is_used=0 order by code_id asc"
 
         with mysql.connector.connect(**self.db_config) as conn:
@@ -243,6 +255,7 @@ class Correct(CodeManager):
 
         if os.path.exists(self.id_fname_path):
             deserial = deserialize(self.autobackup_memoize, self.id_fname)[0]
+            print(deserial)
             self._old_code = [] if deserial["code"] is None else deserial["code"]
             self.stats["nber_family_wco"] = deserial["stats"]["nber_family_wco"]
             self.stats["nber_guardian_wco"] = deserial["stats"]["nber_guardian_wco"]
@@ -250,7 +263,10 @@ class Correct(CodeManager):
             self.stats["nber_student_wco_rpl"] = deserial["stats"]["nber_student_wco_rpl"]
             self.stats["nber_family_wco_rpl"] = deserial["stats"]["nber_family_wco_rpl"]
             self.stats["nber_guardian_wco_rpl"] = deserial["stats"]["nber_guardian_wco_rpl"]
-            self.notifications = deserial["notif"]
+            try:
+                self.notifications = deserial["notif"]
+            except KeyError:
+                pass
 
         for data in self.columns_data:
             print(f"Correct {data}...")
@@ -295,7 +311,17 @@ class Correct(CodeManager):
             acad_year = self.build_academic_year(self.cluster, category, __year)
             clean_code = ""
 
-            self.db_manipulations(data[0], c_platform, category, acad_year)
+            # Avoid same code to be selected form DB where school has same country code
+            # If a file with country code as name exists, same school of the country should wait before fetching a code
+
+            while True:
+                if not os.path.exists(self.lock):
+                    with open(self.lock, "w") as f:
+                        f.write(self.school)
+                    self.db_manipulations(data[0], c_platform, category, acad_year)
+                    os.remove(self.lock)
+                    time.sleep(1)
+                    break
 
     def code_replacer(self, datas, clean_id) -> bool:
         result = False
@@ -394,6 +420,11 @@ class Correct(CodeManager):
 
     def run(self, cmd: str) -> None:
         # TODO: Handle mail notification for errors and statistics
+        try:
+            os.remove(self.lock)
+        except FileNotFoundError:
+            pass
+
         try:
             print("In run func")
             self.get_wrong_ids()
