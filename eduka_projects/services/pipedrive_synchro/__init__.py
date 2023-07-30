@@ -37,7 +37,7 @@ class PipedriveService(ServiceManager):
         return self.pipedrive_params["base_url"] + endpoint + "?api_token=" + \
             self.pipedrive_params["api_token"]
 
-    def post_to_pipedrive(self, endpoint, params, endpoint_as_given=False):
+    def post_to_pipedrive(self, endpoint, params, endpoint_as_given=False, method="POST"):
         url = self.get_pipedrive_endpoint(endpoint, endpoint_as_given)
         payload = json.dumps(params)
         headers = {
@@ -46,7 +46,7 @@ class PipedriveService(ServiceManager):
         }
 
         # exit(payload)
-        response = requests.request("POST", url, headers=headers, data=payload)
+        response = requests.request(method, url, headers=headers, data=payload)
 
         return json.loads(response.text)
 
@@ -162,7 +162,7 @@ class PipedriveService(ServiceManager):
 
         return products
 
-    def get_product_id_from_school_code(self, school_code):
+    def get_product_id_from_school_code(self, school_code: str) -> int:
         product_id = None
 
         for product in self.get_products()[0]:
@@ -184,3 +184,7 @@ class PipedriveService(ServiceManager):
                 pipeline_id = key
                 break
         return pipeline_id
+
+    def update_deal(self, deal_id, params: dict):
+        endpoint = f"deals/{deal_id}"
+        self.post_to_pipedrive(endpoint, params, endpoint_as_given=True, method="PUT")
