@@ -101,7 +101,13 @@ class EdukaToPipedrive(PipedriveService):
             raise EdukaException(self.school, e)
 
     def run(self, cmd: str):
-        self.create_deals_from_eduka_to_pipedrive()
-        self.update_deals_in_pipedrive()
-        if self.browser is not None:
-            self.browser.close()
+        try:
+            self.create_deals_from_eduka_to_pipedrive()
+            self.update_deals_in_pipedrive()
+            if self.browser is not None:
+                self.browser.close()
+        except EdukaToPipedrive as e:
+            print(str(e))
+            self.error_logger.critical("Eduka to Pipeline exception occurred", exc_info=True)
+        finally:
+            self.delete_product_memo()

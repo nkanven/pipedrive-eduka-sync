@@ -19,6 +19,8 @@ class PipedriveService(ServiceManager):
     def __init__(self):
         super().__init__()
         self.pipedrive_params = self.parameters["global"]["pipedrive"]
+        self.product_fname = "pipedriveproducts.ep"
+        self.product_path = os.path.join(self.autobackup_memoize, self.product_fname)
         self.genders = {"male": 102, "female": 103, "garçon": 102, "fille": 103}
         self.get_pipedrive_param_name_for = {
             "student id": "0dfe2a7c991908de1eb76779d5a99487c3955f9b",
@@ -152,15 +154,19 @@ class PipedriveService(ServiceManager):
         return fam_id
 
     def get_products(self):
-        product_fname = "pipedriveproducts.ep"
-        product_path = os.path.join(self.autobackup_memoize, product_fname)
-        if os.path.exists(product_path):
-            products = deserialize(self.autobackup_memoize, product_fname)
+        if os.path.exists(self.product_path):
+            products = deserialize(self.autobackup_memoize, self.product_fname)
         else:
             products = self.ask_pipedrive("products")
-            serialize(product_path, products)
+            serialize(self.product_path, products)
 
         return products
+
+    def delete_product_memo(self):
+        try:
+            os.remove(self.product_path)
+        except FileNotFoundError:
+            pass
 
     def get_product_id_from_school_code(self, school_code: str) -> int:
         product_id = None

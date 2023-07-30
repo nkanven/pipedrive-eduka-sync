@@ -198,3 +198,8 @@ class PipedriveToEduka(PipedriveService):
         except EdukaPipedriveImportException as e:
             print(str(e))
             self.error_logger.critical("Eduka Pipedrive Pipedrive import Exception occured", exc_info=True)
+        except PipedriveToEduka as e:
+            print(str(e))
+            self.error_logger.critical("Eduka to Pipeline exception occurred", exc_info=True)
+        finally:
+            self.delete_product_memo()
