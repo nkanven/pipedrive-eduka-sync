@@ -1,3 +1,4 @@
+import json
 import sys
 import time
 import mysql.connector
@@ -19,6 +20,8 @@ class Populate(CodeManager):
         self.sql: list = []
         print("Start populate service")
         self.db_init()
+        self.code_in_db = []
+        self.code_memo = []
 
     def pre_check(self):
         """
@@ -78,6 +81,15 @@ class Populate(CodeManager):
             """for x in cursor:
                 print(x[0])"""
 
+        query = f"SELECT code FROM bank_code"
+        with mysql.connector.connect(**self.db_config) as conn:
+            cursor = conn.cursor(buffered=True)
+            cursor.execute('use enko_db')
+            cursor.execute(query)
+            res = cursor.fetchall()
+
+            self.code_in_db = [x[0] for x in res]
+
     def prep_codes_insertion(self, i_codes: tuple, i_data: tuple) -> bool:
         """
         his function handle the cleaning
@@ -95,7 +107,7 @@ class Populate(CodeManager):
                 category = None
                 country_code = code_split[0]
 
-                if country_code.lower() == i_data[2].lower():
+                if country_code.lower() == i_data[5].lower():
                     platform = i_data[0]
                     cluster = i_data[6].lower()
                     try:
@@ -108,11 +120,14 @@ class Populate(CodeManager):
                     except IndexError:
                         self.error_logger.info("Skipped IndexError. Non studend Id")
 
-                    print("Year ", code_split[-1][0:2], code_split[-1], code_split)
+                    # print("Year ", code_split[-1][0:2], code_split[-1], code_split)
                     acad_year = self.build_academic_year(cluster, category, code_split[-1][:2])
 
                     values = (i_code, category, platform, acad_year, cluster)
-                    self.sql.append(values)
+
+                    if i_code not in self.code_in_db and i_code not in self.code_memo:
+                        self.code_memo.append(i_code)
+                        self.sql.append(values)
 
                 result = True
         except Exception:
@@ -134,6 +149,7 @@ class Populate(CodeManager):
 
         query = "INSERT INTO bank_code (code, category, platform, acad_year, cluster) " \
                 "VALUES (%s, %s, %s, %s, %s);"
+
         with mysql.connector.connect(**self.db_config) as conn:
             conn.cursor().execute('use enko_db')
             conn.cursor().executemany(query, self.sql)

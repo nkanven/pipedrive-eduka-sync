@@ -146,7 +146,7 @@ class EnkoMail(Bootstrap):
                 logging.error("Exception occured", exc_info=True)
             else:
                 print("Mail sent successfully")
-                # delete_serialized(self.autobackup_memoize, self.__category + self.__service_name)
+                delete_serialized(self.autobackup_memoize, self.__category + self.__service_name)
         except Exception as e:
             logging.error("Exception occured", exc_info=True)
 
@@ -230,17 +230,32 @@ class EnkoMail(Bootstrap):
                         sh_stats += "<li>" + str(data["success"]["stats"][
                                                      "nber_guardian_wco_rpl"]) + " wrong guardian codes replaced for " + \
                                     data["success"]["school"] + "</li>"
-
+                    memo_std = []
                     for std_bc in data["errors"]["students_blank_code"]:
+                        print("std", std_bc)
+                        if std_bc in memo_std:
+                            continue
+                        memo_std.append(std_bc)
                         students_blank_code += f"<tr><td>{std_bc[0]}</td><td>{std_bc[1]}</td><td>{std_bc[2]}</td><td>Student blank code</td></tr>"
-
+                    memo_ng = []
                     for ng_std in data["errors"]["no_gender_students"]:
+                        print("ng", ng_std)
+                        if ng_std in memo_ng:
+                            continue
+                        memo_ng.append(ng_std)
                         no_gender_students += f"<tr><td>{ng_std[0]}</td><td>{ng_std[1]}</td><td>{ng_std[2]}</td><td>No gender student</td></tr>"
-
+                    memo_nccf = []
                     for nccf in data["errors"]["no_clean_code_found"]:
+                        print("nccf", nccf)
+                        if nccf in memo_nccf:
+                            continue
+                        memo_nccf.append(nccf)
                         no_clean_code_found += f"<tr><td>{nccf[0]}</td><td>{nccf[1]}</td><td>{nccf[2]}</td><td>No code found</td></tr>"
-
+                    memo_fbc = []
                     for fbc in data["errors"]["families_blank_code"]:
+                        if fbc in memo_fbc:
+                            continue
+                        memo_fbc.append(fbc)
                         families_blank_code += "<p>Family blank code found at " + fbc[0] + " line " + fbc[1] + "</p>"
 
                 stats += "<p>Code manager statistics for NH: </p>"
@@ -248,10 +263,7 @@ class EnkoMail(Bootstrap):
                 stats += "<p>Code manager statistics for SH: </p>"
                 stats += "<ul>" + sh_stats + "</ul>"
 
-                students_blank_code = "</table>"
-                no_gender_students = "</table>"
-
-                students_blank_code += no_gender_students
+                students_blank_code += no_gender_students + "</table>"
                 no_clean_code_found += "</table>"
                 errors = students_blank_code + "<hr>" + no_clean_code_found + "<hr>" + families_blank_code
 
