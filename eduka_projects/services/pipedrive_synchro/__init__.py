@@ -19,6 +19,8 @@ class PipedriveService(ServiceManager):
     def __init__(self):
         super().__init__()
         self.pipedrive_params = self.parameters["global"]["pipedrive"]
+        self.product_fname = "pipedriveproducts.ep"
+        self.product_path = os.path.join(self.autobackup_memoize, self.product_fname)
         self.genders = {"male": 102, "female": 103, "garçon": 102, "fille": 103}
         self.get_pipedrive_param_name_for = {
             "student id": "0dfe2a7c991908de1eb76779d5a99487c3955f9b",
@@ -37,7 +39,7 @@ class PipedriveService(ServiceManager):
         return self.pipedrive_params["base_url"] + endpoint + "?api_token=" + \
             self.pipedrive_params["api_token"]
 
-    def post_to_pipedrive(self, endpoint, params, endpoint_as_given=False):
+    def post_to_pipedrive(self, endpoint, params, endpoint_as_given=False, method="POST"):
         url = self.get_pipedrive_endpoint(endpoint, endpoint_as_given)
         payload = json.dumps(params)
         headers = {
@@ -46,7 +48,7 @@ class PipedriveService(ServiceManager):
         }
 
         # exit(payload)
-        response = requests.request("POST", url, headers=headers, data=payload)
+        response = requests.request(method, url, headers=headers, data=payload)
 
         return json.loads(response.text)
 
@@ -152,17 +154,21 @@ class PipedriveService(ServiceManager):
         return fam_id
 
     def get_products(self):
-        product_fname = "pipedriveproducts.ep"
-        product_path = os.path.join(self.autobackup_memoize, product_fname)
-        if os.path.exists(product_path):
-            products = deserialize(self.autobackup_memoize, product_fname)
+        if os.path.exists(self.product_path):
+            products = deserialize(self.autobackup_memoize, self.product_fname)
         else:
             products = self.ask_pipedrive("products")
-            serialize(product_path, products)
+            serialize(self.product_path, products)
 
         return products
 
-    def get_product_id_from_school_code(self, school_code):
+    def delete_product_memo(self):
+        try:
+            os.remove(self.product_path)
+        except FileNotFoundError:
+            pass
+
+    def get_product_id_from_school_code(self, school_code: str) -> int:
         product_id = None
 
         for product in self.get_products()[0]:
@@ -184,3 +190,7 @@ class PipedriveService(ServiceManager):
                 pipeline_id = key
                 break
         return pipeline_id
+
+    def update_deal(self, deal_id, params: dict):
+        endpoint = f"deals/{deal_id}"
+        self.post_to_pipedrive(endpoint, params, endpoint_as_given=True, method="PUT")

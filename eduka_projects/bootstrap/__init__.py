@@ -2,7 +2,6 @@
 
 import os
 import time
-from typing import Dict
 
 from eduka_projects import EdukaProjects
 
@@ -93,20 +92,7 @@ class Bootstrap(EdukaProjects):
             worksheet.write(f"{chr(letter)}1", head, bold)
             i += 1
 
-        # for family_id, student_id, student_first_name, student_last_name, gender, school_bcode, parent_id, parent_first_name, parent_last_name, email, phone, deal_id in contents:
         for content in contents:
-            # worksheet.write_string(row, col, str(family_id))
-            # worksheet.write_string(row, col + 1, student_id)
-            # worksheet.write_string(row, col + 2, student_first_name)
-            # worksheet.write_string(row, col + 3, student_last_name)
-            # worksheet.write_string(row, col + 4, self.gender[str(gender)])
-            # worksheet.write_string(row, col + 5, school_bcode)
-            # worksheet.write_string(row, col + 6, parent_id)
-            # worksheet.write_string(row, col + 7, parent_first_name)
-            # worksheet.write_string(row, col + 8, parent_last_name)
-            # worksheet.write_string(row, col + 9, email)
-            # worksheet.write_string(row, col + 10, phone)
-            # worksheet.write_string(row, col + 11, str(deal_id))
 
             worksheet.write_string(row, col, str(content[0]))
             j = 1

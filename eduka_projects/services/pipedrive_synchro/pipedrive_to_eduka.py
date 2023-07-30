@@ -16,6 +16,8 @@ class PipedriveToEduka(PipedriveService):
         self.service_name = "Pipedrive to Eduka"
         self.clean_deals = []
         self.base_url = self.get_school_parameter(self.school, "base_url")
+        self.student_id = None
+        self.deal_id = None
 
         # TODO: Use training pipeline
 
@@ -112,6 +114,7 @@ class PipedriveToEduka(PipedriveService):
             for deal in deals:
                 product = self.get_product_code(deal["id"])
                 if product is not None:
+                    self.deal_id = deal["id"]
                     product_id = product[0]["product_id"]
                     student_first_name = deal[self.get_pipedrive_param_name_for["student first name"]]
                     student_last_name = deal[self.get_pipedrive_param_name_for["student last name"]]
@@ -121,13 +124,15 @@ class PipedriveToEduka(PipedriveService):
                     parent_last_name = deal[self.get_pipedrive_param_name_for["parent last name"]]
                     parent_email = deal[self.get_pipedrive_param_name_for["email"]]
                     parent_phone = deal[self.get_pipedrive_param_name_for["phone"]]
-                    student_id = str(datetime.datetime.now().timestamp()).replace(".", "")
+                    self.student_id = str(datetime.datetime.now().timestamp()).replace(".", "")
                     time.sleep(1)
                     parent_id = str(datetime.datetime.now().timestamp()).replace(".", "")
                     time.sleep(1)
-                    family_id = self.get_family_id(self.get_school_parameter(self.school, "abbr"), self.base_url, self.school, parent_email)
+                    family_id = self.get_family_id(self.get_school_parameter(self.school, "abbr"), self.base_url,
+                                                   self.school, parent_email)
 
-                    print(family_id, student_id, school_branch_code, product_id, student_first_name, student_last_name, gender,
+                    print(family_id, self.student_id, school_branch_code, product_id, student_first_name, student_last_name,
+                          gender,
                           parent_first_name, parent_last_name, parent_email, parent_phone)
 
                     # TODO: For testing purpose; to Remove this condition
@@ -136,25 +141,31 @@ class PipedriveToEduka(PipedriveService):
 
                     if family_id is not None:
                         sync_data += (
-                            [family_id, student_id, student_first_name, student_last_name, gender, school_branch_code, parent_id, '', '', '', '', deal["id"]],
+                            [family_id, self.student_id, student_first_name, student_last_name, gender, school_branch_code,
+                             parent_id, '', '', '', '', deal["id"]],
                         )
                     else:
                         sync_data += (
-                            [str(datetime.datetime.now().timestamp()).replace(".", ""), student_id, student_first_name, student_last_name, gender, school_branch_code, parent_id, parent_first_name, parent_last_name, parent_email, parent_phone, deal["id"]],
+                            [str(datetime.datetime.now().timestamp()).replace(".", ""), self.student_id, student_first_name,
+                             student_last_name, gender, school_branch_code, parent_id, parent_first_name,
+                             parent_last_name, parent_email, parent_phone, deal["id"]],
                         )
-                    i += 1
+                    # i += 1
 
                     # if i == 1005:
                     #     break
 
-        heads = ["Family ID", "Student ID", "First name (student)", "Last name (student)", "Gender (student)", "School branch code",
-                 "Parent ID", "Firs name (parent)", "Last name (parent)", "Email address (parent)", "Mobile phone number (parent)", "Deal ID"]
-        self.create_xlsx("pipedrive_to_eduka", heads, sync_data)
+                    heads = ["Family ID", "Student ID", "First name (student)", "Last name (student)", "Gender (student)",
+                             "School branch code",
+                             "Parent ID", "Firs name (parent)", "Last name (parent)", "Email address (parent)",
+                             "Mobile phone number (parent)", "Deal ID"]
+                    self.create_xlsx("pipedrive_to_eduka", heads, sync_data)
+                    print(self.import_to_eduka())
 
     def import_to_eduka(self):
         endpoint = self.base_url + "api.php?K=" + self.get_school_parameter(self.school, "api_key") \
                    + "&A=IMPORTDATA&PROFILE=" + str(self.get_school_parameter(self.school,
-                                                                          "deals_import_profileID")) \
+                                                                              "deals_import_profileID")) \
                    + "&FILEURL=http://" + self.get_ip_address() + "/assets/pipedrive_to_eduka.xlsx" \
                                                                   "&SEPARATOR=comma&ASYNC=0"
 
@@ -164,6 +175,10 @@ class PipedriveToEduka(PipedriveService):
             with session.get(endpoint) as r:
                 if "OK-PROCESSED" in r.text:
                     response_text = "Import successful"
+                    update_deal_param = {
+                        self.get_pipedrive_param_name_for["student id"]: self.student_id
+                    }
+                    self.update_deal(self.deal_id, update_deal_param)
         except requests.exceptions.ConnectionError as e:
             self.errors.append(
                 ("ConnectionError occurred on " + self.school, "Error summary " + str(e))
@@ -174,41 +189,17 @@ class PipedriveToEduka(PipedriveService):
             return response_text
 
     def run(self, cmd: str):
-        print(self.get_ip_address(), self.import_to_eduka())
-        # name = {"Deals from Eduka": "eduka_stageID", "Admitted": "admitted_stageID", "Eduka Application":"eduka_stageID"}
-        #
-        # stages_dict = {}
-        # for stage in self.ask_pipedrive("stages"):
-        #     if stage['name'] in ["Deals from Eduka", "Admitted", "Eduka Application"]:
-        #         if stage['pipeline_id'] in stages_dict.keys():
-        #             stages_dict[stage['pipeline_id']].append(f'"{name[stage["name"]]}" : "{stage["id"]}')
-        #         else:
-        #             stages_dict[stage['pipeline_id']] = [f'"{name[stage["name"]]}" : "{stage["id"]}']
-        # # print(stage['id'], stage['name'], stage['pipeline_id'])
-        # print(stages_dict)
-        # with open("stages.json", "w") as f:
-        #     f.write(json.dumps(stages_dict))
-        # exit()
         try:
-            pipelines = []
-            stages = []
-            for pl in self.ask_pipedrive("users"):
-                pipelines.append(pl)
-                # print(f"{pl['id']}, {pl['name']}, {pl['url_title']}, {pl['active']}")
-                print(pl['id'], pl['email'], sep=",")
-
-            # print(pipelines)
-
-            # print(self.get_deals_from_stage_by_pipeline(161, "admitted"))
-            # exit()
             self.check_conditions()
-            # print("Clean deals ", self.clean_deals.__len__(), self.clean_deals)
             self.parse_data()
-            print(self.import_to_eduka())
         except EdukaPipedriveNoDealsFoundException as e:
             print(str(e))
             self.error_logger.critical("Eduka Pipedrive Not Deals Found Exception occured", exc_info=True)
         except EdukaPipedriveImportException as e:
             print(str(e))
             self.error_logger.critical("Eduka Pipedrive Pipedrive import Exception occured", exc_info=True)
-
+        except PipedriveToEduka as e:
+            print(str(e))
+            self.error_logger.critical("Eduka to Pipeline exception occurred", exc_info=True)
+        finally:
+            self.delete_product_memo()
