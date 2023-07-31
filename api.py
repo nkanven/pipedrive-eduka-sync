@@ -121,7 +121,7 @@ def sub_service(module, service):
         if py_service in os.listdir(module_dir_path):
             python_venv = os.environ.get("project_base_dir") + "venv/bin/activate"
             cmd = f"cd {os.environ.get('project_base_dir')} &&"
-            cmd += f". {python_venv} && python3 main.py -s {service}"
+            cmd += f" . {python_venv} && python3 main.py -s {service}"
             try:
                 child = subprocess.check_output([cmd], shell=True)
             except subprocess.CalledProcessError as e:
