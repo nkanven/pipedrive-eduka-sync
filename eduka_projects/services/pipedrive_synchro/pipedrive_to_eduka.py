@@ -19,6 +19,7 @@ class PipedriveToEduka(PipedriveService):
         self.base_url = self.get_school_parameter(self.school, "base_url")
         self.student_id = None
         self.deal_id = None
+        self.notifications = {"imported_deals": [], "school": self.school, "error": ""}
 
         # TODO: Use training pipeline
 
@@ -159,7 +160,6 @@ class PipedriveToEduka(PipedriveService):
                 imported_deals.append([self.student_id, self.deal_id])
 
         self.notifications["imported_deals"] = imported_deals
-        self.notifications["school"] = self.school
 
     def import_to_eduka(self):
         print("Import to Eduka")
@@ -192,18 +192,21 @@ class PipedriveToEduka(PipedriveService):
         try:
             self.check_conditions()
             self.parse_data()
+        except EdukaPipedriveNoDealsFoundException as e:
+            print(str(e))
+            self.notifications["error"] = str(e)
+            self.error_logger.critical("Eduka Pipedrive Not Deals Found Exception occured", exc_info=True)
+        except EdukaPipedriveImportException as e:
+            print(str(e))
+            self.notifications["error"] = str(e)
+            self.error_logger.critical("Eduka Pipedrive Pipedrive import Exception occured", exc_info=True)
+        except Exception as e:
+            print(str(e))
+            self.notifications["error"] = str(e)
+            self.error_logger.critical("Eduka to Pipeline exception occurred", exc_info=True)
+        finally:
             f_name = "mail" + cmd + "-" + self.get_school_parameter(self.school, "abbr")
             f_name_path = os.path.join(self.autobackup_memoize, f_name)
             print("self notif ", self.notifications)
             serialize(f_name_path, self.notifications)
-        except EdukaPipedriveNoDealsFoundException as e:
-            print(str(e))
-            self.error_logger.critical("Eduka Pipedrive Not Deals Found Exception occured", exc_info=True)
-        except EdukaPipedriveImportException as e:
-            print(str(e))
-            self.error_logger.critical("Eduka Pipedrive Pipedrive import Exception occured", exc_info=True)
-        except Exception as e:
-            print(str(e))
-            self.error_logger.critical("Eduka to Pipeline exception occurred", exc_info=True)
-        finally:
             self.delete_product_memo()

@@ -1,13 +1,14 @@
+import os
 import time
 
 from eduka_projects.services.pipedrive_synchro import PipedriveService
 from eduka_projects.utils.eduka_exceptions import EdukaException
 from eduka_projects.bootstrap import platform
+from eduka_projects.utils.rialization import serialize
 
 from selenium.webdriver.common.by import By
 
 import requests
-import json
 
 
 class EdukaToPipedrive(PipedriveService):
@@ -17,13 +18,15 @@ class EdukaToPipedrive(PipedriveService):
         self.service_name = "Eduka to Pipedrive"
         self.base_url = self.get_school_parameter(self.school, "base_url")
         self.browser = None
+        self.deal_created = []
+        self.notifications = {"deals": [], "school": self.school}
 
     def get_list_from_eduka(self, list_url):
+        url = self.base_url + self.get_school_parameter(self.school, list_url)
         if self.browser is None:
-            self.browser = platform.login(self.base_url + self.get_school_parameter(self.school, list_url),
-                                          self.logins(self.school))
+            self.browser = platform.login(url, self.logins(self.school))
         else:
-            self.browser.get(list_url)
+            self.browser.get(url)
 
         breadcrumb = platform.locate_element(self.browser, By.ID, 'BreadCrumb')
         time.sleep(5)
@@ -62,9 +65,16 @@ class EdukaToPipedrive(PipedriveService):
                 self.get_pipedrive_param_name_for["phone"]: line[9]
             }
             deal_id = self.create_deal(payload)
+            print(f"Deal with ID {deal_id} created")
             self.add_product_to_a_deal(deal_id, product_id)
 
-            self.update_deal(line[0], deal_id)
+            self.update_deal(deal_id, {
+                self.get_pipedrive_param_name_for["student id"]: line[0]
+            })
+
+            self.deal_created.append(["deal_id", "line[0]"])
+
+        self.notifications["deals"] = self.deal_created
 
     def update_deals_in_pipedrive(self):
         self.get_list_from_eduka("deals_to_update_in_pipedrive")
@@ -106,11 +116,15 @@ class EdukaToPipedrive(PipedriveService):
         try:
             self.create_deals_from_eduka_to_pipedrive()
             self.update_deals_in_pipedrive()
-            f_name = "mail" + cmd + "-" + self.get_school_parameter(self.school, "abbr")
             if self.browser is not None:
                 self.browser.close()
-        except Exception as e:
+        except (Exception, EdukaException) as e:
+            self.notifications["error"] = str(e)
             print(str(e))
             self.error_logger.critical("Eduka to Pipeline exception occurred", exc_info=True)
         finally:
+            f_name = "mail" + cmd + "-" + self.get_school_parameter(self.school, "abbr")
+            f_name_path = os.path.join(self.autobackup_memoize, f_name)
+            print("self notif ", self.notifications)
+            serialize(f_name_path, self.notifications)
             self.delete_product_memo()
