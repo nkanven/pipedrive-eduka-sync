@@ -4,7 +4,7 @@ import os
 import time
 
 import requests as requests
-
+from eduka_projects.utils.rialization import serialize
 from eduka_projects.services.pipedrive_synchro import PipedriveService
 from eduka_projects.utils.eduka_exceptions import EdukaPipedriveNoDealsFoundException, \
     EdukaPipedriveNoPipelineFoundException, EdukaPipedriveImportException
@@ -37,21 +37,18 @@ class PipedriveToEduka(PipedriveService):
         print(f"Total pipeline found {pipeline_ids.__len__()}")
         if pipeline_ids.__len__() > 1:
             admitted_deals = self.get_deals_from_stage_by_pipelines(pipeline_ids, "admitted")
-            # admitted_deals = admitted_deals[0] + admitted_deals[1]
         else:
             admitted_deals = self.get_deals_from_stage_by_pipeline(pipeline_ids[0], "admitted")
-
-        # admitted_deals_datas = admitted_deals["datas"]
-
 
         print(f"{admitted_deals.__len__()} admitted deals found")
         if admitted_deals.__len__() == 0:
             error = "No admitted deals found"
             raise EdukaPipedriveNoDealsFoundException(self.service_name, self.school, error)
 
-        for adm in admitted_deals[1]:
-            if adm['status'].lower() not in ["won", "lost"]:
-                not_won_losses.append(adm)
+        for admitted_deal in admitted_deals:
+            for adm in admitted_deal:
+                if adm['status'].lower() not in ["won", "lost"]:
+                    not_won_losses.append(adm)
 
         print(f"{not_won_losses.__len__()} not won losses deals found")
         if not_won_losses.__len__() == 0:
@@ -110,8 +107,11 @@ class PipedriveToEduka(PipedriveService):
 
     def parse_data(self):
         print("Total deals", self.clean_deals.__len__())
+        print(self.clean_deals)
         # i = 1000 #TODO: Place to handle just a few number of deals. To be removed
         sync_data = ()
+        imported_deals = []
+
 
         for deal in self.clean_deals:
             product = self.get_product_code(deal["id"])
@@ -156,6 +156,10 @@ class PipedriveToEduka(PipedriveService):
                 self.create_xlsx("pipedrive_to_eduka", heads, sync_data)
                 print(self.import_to_eduka())
                 print("Sync data", sync_data.__len__(), sync_data)
+                imported_deals.append([self.student_id, self.deal_id])
+
+        self.notifications["imported_deals"] = imported_deals
+        self.notifications["school"] = self.school
 
     def import_to_eduka(self):
         print("Import to Eduka")
@@ -188,6 +192,10 @@ class PipedriveToEduka(PipedriveService):
         try:
             self.check_conditions()
             self.parse_data()
+            f_name = "mail" + cmd + "-" + self.get_school_parameter(self.school, "abbr")
+            f_name_path = os.path.join(self.autobackup_memoize, f_name)
+            print("self notif ", self.notifications)
+            serialize(f_name_path, self.notifications)
         except EdukaPipedriveNoDealsFoundException as e:
             print(str(e))
             self.error_logger.critical("Eduka Pipedrive Not Deals Found Exception occured", exc_info=True)

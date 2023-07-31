@@ -330,7 +330,22 @@ class EnkoMail(Bootstrap):
         pass
 
     def pipedrive_to_eduka(self):
-        pass
+        imported_deals_thead = "<table class='enko_table'><tr><th class='enko_th'>Student ID</th><th " \
+                               "class='enko_th'>Deal ID</th><th class='enko_th'>School</th></tr>"
+        message_title = "<p>Pipedrie to Eduka services summary</p>"
+        imported_deals = ""
+        body = "<p>No deal found for Pipedrive to Eduka syncho</p>"
+        if self.datas is not None:
+            for data in self.datas:
+                print(data)
+                for imported_deal in data['imported_deals']:
+                    imported_deals += f"<tr><td>{imported_deal[0]}</td><td>{imported_deal[1]}</td><td>{data['school']}</td></tr>"
+
+            if imported_deals != "":
+                body = "<div>The following deals have been successfuly synchronized from Pipedrive to Eduka</div>"
+                body += imported_deals_thead + imported_deals + "</table>"
+        self.construct_message_body(message_title, body, "Pipedrive To Eduka", errors="")
+        self.send_mail()
 
     def eduka_to_pipedrive(self):
         pass

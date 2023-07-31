@@ -104,8 +104,9 @@ class EdukaToPipedrive(PipedriveService):
 
     def run(self, cmd: str):
         try:
-            # self.create_deals_from_eduka_to_pipedrive()
+            self.create_deals_from_eduka_to_pipedrive()
             self.update_deals_in_pipedrive()
+            f_name = "mail" + cmd + "-" + self.get_school_parameter(self.school, "abbr")
             if self.browser is not None:
                 self.browser.close()
         except Exception as e:
