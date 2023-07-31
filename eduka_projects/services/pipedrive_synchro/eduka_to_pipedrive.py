@@ -83,7 +83,7 @@ class EdukaToPipedrive(PipedriveService):
                 self.get_pipedrive_param_name_for["student id"]: line[0],
                 "status": "won"
             })
-            self.update_deal_on_eduka(line[0], deal_id + "_WON")
+            self.update_deal_on_eduka(line[0], deal_id + "-WON")
 
     def update_deal_on_eduka(self, user_id, value):
         set_data_url = f"{self.base_url}api.php?K={self.get_school_parameter(self.school, 'api_key')}"
