@@ -162,6 +162,7 @@ class PipedriveToEduka(PipedriveService):
                 self.create_xlsx("pipedrive_to_eduka", heads, sync_data)
                 print(self.import_to_eduka())
                 time.sleep(120)
+                print("Waiting for 120s")
 
     def import_to_eduka(self):
         endpoint = self.base_url + "api.php?K=" + self.get_school_parameter(self.school, "api_key") \
