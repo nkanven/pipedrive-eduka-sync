@@ -330,10 +330,42 @@ class EnkoMail(Bootstrap):
         pass
 
     def pipedrive_to_eduka(self):
-        pass
+        imported_deals_thead = "<table class='enko_table'><tr><th class='enko_th'>Student ID</th><th " \
+                               "class='enko_th'>Deal ID</th><th class='enko_th'>School</th></tr>"
+        message_title = "<p>Pipedrive to Eduka services summary</p>"
+        imported_deals = ""
+        body = "<p>No deal found for Pipedrive to Eduka syncho</p>"
+        error = ""
+        if self.datas is not None:
+            for data in self.datas:
+                print(data)
+                for imported_deal in data['imported_deals']:
+                    imported_deals += f"<tr><td>{imported_deal[0]}</td><td>{imported_deal[1]}</td><td>{data['school']}</td></tr>"
+                error = data["error"]
+
+            if imported_deals != "":
+                body = "<div>The following deals have been successfuly synchronized from Pipedrive to Eduka</div>"
+                body += imported_deals_thead + imported_deals + "</table>"
+        self.construct_message_body(message_title, body, "Pipedrive To Eduka ", error)
+        self.send_mail()
 
     def eduka_to_pipedrive(self):
-        pass
+        created_deals_thead = "<table class='enko_table'><tr><th class='enko_th'>Deal ID</th><th " \
+                               "class='enko_th'>Student ID</th><th class='enko_th'>School</th></tr>"
+        message_title = "<p>Eduka to Pipedrive service summary</p>"
+        created_deals = error = ""
+        body = "<p>No deal found for Eduka to Pipedrive syncho</p>"
+        if self.datas is not None:
+            for data in self.datas:
+                print(data)
+                for created_deal in data['deals']:
+                    created_deals += f"<tr><td>{created_deal[0]}</td><td>{created_deal[1]}</td><td>{data['school']}</td></tr>"
+                error = data["error"]
+            if created_deals != "":
+                body = "<div>The following deals have been successfuly synchronized from Pipedrive to Eduka</div>"
+                body += created_deals_thead + created_deals + "</table>"
+        self.construct_message_body(message_title, body, "Eduka To Pipedrive", error)
+        self.send_mail()
 
     def mail_builder_selector(self):
         # Add service mail builder methods here

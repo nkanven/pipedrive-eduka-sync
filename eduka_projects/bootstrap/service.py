@@ -58,4 +58,32 @@ get = {
                     },
             }
     },
+    "pipedrive_to_eduka": {
+        "mail_template":
+            {
+                "success":
+                    {
+                        "subject": "notification ", "head": "", "body": "",
+                        "foot": ""
+                    },
+                "error":
+                    {
+                        "subject": "Error ", "head": "", "body": "", "foot": ""
+                    },
+            }
+    },
+    "eduka_to_pipedrive": {
+        "mail_template":
+            {
+                "success":
+                    {
+                        "subject": "notification ", "head": "", "body": "",
+                        "foot": ""
+                    },
+                "error":
+                    {
+                        "subject": "Error ", "head": "", "body": "", "foot": ""
+                    },
+            }
+    },
 }

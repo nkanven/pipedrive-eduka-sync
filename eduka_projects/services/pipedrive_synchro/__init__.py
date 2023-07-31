@@ -55,7 +55,6 @@ class PipedriveService(ServiceManager):
 
     def create_deal(self, data: dict):
         deal = self.post_to_pipedrive("deals", data)
-        print(deal)
         return deal["data"]["id"]
 
     def ask_pipedrive(self, endpoint, **kwargs):
@@ -107,7 +106,7 @@ class PipedriveService(ServiceManager):
         deals = []
         stage_id = self.get_admitted_stage_id(pipeline_id, stage_name)
         if stage_id is not None:
-            deals = self.ask_pipedrive("deals", stage_id=stage_id)
+            deals.append(self.ask_pipedrive("deals", stage_id=stage_id))
 
         return deals
 
@@ -128,7 +127,6 @@ class PipedriveService(ServiceManager):
     def get_deals_from_stage_by_pipelines(self, pipeline_ids: list, stage_name: str):
         deals = []
         try:
-            print(pipeline_ids, stage_name)
             for pipeline_id in pipeline_ids:
                 stage_id = self.get_admitted_stage_id(pipeline_id, stage_name)
                 print("stage id", stage_id)
@@ -174,7 +172,6 @@ class PipedriveService(ServiceManager):
         product_id = None
 
         for product in self.get_products()[0]:
-            print("product", product)
             try:
                 if product[self.get_pipedrive_param_name_for["product_code"]] == school_code:
                     product_id = product["id"]
