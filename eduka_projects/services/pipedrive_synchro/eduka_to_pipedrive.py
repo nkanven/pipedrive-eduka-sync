@@ -84,8 +84,10 @@ class EdukaToPipedrive(PipedriveService):
                 "status": "won"
             })
             self.update_deal_on_eduka(line[0], deal_id + "-WON")
+            print("End")
 
     def update_deal_on_eduka(self, user_id, value):
+        print("Deal value to update", value)
         set_data_url = f"{self.base_url}api.php?K={self.get_school_parameter(self.school, 'api_key')}"
         set_data_url += f"&A=SETDATA&PERSON={user_id}&PROPERTY=dealid&VALUE={value}"
 
@@ -102,11 +104,11 @@ class EdukaToPipedrive(PipedriveService):
 
     def run(self, cmd: str):
         try:
-            self.create_deals_from_eduka_to_pipedrive()
+            # self.create_deals_from_eduka_to_pipedrive()
             self.update_deals_in_pipedrive()
             if self.browser is not None:
                 self.browser.close()
-        except EdukaToPipedrive as e:
+        except Exception as e:
             print(str(e))
             self.error_logger.critical("Eduka to Pipeline exception occurred", exc_info=True)
         finally:

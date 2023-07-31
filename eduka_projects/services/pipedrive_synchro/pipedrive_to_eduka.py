@@ -1,5 +1,6 @@
 import datetime
 import json
+import os
 import time
 
 import requests as requests
@@ -36,16 +37,19 @@ class PipedriveToEduka(PipedriveService):
         print(f"Total pipeline found {pipeline_ids.__len__()}")
         if pipeline_ids.__len__() > 1:
             admitted_deals = self.get_deals_from_stage_by_pipelines(pipeline_ids, "admitted")
+            # admitted_deals = admitted_deals[0] + admitted_deals[1]
         else:
             admitted_deals = self.get_deals_from_stage_by_pipeline(pipeline_ids[0], "admitted")
 
         # admitted_deals_datas = admitted_deals["datas"]
+
+
         print(f"{admitted_deals.__len__()} admitted deals found")
         if admitted_deals.__len__() == 0:
             error = "No admitted deals found"
             raise EdukaPipedriveNoDealsFoundException(self.service_name, self.school, error)
 
-        for adm in admitted_deals[0]:
+        for adm in admitted_deals[1]:
             if adm['status'].lower() not in ["won", "lost"]:
                 not_won_losses.append(adm)
 
@@ -79,7 +83,6 @@ class PipedriveToEduka(PipedriveService):
                     and student_with_gender[self.get_pipedrive_param_name_for["email"]].find("@") != -1:
                 parent_with_emails.append(student_with_gender)
 
-        # print(parent_with_emails)
         print(f"{parent_with_emails.__len__()} parents with email deals")
         if parent_with_emails.__len__() == 0:
             error = "No parent was found with an email address"
@@ -111,14 +114,13 @@ class PipedriveToEduka(PipedriveService):
         sync_data = ()
 
         for deal in self.clean_deals:
-
             product = self.get_product_code(deal["id"])
             if product is not None:
-                self.deal_id = deal["id"]
+                self.deal_id = str(deal["id"]).strip("'")
                 product_id = product[0]["product_id"]
                 student_first_name = deal[self.get_pipedrive_param_name_for["student first name"]]
                 student_last_name = deal[self.get_pipedrive_param_name_for["student last name"]]
-                gender = deal[self.get_pipedrive_param_name_for["email"]]
+                gender = self.genders_to_eduka[int(deal[self.get_pipedrive_param_name_for["gender"]])]
                 school_branch_code = self.get_school_branch_code(product_id)
                 parent_first_name = deal[self.get_pipedrive_param_name_for["parent first name"]]
                 parent_last_name = deal[self.get_pipedrive_param_name_for["parent last name"]]
@@ -131,29 +133,21 @@ class PipedriveToEduka(PipedriveService):
                 family_id = self.get_family_id(self.get_school_parameter(self.school, "abbr"), self.base_url,
                                                self.school, parent_email)
 
-                print(family_id, self.student_id, school_branch_code, product_id, student_first_name, student_last_name,
-                      gender,
-                      parent_first_name, parent_last_name, parent_email, parent_phone)
-
                 # TODO: For testing purpose; to Remove this condition
                 if parent_email is None:
                     continue
 
                 if family_id is not None:
-                    sync_data += (
+                    sync_data = (
                         [family_id, self.student_id, student_first_name, student_last_name, gender, school_branch_code,
-                         parent_id, '', '', '', '', deal["id"]],
+                         '', '', '', '', '', self.deal_id],
                     )
                 else:
-                    sync_data += (
+                    sync_data = (
                         [str(datetime.datetime.now().timestamp()).replace(".", ""), self.student_id, student_first_name,
                          student_last_name, gender, school_branch_code, parent_id, parent_first_name,
-                         parent_last_name, parent_email, parent_phone, deal["id"]],
+                         parent_last_name, parent_email, parent_phone, self.deal_id],
                     )
-                # i += 1
-
-                # if i == 1005:
-                #     break 54696
 
                 heads = ["Family ID", "Student ID", "First name (student)", "Last name (student)", "Gender (student)",
                          "School branch code",
@@ -161,16 +155,16 @@ class PipedriveToEduka(PipedriveService):
                          "Mobile phone number (parent)", "Deal ID"]
                 self.create_xlsx("pipedrive_to_eduka", heads, sync_data)
                 print(self.import_to_eduka())
-                time.sleep(120)
-                print("Waiting for 120s")
+                print("Sync data", sync_data.__len__(), sync_data)
 
     def import_to_eduka(self):
+        print("Import to Eduka")
         endpoint = self.base_url + "api.php?K=" + self.get_school_parameter(self.school, "api_key") \
                    + "&A=IMPORTDATA&PROFILE=" + str(self.get_school_parameter(self.school,
                                                                               "deals_import_profileID")) \
                    + "&FILEURL=http://" + self.get_ip_address() + "/assets/pipedrive_to_eduka.xlsx" \
                                                                   "&SEPARATOR=comma&ASYNC=0"
-
+        print("Endpoint ", endpoint)
         try:
             response_text = "Import Failed"
             session = self.get_session()
@@ -200,7 +194,7 @@ class PipedriveToEduka(PipedriveService):
         except EdukaPipedriveImportException as e:
             print(str(e))
             self.error_logger.critical("Eduka Pipedrive Pipedrive import Exception occured", exc_info=True)
-        except PipedriveToEduka as e:
+        except Exception as e:
             print(str(e))
             self.error_logger.critical("Eduka to Pipeline exception occurred", exc_info=True)
         finally:
