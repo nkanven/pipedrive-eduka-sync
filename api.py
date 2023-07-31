@@ -14,6 +14,7 @@ print(sys.path)
 import subprocess
 from flask import Flask, request, send_file
 from dotenv import load_dotenv
+from setup_logger import logger
 
 
 load_dotenv()
@@ -54,8 +55,7 @@ msg200 = {
 msg201 = {
     'code': 201,
     'state': 'Success',
-    'msg': "Service service_name  has been successfuly executed. A mail with be sent when execution terminates",
-    'msg_sub': "Sub Service  sub_serv  of service_name  has been successfuly executed. A mail with be sent when execution terminates"
+    'msg': "Sub Service  sub_serv  of service_name  has been successfuly executed. A mail with be sent when execution terminates"
 }
 
 notif = {
@@ -119,19 +119,16 @@ def sub_service(module, service):
         print(os.listdir(module_dir_path))
 
         if py_service in os.listdir(module_dir_path):
-            python_venv = os.getcwd() + os.sep + "venv/bin/python"
-            print(python_venv)
-            child = subprocess.Popen([python_venv, 'main.py', '-s', service], subprocess.PIPE)
-            notif[201]['msg'] = notif[201]['msg_sub'].replace("sub_serv",
-                                                              " ".join(service.split("_")).capitalize()).replace(
-                "service_name", module)
-            notif[201].pop("msg_sub")
+            python_venv = os.environ.get("project_base_dir") + "venv/bin/activate"
+            child = subprocess.run(f"cd {os.environ.get('project_base_dir')} && . {python_venv} && python3 main.py -s {service}", shell=True)
+            notif[201]['msg'] = notif[201]['msg'].replace(
+                "sub_serv",
+                " ".join(service.split("_")).capitalize()).replace("service_name", module)
 
-            """
-            Waiting for process to finish
-            streamdata = child.communicate()[0]
-            rc = child.returncode
-            print("OK OK", rc)"""
+            # Waiting for process to finish
+            # streamdata = child.communicate()[0]
+            # rc = child.returncode
+            # print("OK OK", rc)
 
             return notif[201], 201
 
@@ -159,7 +156,7 @@ def list_web_endpoints():
         }
     except Exception as e:
         print(str(e))
-        # bts.error_logger.critical("API Exception occured", exc_info=True)
+        logger.critical("API Exception occured", exc_info=True)
         uri = notif[500]
     finally:
         return uri
@@ -199,5 +196,5 @@ if __name__ == "__main__":
     try:
         app.run(host='0.0.0.0')
     except Exception as e:
-        # bts.error_logger.critical("API Exception occured", exc_info=True)
+        logger.critical("API Exception occured", exc_info=True)
         print(str(e))
