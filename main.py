@@ -58,7 +58,7 @@ try:
     print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " Eduka Projects Services Started...")
 
     # for school in schools:
-    #     if "enko_botho" == school:
+    #     if school == "enko_cotedivoire":
     #         try:
     #             print("Work started for", school)
     #             dispatcher(cmd, school)

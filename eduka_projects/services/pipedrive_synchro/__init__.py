@@ -22,6 +22,7 @@ class PipedriveService(ServiceManager):
         self.product_fname = "pipedriveproducts.ep"
         self.product_path = os.path.join(self.autobackup_memoize, self.product_fname)
         self.genders = {"male": 102, "female": 103, "garçon": 102, "fille": 103}
+        self.genders_to_eduka = {102: "G", 103: "F"}
         self.get_pipedrive_param_name_for = {
             "student id": "0dfe2a7c991908de1eb76779d5a99487c3955f9b",
             "student first name": "88a0962f7916a41085bf8545f3b9433485140da5",
@@ -54,7 +55,6 @@ class PipedriveService(ServiceManager):
 
     def create_deal(self, data: dict):
         deal = self.post_to_pipedrive("deals", data)
-        print(deal)
         return deal["data"]["id"]
 
     def ask_pipedrive(self, endpoint, **kwargs):
@@ -106,7 +106,7 @@ class PipedriveService(ServiceManager):
         deals = []
         stage_id = self.get_admitted_stage_id(pipeline_id, stage_name)
         if stage_id is not None:
-            deals = self.ask_pipedrive("deals", stage_id=stage_id)
+            deals.append(self.ask_pipedrive("deals", stage_id=stage_id))
 
         return deals
 
@@ -127,7 +127,6 @@ class PipedriveService(ServiceManager):
     def get_deals_from_stage_by_pipelines(self, pipeline_ids: list, stage_name: str):
         deals = []
         try:
-            print(pipeline_ids, stage_name)
             for pipeline_id in pipeline_ids:
                 stage_id = self.get_admitted_stage_id(pipeline_id, stage_name)
                 print("stage id", stage_id)
@@ -147,10 +146,11 @@ class PipedriveService(ServiceManager):
     def get_family_id(self, abbr, base_url, school, parent_email):
         fam_id = None
         family_ids = self.get_guardians(abbr, base_url, school)
+
         for family_id in family_ids:
             if family_id[2] == parent_email:
                 fam_id = family_id[0]
-        print("Family ", fam_id)
+
         return fam_id
 
     def get_products(self):
@@ -172,7 +172,6 @@ class PipedriveService(ServiceManager):
         product_id = None
 
         for product in self.get_products()[0]:
-            print("product", product)
             try:
                 if product[self.get_pipedrive_param_name_for["product_code"]] == school_code:
                     product_id = product["id"]
