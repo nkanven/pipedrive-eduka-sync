@@ -124,7 +124,7 @@ def sub_service(module, service):
             cmd = f"cd {os.environ.get('project_base_dir')} &&"
             cmd += f". {python_venv} && python3 main.py -s {service}"
             def run_process():
-                subprocess.check_output([cmd], shell=True)
+                subprocess.Popen([cmd], shell=True, close_fds=None)
             Thread(target=run_process()).start()
 
             notif[201]['msg'] = notif[201]['msg'].replace(
