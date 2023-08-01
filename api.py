@@ -114,17 +114,15 @@ def sub_service(module, service):
     _service_dirs = os.listdir(service_dirs)
 
     if module in _service_dirs:
-        # os.system("source venv/bin/activate && python main.py -s " + service_name)
         module_dir_path = os.path.join(service_dirs, module)
         print(os.listdir(module_dir_path))
 
         if py_service in os.listdir(module_dir_path):
-            python_venv = os.environ.get("project_base_dir") + "venv/bin/activate"
-            cmd = f"cd {os.environ.get('project_base_dir')} &&"
-            cmd += f" . {python_venv} && python3 main.py -s {service}"
+            from main import launch
             try:
-                child = subprocess.check_output([cmd], shell=True)
-            except subprocess.CalledProcessError as e:
+                print("Launching ", service)
+                launch(service)
+            except Exception as e:
                 return [str(e)], 500
 
             notif[201]['msg'] = notif[201]['msg'].replace(
