@@ -72,7 +72,7 @@ class EdukaToPipedrive(PipedriveService):
                 self.get_pipedrive_param_name_for["student id"]: line[0]
             })
 
-            self.deal_created.append(["deal_id", "line[0]"])
+            self.deal_created.append([deal_id, line[0]])
 
         self.notifications["deals"] = self.deal_created
 
