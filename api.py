@@ -6,6 +6,7 @@ This tunnel allowed anyone with the right api key to execute services from a web
 
 import os
 import sys
+from threading import Thread
 
 sys.path.append('.')
 
@@ -122,19 +123,13 @@ def sub_service(module, service):
             python_venv = os.environ.get("project_base_dir") + "venv/bin/activate"
             cmd = f"cd {os.environ.get('project_base_dir')} &&"
             cmd += f". {python_venv} && python3 main.py -s {service}"
-            try:
-                child = subprocess.check_output([cmd], shell=True)
-            except subprocess.CalledProcessError as e:
-                return [str(e)], 500
+            def run_process():
+                subprocess.check_output([cmd], shell=True)
+            Thread(target=run_process()).start()
 
             notif[201]['msg'] = notif[201]['msg'].replace(
                 "sub_serv",
                 " ".join(service.split("_")).capitalize()).replace("service_name", module)
-
-            # Waiting for process to finish
-            # streamdata = child.communicate()[0]
-            # rc = child.returncode
-            # print("OK OK", rc)
 
             return notif[201], 201
 
