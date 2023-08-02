@@ -88,7 +88,6 @@ class EdukaProjects:
             self.chrome_options.add_argument("enable-automation")
             self.chrome_options.add_argument("--disable-infobars")
             self.chrome_options.add_argument("--disable-dev-shm-usage")
-            self.chrome_options.binary_location = "eduka_projects/binary/"
             self.chrome_options.headless = True
 
     @staticmethod
