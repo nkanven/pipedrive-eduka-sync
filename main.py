@@ -109,7 +109,11 @@ if __name__ == "__main__":
         print(name, value)
         if name.strip() == '-s' or name.strip() == '--service':
             if value == "weblaunch":
-                cmd = os.listdir("eduka_projects/weborders")[0]
+                try:
+                    cmd = os.listdir("eduka_projects/weborders")[0]
+                except IndexError:
+                    bts.error_logger.critical("Program launch error", exc_info=True)
+                    exit()
             else:
                 cmd = value
 
