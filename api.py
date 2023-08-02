@@ -127,9 +127,9 @@ def sub_service(module, service):
             #     subprocess.Popen([cmd], shell=True, close_fds=None)
             # Thread(target=run_process()).start()
 
-            order_path = os.path.join("eduka_projects/weborders", py_service)
+            order_path = os.path.join("eduka_projects/weborders", service)
             with open(order_path, "w") as f:
-                f.write(py_service)
+                f.write(service)
 
             notif[201]['msg'] = notif[201]['msg'].replace(
                 "sub_serv",
