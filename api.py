@@ -120,12 +120,14 @@ def sub_service(module, service):
         print(os.listdir(module_dir_path))
 
         if py_service in os.listdir(module_dir_path):
-            python_venv = os.environ.get("project_base_dir") + "venv/bin/activate"
-            cmd = f"cd {os.environ.get('project_base_dir')} &&"
-            cmd += f". {python_venv} && python3 main.py -s {service}"
-            def run_process():
-                subprocess.Popen([cmd], shell=True, close_fds=None)
-            Thread(target=run_process()).start()
+            from main import launch
+            # python_venv = os.environ.get("project_base_dir") + "venv/bin/activate"
+            # cmd = f"cd {os.environ.get('project_base_dir')} &&"
+            # cmd += f". {python_venv} && python3 main.py -s {service}"
+            # def run_process():
+            #     subprocess.Popen([cmd], shell=True, close_fds=None)
+            # Thread(target=run_process()).start()
+            Thread(target=launch(py_service)).start()
 
             notif[201]['msg'] = notif[201]['msg'].replace(
                 "sub_serv",
