@@ -341,7 +341,7 @@ class EnkoMail(Bootstrap):
                 print(data)
                 for imported_deal in data['imported_deals']:
                     imported_deals += f"<tr><td>{imported_deal[0]}</td><td>{imported_deal[1]}</td><td>{data['school']}</td></tr>"
-                error = data["error"] + " " + data['school']
+                error += "<p>" + data["error"] + " " + data['school'] + "</p>"
 
             if imported_deals != "":
                 body = "<div>The following deals have been successfuly synchronized from Pipedrive to Eduka</div>"

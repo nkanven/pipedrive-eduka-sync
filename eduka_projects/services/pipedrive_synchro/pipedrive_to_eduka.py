@@ -117,7 +117,6 @@ class PipedriveToEduka(PipedriveService):
         sync_data = ()
         imported_deals = []
 
-
         for deal in self.clean_deals:
             product = self.get_product_code(deal["id"])
             if product is not None:
@@ -137,10 +136,6 @@ class PipedriveToEduka(PipedriveService):
                 time.sleep(1)
                 family_id = self.get_family_id(self.get_school_parameter(self.school, "abbr"), self.base_url,
                                                self.school, parent_email)
-
-                # TODO: For testing purpose; to Remove this condition
-                if parent_email is None:
-                    continue
 
                 if family_id is not None:
                     sync_data = (
@@ -165,7 +160,7 @@ class PipedriveToEduka(PipedriveService):
                     print("Sync data", sync_data.__len__(), sync_data)
                     imported_deals.append([self.student_id, self.deal_id])
                 else:
-                    self.notifications["error"] = "Data import to Eduka error for " + self.school + " occured"
+                    self.notifications["error"] = "Data import to Eduka error occured"
 
         self.notifications["imported_deals"] = imported_deals
 
