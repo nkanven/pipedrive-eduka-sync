@@ -36,12 +36,16 @@ class PipedriveToEduka(PipedriveService):
         students_with_gender = []
 
         print(f"Total pipeline found {pipeline_ids.__len__()}")
+        if pipeline_ids.__len__() == 0:
+            raise EdukaPipedriveNoDealsFoundException(self.service_name, self.school, "No pipeline found")
+
         if pipeline_ids.__len__() > 1:
             admitted_deals = self.get_deals_from_stage_by_pipelines(pipeline_ids, "admitted")
         else:
-            admitted_deals = self.get_deals_from_stage_by_pipeline(pipeline_ids[0], "admitted")
+            admitted_deals = self.get_deals_from_stage_by_pipeline(list(pipeline_ids)[0], "admitted")
 
         print(f"{admitted_deals.__len__()} admitted deals found")
+
         if admitted_deals.__len__() == 0:
             error = "No admitted deals found"
             raise EdukaPipedriveNoDealsFoundException(self.service_name, self.school, error)

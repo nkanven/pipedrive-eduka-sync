@@ -10,8 +10,6 @@ from threading import Thread
 
 sys.path.append('.')
 
-print(sys.path)
-
 import subprocess
 from flask import Flask, request, send_file
 from dotenv import load_dotenv
@@ -117,7 +115,6 @@ def sub_service(module, service):
     if module in _service_dirs:
         # os.system("source venv/bin/activate && python main.py -s " + service_name)
         module_dir_path = os.path.join(service_dirs, module)
-        print(os.listdir(module_dir_path))
 
         if py_service in os.listdir(module_dir_path):
             # python_venv = os.environ.get("project_base_dir") + "venv/bin/activate"
