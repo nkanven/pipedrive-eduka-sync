@@ -364,6 +364,7 @@ class EnkoMail(Bootstrap):
             if created_deals != "":
                 body = "<div>The following deals have been successfuly synchronized from Pipedrive to Eduka</div>"
                 body += created_deals_thead + created_deals + "</table>"
+        print("Email: ", message_title, body, error)
         self.construct_message_body(message_title, body, "Eduka To Pipedrive", error)
         self.send_mail()
 

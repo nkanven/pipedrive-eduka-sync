@@ -187,6 +187,11 @@ class PipedriveToEduka(PipedriveService):
             self.error_logger.critical("ConnectionError occurred", exc_info=True)
             raise EdukaPipedriveImportException(self.service_name, self.school, str(e))
         finally:
+            try:
+                os.remove("pipedrive_to_eduka.xlsx")
+            except FileNotFoundError:
+                pass
+
             return response
 
     def run(self, cmd: str):
