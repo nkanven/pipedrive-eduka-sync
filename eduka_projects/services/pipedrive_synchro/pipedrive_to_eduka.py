@@ -159,13 +159,17 @@ class PipedriveToEduka(PipedriveService):
                          "Parent ID", "Firs name (parent)", "Last name (parent)", "Email address (parent)",
                          "Mobile phone number (parent)", "Deal ID"]
                 self.create_xlsx("pipedrive_to_eduka", heads, sync_data)
-                print(self.import_to_eduka())
-                print("Sync data", sync_data.__len__(), sync_data)
-                imported_deals.append([self.student_id, self.deal_id])
+                import_status = self.import_to_eduka()
+                print(f"Import to eduka status for {self.school}: {import_status}")
+                if import_status:
+                    print("Sync data", sync_data.__len__(), sync_data)
+                    imported_deals.append([self.student_id, self.deal_id])
+                else:
+                    self.notifications["error"] = "Data import to Eduka error for " + self.school + " occured"
 
         self.notifications["imported_deals"] = imported_deals
 
-    def import_to_eduka(self):
+    def import_to_eduka(self) -> bool:
         print("Import to Eduka")
         endpoint = self.base_url + "api.php?K=" + self.get_school_parameter(self.school, "api_key") \
                    + "&A=IMPORTDATA&PROFILE=" + str(self.get_school_parameter(self.school,
@@ -174,23 +178,21 @@ class PipedriveToEduka(PipedriveService):
                                                                   "&SEPARATOR=comma&ASYNC=0"
         print("Endpoint ", endpoint)
         try:
-            response_text = "Import Failed"
+            response = False
             session = self.get_session()
             with session.get(endpoint) as r:
                 if "OK-PROCESSED" in r.text:
-                    response_text = "Import successful"
+                    response = True
                     update_deal_param = {
                         self.get_pipedrive_param_name_for["student id"]: self.student_id
                     }
                     self.update_deal(self.deal_id, update_deal_param)
         except requests.exceptions.ConnectionError as e:
-            self.errors.append(
-                ("ConnectionError occurred on " + self.school, "Error summary " + str(e))
-            )
+            self.notifications["error"] = str(e)
             self.error_logger.critical("ConnectionError occurred", exc_info=True)
             raise EdukaPipedriveImportException(self.service_name, self.school, str(e))
         finally:
-            return response_text
+            return response
 
     def run(self, cmd: str):
         try:
