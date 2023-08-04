@@ -85,13 +85,14 @@ class PipedriveService(ServiceManager):
 
     def add_product_to_a_deal(self, deal_id, product_id):
         endpoint = f"deals/{deal_id}/products"
-        self.post_to_pipedrive(
+        add_d_p = self.post_to_pipedrive(
             endpoint, {
                 "product_id": product_id,
                 "item_price": 0,
                 "quantity": 1
             }, endpoint_as_given=True
         )
+        print(f"Deal {deal_id} added to product responds {add_d_p}")
 
     def get_admitted_stage_id(self, pipeline_id, stage_name="admitted"):
         stage_id = None
@@ -192,4 +193,5 @@ class PipedriveService(ServiceManager):
 
     def update_deal(self, deal_id, params: dict):
         endpoint = f"deals/{deal_id}"
-        self.post_to_pipedrive(endpoint, params, endpoint_as_given=True, method="PUT")
+        update_d = self.post_to_pipedrive(endpoint, params, endpoint_as_given=True, method="PUT")
+        print(f"Update deal responds {update_d}")

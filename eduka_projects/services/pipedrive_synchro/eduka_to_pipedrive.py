@@ -20,6 +20,7 @@ class EdukaToPipedrive(PipedriveService):
         self.browser = None
         self.deal_created = []
         self.notifications = {"deals": [], "school": self.school}
+        self.deal_not_found = ""
 
     def get_list_from_eduka(self, list_url):
         url = self.base_url + self.get_school_parameter(self.school, list_url)
@@ -80,8 +81,13 @@ class EdukaToPipedrive(PipedriveService):
         self.get_list_from_eduka("deals_to_update_in_pipedrive")
 
         for line in platform.get_printable(self.browser):
-            deal_id = line[10].split("_")[0]
-            deal = self.ask_pipedrive("deals", path=deal_id)
+            deal_id = line[10]
+            try:
+                deal = self.ask_pipedrive("deals", path=deal_id)
+            except KeyError:
+                self.deal_not_found += f"<p>Deal ID {deal_id} for student {line[0]} not found</p>"
+                continue
+
             academic_year = line[5]
             school_branch_code = line[4]
             product_code = school_branch_code + "-" + academic_year[2:4]
@@ -96,6 +102,9 @@ class EdukaToPipedrive(PipedriveService):
             self.update_deal_on_eduka(line[0], deal_id + "-WON")
             print("End")
 
+        if self.deal_not_found != "":
+            self.deal_not_found = f"<p>Deal ID not found for update in Pipedrive:</p> {self.deal_not_found}"
+
     def update_deal_on_eduka(self, user_id, value):
         print("Deal value to update", value)
         set_data_url = f"{self.base_url}api.php?K={self.get_school_parameter(self.school, 'api_key')}"
@@ -106,6 +115,7 @@ class EdukaToPipedrive(PipedriveService):
             with session.get(set_data_url) as r:
                 print(r.text)
                 if "Error" in r.text:
+                    print(f"Unable to update deal id {value} to eduka {self.school}. Error: {r.text}")
                     raise EdukaException(self.school, r.text)
         except requests.exceptions.ConnectionError as e:
             self.error_logger.critical("ConnectionError occurred", exc_info=True)
@@ -125,6 +135,7 @@ class EdukaToPipedrive(PipedriveService):
         finally:
             f_name = "mail" + cmd + "-" + self.get_school_parameter(self.school, "abbr")
             f_name_path = os.path.join(self.autobackup_memoize, f_name)
+            self.notifications["error"] = self.deal_not_found + self.notifications["error"]
             print("self notif ", self.notifications)
             serialize(f_name_path, self.notifications)
             self.delete_product_memo()
