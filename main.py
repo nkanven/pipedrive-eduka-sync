@@ -41,8 +41,8 @@ def launch(command):
     if os.path.exists(weborder(command)):
         os.remove(weborder(command))
     try:
-        schools = bts.parameters['enko_education']['schools'].keys()
-        #schools: list = ['enko_waca', 'enko_dakar']
+        # schools = bts.parameters['enko_education']['schools'].keys()
+        schools: list = ['enko_cameroon']
         #
         """
         Main dispatcher thread pool executor

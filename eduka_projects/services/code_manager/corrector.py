@@ -398,6 +398,7 @@ class Correct(CodeManager):
 
             self.submit_updates()
             result = True
+            print("Submit successful. Code corrected: ", data, " ", self.school)
         except Exception:
             self.error_logger.critical("ConnectionError occurred", exc_info=True)
         finally:
