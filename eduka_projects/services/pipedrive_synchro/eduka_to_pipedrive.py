@@ -19,7 +19,7 @@ class EdukaToPipedrive(PipedriveService):
         self.base_url = self.get_school_parameter(self.school, "base_url")
         self.browser = None
         self.deal_created = []
-        self.notifications = {"deals": [], "school": self.school}
+        self.notifications = {"deals": [], "wrong_deals": [], "school": self.school, "error": ""}
         self.deal_not_found = ""
 
     def get_list_from_eduka(self, list_url):
@@ -31,12 +31,13 @@ class EdukaToPipedrive(PipedriveService):
 
         breadcrumb = platform.locate_element(self.browser, By.ID, 'BreadCrumb')
         time.sleep(5)
-        self.browser.get(platform.locate_element(breadcrumb, By.CSS_SELECTOR, 'span > a').get_attribute('href'))
+        self.browser.get(platform.locate_element(breadcrumb, By.CSS_SELECTOR, 'span > a', 30).get_attribute('href'))
 
     def create_deals_from_eduka_to_pipedrive(self):
         print("Get list from")
         self.get_list_from_eduka("deals_from_eduka")
         for line in platform.get_printable(self.browser):
+            print("line ", line)
             school_branch_code = line[4]
             product_code = school_branch_code + "-" + line[5][2:4]
             product_id = self.get_product_id_from_school_code(product_code)
@@ -44,8 +45,11 @@ class EdukaToPipedrive(PipedriveService):
 
             print(product_code, product_id, pipeline_id)
 
-            if pipeline_id is None:
-                # TODO: Handle bad or not found pipeline id
+            if product_id is None:
+                _error = f"Product code <b>{product_code}</b> not found in Pipedrive "
+                if school_branch_code == "":
+                    _error = "Empty school branch code"
+                self.notifications["wrong_deals"].append((line[0], _error))
                 continue
 
             payload = {
@@ -65,6 +69,9 @@ class EdukaToPipedrive(PipedriveService):
                 self.get_pipedrive_param_name_for["email"]: line[8],
                 self.get_pipedrive_param_name_for["phone"]: line[9]
             }
+            # print("payload ", payload)
+            # print("wrong deals ", self.notifications["wrong_deals"])
+
             deal_id = self.create_deal(payload)
             print(f"Deal with ID {deal_id} created")
             self.add_product_to_a_deal(deal_id, product_id)
@@ -127,7 +134,7 @@ class EdukaToPipedrive(PipedriveService):
             self.create_deals_from_eduka_to_pipedrive()
             self.update_deals_in_pipedrive()
             if self.browser is not None:
-                self.browser.close()
+                self.browser.quit()
         except (Exception, EdukaException) as e:
             self.notifications["error"] = str(e)
             print(str(e))

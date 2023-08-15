@@ -106,8 +106,13 @@ class PipedriveService(ServiceManager):
     def get_deals_from_stage_by_pipeline(self, pipeline_id: int, stage_name: str):
         deals = []
         stage_id = self.get_admitted_stage_id(pipeline_id, stage_name)
+        print("stage id ", stage_id)
         if stage_id is not None:
-            deals.append(self.ask_pipedrive("deals", stage_id=stage_id))
+            deals_call = self.ask_pipedrive("deals", stage_id=stage_id)
+            if deals_call is not None:
+                deals.append(deals_call)
+
+        print("deals ", deals)
 
         return deals
 

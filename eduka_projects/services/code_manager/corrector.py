@@ -228,7 +228,7 @@ class Correct(CodeManager):
         serialize(self.id_fname_path, corrector_memoize)
 
     def code_categorizer(self):
-        category_map = {"male": "mst", "Garçon": "mst", "female": "fst", "Fille": "fst", "family": "fam"}
+        category_map = {"male": "mst", "garçon": "mst", "female": "fst", "fille": "fst", "family": "fam"}
 
         if self.school_caracteristics.__len__() == 0:
             print("Couldn't find the school. Exit the program")
@@ -293,6 +293,7 @@ class Correct(CodeManager):
                 # Handle students
                 if data[1].lower() not in category_map:
                     # Skip if student gender is blank
+                    print("gender", data[1].lower())
                     self.notifications["errors"]["no_gender_students"].append(
                         (self.base_url, data[2], data[-3],
                          self.cluster)

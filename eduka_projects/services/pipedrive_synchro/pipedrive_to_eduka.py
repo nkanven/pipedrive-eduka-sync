@@ -19,7 +19,7 @@ class PipedriveToEduka(PipedriveService):
         self.base_url = self.get_school_parameter(self.school, "base_url")
         self.student_id = None
         self.deal_id = None
-        self.notifications = {"imported_deals": [], "school": self.school, "error": ""}
+        self.notifications = {"imported_deals": [], "deal_status": [], "school": self.school, "error": ""}
 
         # TODO: Use training pipeline
 
@@ -42,18 +42,29 @@ class PipedriveToEduka(PipedriveService):
         if pipeline_ids.__len__() > 1:
             admitted_deals = self.get_deals_from_stage_by_pipelines(pipeline_ids, "admitted")
         else:
+            print("One pipedrive")
             admitted_deals = self.get_deals_from_stage_by_pipeline(list(pipeline_ids)[0], "admitted")
 
-        print(f"{admitted_deals.__len__()} admitted deals found")
+        print(f"{admitted_deals.__len__()} stages admitted deals found")
 
         if admitted_deals.__len__() == 0:
-            error = "No admitted deals found"
+            error = f"No admitted deals found"
             raise EdukaPipedriveNoDealsFoundException(self.service_name, self.school, error)
+
+        d_date = datetime.datetime.strptime("2023-08-01", '%Y-%m-%d')
 
         for admitted_deal in admitted_deals:
             for adm in admitted_deal:
-                if adm['status'].lower() not in ["won", "lost"]:
-                    not_won_losses.append(adm)
+                if datetime.datetime.strptime(adm['add_time'], '%Y-%m-%d %H:%M:%S') > d_date:
+                    print("Add time ", adm['add_time'], " id ", adm['id'], " status ", adm['status'].lower())
+                    if adm['status'].lower() not in ["won", "lost"]:
+                        not_won_losses.append(adm)
+                    else:
+                        self.notifications["deal_status"].append((adm['id'], f"Status is {adm['status']}"))
+
+        if self.notifications["deal_status"].__len__() == 0:
+            error = f"No admitted deal found since creation date {str(d_date)}"
+            raise EdukaPipedriveNoDealsFoundException(self.service_name, self.school, error)
 
         print(f"{not_won_losses.__len__()} not won losses deals found")
         if not_won_losses.__len__() == 0:
@@ -64,6 +75,8 @@ class PipedriveToEduka(PipedriveService):
             # Blank student Id field
             if not_won_loss[self.get_pipedrive_param_name_for["student id"]] is None:
                 blank_student_ids.append(not_won_loss)
+            else:
+                self.notifications["deal_status"].append((not_won_loss['id'], "Student ID is not null"))
 
         print(f"{blank_student_ids.__len__()} blank students id deals")
         if blank_student_ids.__len__() == 0:
@@ -74,8 +87,11 @@ class PipedriveToEduka(PipedriveService):
             if blank_student_id[self.get_pipedrive_param_name_for["gender"]] is not None \
                     and blank_student_id[self.get_pipedrive_param_name_for["gender"]] in self.pipedrive_gender.keys():
                 students_with_gender.append(blank_student_id)
+            else:
+                self.notifications["deal_status"].append((blank_student_id['id'], "Wrong gender or null"))
 
         print(f"{students_with_gender.__len__()} students with gender")
+        print(self.notifications["deal_status"])
         if students_with_gender.__len__() == 0:
             error = "No student with gender (G/F) found."
             raise EdukaPipedriveNoDealsFoundException(self.service_name, self.school, error)
@@ -84,6 +100,8 @@ class PipedriveToEduka(PipedriveService):
             if student_with_gender[self.get_pipedrive_param_name_for["email"]] is not None \
                     and student_with_gender[self.get_pipedrive_param_name_for["email"]].find("@") != -1:
                 parent_with_emails.append(student_with_gender)
+            else:
+                self.notifications["deal_status"].append((student_with_gender['id'], "Email is wrong or null"))
 
         print(f"{parent_with_emails.__len__()} parents with email deals")
         if parent_with_emails.__len__() == 0:
@@ -94,6 +112,8 @@ class PipedriveToEduka(PipedriveService):
         for parent_with_email in parent_with_emails:
             if parent_with_email['products_count'] == 1:
                 deals_with_products.append(parent_with_email)
+            else:
+                self.notifications["deal_status"].append((parent_with_email['id'], "Products count is not 1"))
 
         print(f"{deals_with_products.__len__()} deals with only 1 product")
         if deals_with_products.__len__() == 0:
@@ -104,6 +124,8 @@ class PipedriveToEduka(PipedriveService):
         for deals_with_product in deals_with_products:
             if deals_with_product[self.get_pipedrive_param_name_for["student first name"]] is not None:
                 self.clean_deals.append(deals_with_product)
+            else:
+                self.notifications["deal_status"].append((deals_with_product['id'], "Student first name is null"))
 
         print(f"{self.clean_deals.__len__()} clean deals left")
         if self.clean_deals.__len__() == 0:

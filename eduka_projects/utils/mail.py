@@ -332,9 +332,12 @@ class EnkoMail(Bootstrap):
     def pipedrive_to_eduka(self):
         imported_deals_thead = "<table class='enko_table'><tr><th class='enko_th'>Student ID</th><th " \
                                "class='enko_th'>Deal ID</th><th class='enko_th'>School</th></tr>"
+        failed_deals_thead = "<table class='enko_table'><tr><th class='enko_th'>School</th><th " \
+                             "class='enko_th'>Deal ID</th><th class='enko_th'>Synchro Skip Reason</th></tr>"
+
         message_title = "<p>Pipedrive to Eduka services summary</p>"
-        imported_deals = ""
-        body = "<p>No deal found for Pipedrive to Eduka syncho</p>"
+        imported_deals = failed_deals = ""
+        body = "<p>No deal that respects all the requirements was found for Pipedrive to Eduka syncho</p>"
         error = ""
         if self.datas is not None:
             for data in self.datas:
@@ -343,17 +346,27 @@ class EnkoMail(Bootstrap):
                     imported_deals += f"<tr><td>{imported_deal[0]}</td><td>{imported_deal[1]}</td><td>{data['school']}</td></tr>"
                 error += "<p>" + data["error"] + " " + data['school'] + "</p>"
 
+                for failed_deal in data['deal_status']:
+                    failed_deals += f"<tr><td>{data['school']}</td><td>{failed_deal[0]}</td><td>{failed_deal[1]}</td></tr>"
+
             if imported_deals != "":
                 body = "<div>The following deals have been successfuly synchronized from Pipedrive to Eduka</div>"
                 body += imported_deals_thead + imported_deals + "</table>"
+            if failed_deals != "":
+                body += "<p>List of deals that failed Pipedrive to Eduka Synchro</p>"
+                body += failed_deals_thead + failed_deals + "</table>"
+
         self.construct_message_body(message_title, body, "Pipedrive To Eduka ", error)
         self.send_mail()
 
     def eduka_to_pipedrive(self):
         created_deals_thead = "<table class='enko_table'><tr><th class='enko_th'>Deal ID</th><th " \
-                               "class='enko_th'>Student ID</th><th class='enko_th'>School</th></tr>"
+                              "class='enko_th'>Student ID</th><th class='enko_th'>School</th></tr>"
+        wrong_deals_thead = "<table class='enko_table'><tr><th class='enko_th'>School</th><th " \
+                              "class='enko_th'>Student ID</th><th class='enko_th'>Reason</th></tr>"
+
         message_title = "<p>Eduka to Pipedrive service summary</p>"
-        created_deals = error = ""
+        created_deals = wrong_deals = error = ""
         body = "<p>No deal found for Eduka to Pipedrive syncho</p>"
         if self.datas is not None:
             for data in self.datas:
@@ -361,9 +374,16 @@ class EnkoMail(Bootstrap):
                 for created_deal in data['deals']:
                     created_deals += f"<tr><td>{created_deal[0]}</td><td>{created_deal[1]}</td><td>{data['school']}</td></tr>"
                 error = data["error"]
+                for wrong_deal in data['wrong_deals']:
+                    wrong_deals += f"<tr><td>{data['school']}</td><td>{wrong_deal[0]}</td><td>{wrong_deal[1]}</td></tr>"
+
             if created_deals != "":
                 body = "<div>The following deals have been successfuly synchronized from Pipedrive to Eduka</div>"
                 body += created_deals_thead + created_deals + "</table>"
+            if wrong_deals != "":
+                body += "<br><br><div>The following deals was not synchronized</div>"
+                body += wrong_deals_thead + wrong_deals + "</table>"
+
         print("Email: ", message_title, body, error)
         self.construct_message_body(message_title, body, "Eduka To Pipedrive", error)
         self.send_mail()

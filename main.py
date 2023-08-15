@@ -42,7 +42,7 @@ def launch(command):
         os.remove(weborder(command))
     try:
         # schools = bts.parameters['enko_education']['schools'].keys()
-        schools: list = ['enko_cameroon']
+        schools: list = ['enko_waca']
         #
         """
         Main dispatcher thread pool executor
