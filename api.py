@@ -6,10 +6,9 @@ This tunnel allowed anyone with the right api key to execute services from a web
 
 import os
 import sys
+from threading import Thread
 
 sys.path.append('.')
-
-print(sys.path)
 
 import subprocess
 from flask import Flask, request, send_file
@@ -116,25 +115,22 @@ def sub_service(module, service):
     if module in _service_dirs:
         # os.system("source venv/bin/activate && python main.py -s " + service_name)
         module_dir_path = os.path.join(service_dirs, module)
-        print(os.listdir(module_dir_path))
 
         if py_service in os.listdir(module_dir_path):
-            python_venv = os.environ.get("project_base_dir") + "venv/bin/activate"
-            cmd = f"cd {os.environ.get('project_base_dir')} &&"
-            cmd += f". {python_venv} && python3 main.py -s {service}"
-            try:
-                child = subprocess.check_output([cmd], shell=True)
-            except subprocess.CalledProcessError as e:
-                return [str(e)], 500
+            # python_venv = os.environ.get("project_base_dir") + "venv/bin/activate"
+            # cmd = f"cd {os.environ.get('project_base_dir')} &&"
+            # cmd += f". {python_venv} && python3 main.py -s {service}"
+            # def run_process():
+            #     subprocess.Popen([cmd], shell=True, close_fds=None)
+            # Thread(target=run_process()).start()
+
+            order_path = os.path.join("eduka_projects/weborders", service)
+            with open(order_path, "w") as f:
+                f.write(service)
 
             notif[201]['msg'] = notif[201]['msg'].replace(
                 "sub_serv",
                 " ".join(service.split("_")).capitalize()).replace("service_name", module)
-
-            # Waiting for process to finish
-            # streamdata = child.communicate()[0]
-            # rc = child.returncode
-            # print("OK OK", rc)
 
             return notif[201], 201
 
