@@ -17,7 +17,7 @@ For each new microservice, the developer should:
 
 For the code base stability and integrity to prevail, developer need to respect this minimal recommendations
 """
-
+import os
 # TODO: Convert KeyError in mail class and check api and all the code base
 
 import time
@@ -34,11 +34,15 @@ from eduka_projects.bootstrap import Bootstrap
 start_time = time.time()
 bts = Bootstrap()
 
+weborder = lambda service_name: os.path.join("eduka_projects/weborders", service_name)
+
 
 def launch(command):
+    if os.path.exists(weborder(command)):
+        os.remove(weborder(command))
     try:
-        schools = bts.parameters['enko_education']['schools'].keys()
-        # schools: list = ['enko_mozambique']
+        # schools = bts.parameters['enko_education']['schools'].keys()
+        schools: list = ['enko_waca']
         #
         """
         Main dispatcher thread pool executor
@@ -73,9 +77,9 @@ def launch(command):
                 emails.append(email.strip(" "))
 
         # Add extra emails for login statistics
-        if command == "login":
-            for email in bts.parameters["global"]["login_stat_recipients"].split(","):
-                emails.append(email.strip(" "))
+        # if command == "login":
+        #     for email in bts.parameters["global"]["login_stat_recipients"].split(","):
+        #         emails.append(email.strip(" "))
 
         # Only keep unique emails
         unique_emails = set(emails)
@@ -94,6 +98,7 @@ def launch(command):
         time_format = str(datetime.timedelta(seconds=total_time))
         print(f"Program took {time_format} to run")
 
+
 if __name__ == "__main__":
     # Read command arguments
     argv = sys.argv[1:]
@@ -103,6 +108,12 @@ if __name__ == "__main__":
     for name, value in options:
         print(name, value)
         if name.strip() == '-s' or name.strip() == '--service':
-            cmd = value
+            if value == "weblaunch":
+                try:
+                    cmd = os.listdir("eduka_projects/weborders")[0]
+                except IndexError:
+                    exit()
+            else:
+                cmd = value
 
     launch(cmd)

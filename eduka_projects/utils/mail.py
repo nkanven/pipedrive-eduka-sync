@@ -152,7 +152,7 @@ class EnkoMail(Bootstrap):
 
     def backup_automation(self):
         """
-        Mail summarized for single message using multiple threads
+        Backup automation mail logic
         """
 
         if self.datas is not None:
@@ -184,6 +184,11 @@ class EnkoMail(Bootstrap):
                 self.error_logger.info(f"{self.__service_name} key not found in bootstrap.service.get")
 
     def corrector(self):
+        """
+        Corrector of the Code Manager service mail logic
+        @return: void
+        """
+
         stats = sh_stats = nh_stats = families_blank_code = no_gender_students = ""
         students_blank_code = "<table class='enko_table'><tr><th class='enko_th'>Platform</th><th " \
                               "class='enko_th'>Student name</th><th class='enko_th'>Guardian " \
@@ -273,6 +278,10 @@ class EnkoMail(Bootstrap):
                 self.error_logger.info(f"{self.__service_name} key not found in bootstrap.service.get")
 
     def login_stats(self):
+        """
+        Login statistics mail logic
+        @return: void
+        """
         if self.datas is not None:
             excel_heads = ['', '']
             excel_contents = ()
@@ -330,30 +339,51 @@ class EnkoMail(Bootstrap):
         pass
 
     def pipedrive_to_eduka(self):
+        """
+        Pipedrive to Eduka mail logic
+        @return: void
+        """
         imported_deals_thead = "<table class='enko_table'><tr><th class='enko_th'>Student ID</th><th " \
                                "class='enko_th'>Deal ID</th><th class='enko_th'>School</th></tr>"
+        failed_deals_thead = "<table class='enko_table'><tr><th class='enko_th'>School</th><th " \
+                             "class='enko_th'>Deal ID</th><th class='enko_th'>Synchro Skip Reason</th></tr>"
+
         message_title = "<p>Pipedrive to Eduka services summary</p>"
-        imported_deals = ""
-        body = "<p>No deal found for Pipedrive to Eduka syncho</p>"
+        imported_deals = failed_deals = ""
+        body = "<p>No deal that respects all the requirements was found for Pipedrive to Eduka syncho</p>"
         error = ""
         if self.datas is not None:
             for data in self.datas:
                 print(data)
                 for imported_deal in data['imported_deals']:
                     imported_deals += f"<tr><td>{imported_deal[0]}</td><td>{imported_deal[1]}</td><td>{data['school']}</td></tr>"
-                error = data["error"]
+                error += "<p>" + data["error"] + " " + data['school'] + "</p>"
+
+                for failed_deal in data['deal_status']:
+                    failed_deals += f"<tr><td>{data['school']}</td><td>{failed_deal[0]}</td><td>{failed_deal[1]}</td></tr>"
 
             if imported_deals != "":
                 body = "<div>The following deals have been successfuly synchronized from Pipedrive to Eduka</div>"
                 body += imported_deals_thead + imported_deals + "</table>"
+            if failed_deals != "":
+                body += "<p>List of deals that failed Pipedrive to Eduka Synchro</p>"
+                body += failed_deals_thead + failed_deals + "</table>"
+
         self.construct_message_body(message_title, body, "Pipedrive To Eduka ", error)
         self.send_mail()
 
     def eduka_to_pipedrive(self):
+        """
+        Eduka to Pipedrive mail logic
+        @return:
+        """
         created_deals_thead = "<table class='enko_table'><tr><th class='enko_th'>Deal ID</th><th " \
-                               "class='enko_th'>Student ID</th><th class='enko_th'>School</th></tr>"
+                              "class='enko_th'>Student ID</th><th class='enko_th'>School</th></tr>"
+        wrong_deals_thead = "<table class='enko_table'><tr><th class='enko_th'>School</th><th " \
+                              "class='enko_th'>Student ID</th><th class='enko_th'>Reason</th></tr>"
+
         message_title = "<p>Eduka to Pipedrive service summary</p>"
-        created_deals = error = ""
+        created_deals = wrong_deals = error = ""
         body = "<p>No deal found for Eduka to Pipedrive syncho</p>"
         if self.datas is not None:
             for data in self.datas:
@@ -361,13 +391,25 @@ class EnkoMail(Bootstrap):
                 for created_deal in data['deals']:
                     created_deals += f"<tr><td>{created_deal[0]}</td><td>{created_deal[1]}</td><td>{data['school']}</td></tr>"
                 error = data["error"]
+                for wrong_deal in data['wrong_deals']:
+                    wrong_deals += f"<tr><td>{data['school']}</td><td>{wrong_deal[0]}</td><td>{wrong_deal[1]}</td></tr>"
+
             if created_deals != "":
                 body = "<div>The following deals have been successfuly synchronized from Pipedrive to Eduka</div>"
                 body += created_deals_thead + created_deals + "</table>"
+            if wrong_deals != "":
+                body += "<br><br><div>The following deals was not synchronized</div>"
+                body += wrong_deals_thead + wrong_deals + "</table>"
+
+        print("Email: ", message_title, body, error)
         self.construct_message_body(message_title, body, "Eduka To Pipedrive", error)
         self.send_mail()
 
     def mail_builder_selector(self):
+        """
+        Eduka project mail dispatcher
+        @return: void
+        """
         # Add service mail builder methods here
         m_select = {
             "backup_automation": self.backup_automation,

@@ -13,6 +13,9 @@ from eduka_projects.services import ServiceManager
 
 
 class Statistics(ServiceManager):
+    """
+    Statistics main class inherit ServiceManager.
+    """
     def __init__(self):
         super().__init__()
         self.service_name = "Statistics Service"

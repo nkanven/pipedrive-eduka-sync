@@ -1,5 +1,6 @@
 """
 Eduka Projects package initialization file.
+The project global methods and variables will be initialize here
 """
 
 import os
@@ -20,6 +21,7 @@ load_dotenv()
 
 class EdukaProjects:
     """
+    Eduka Projects Supra class inherited by all the project classes
     Define global scope project parameters and methods used in the whole project
     """
     parameters: dict
@@ -92,7 +94,10 @@ class EdukaProjects:
 
     @staticmethod
     def get_session():
-        """Create an uniaue session for each thread executed"""
+        """
+        Create an uniaue session for each thread executed
+        @return:
+        """
         thread_local = threading.local()
         if not hasattr(thread_local, "session"):
             thread_local.session = requests.Session()
@@ -102,7 +107,11 @@ class EdukaProjects:
     def verbose(self, text):
         print(text)
 
-    def get_ip_address(self):
+    def get_ip_address(self) -> str:
+        """
+        func to get system public IP
+        @return: str api
+        """
         url = 'https://api.ipify.org'
         response = requests.get(url)
         ip_address = response.text

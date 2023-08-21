@@ -90,14 +90,14 @@ def get_printable(browser) -> list:
 
     # Loop through table ignoring thead row
     category = "fam"
-    if table_rows[0].find_elements(By.TAG_NAME, 'th')[1].get_attribute('textContent').lower().strip(' ') == "gender":
+    if table_rows[0].find_elements(By.TAG_NAME, 'th')[1].get_attribute('textContent').lower().strip(' ') in ["gender", "sexe"]:
         category = "student"
     for table_row in table_rows[1:]:
         columns = table_row.find_elements(By.TAG_NAME, 'td')
         user_data = ()
 
         for column in columns:
-            # print(column.get_attribute('textContent'))
+            print(column.get_attribute('textContent'))
             user_data += (column.get_attribute('textContent'),)
         user_data += (category,)
         columns_data.append(user_data)
