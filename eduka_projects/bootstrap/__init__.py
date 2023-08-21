@@ -13,6 +13,9 @@ load_dotenv()
 
 
 class Bootstrap(EdukaProjects):
+    """
+    Bootstrap main class inherites Eduka Projects supra class
+    """
     pipedrive_gender: dict[str, str]
     # message_text is the first part of the mail, like an intro and message_desc is the description
     message_text = message_desc = ""
@@ -77,6 +80,13 @@ class Bootstrap(EdukaProjects):
         return good_codes
 
     def create_xlsx(self, file_name, heads, contents):
+        """
+        func to create xlsx file used to import data to Eduka via API
+        @param file_name: file name
+        @param heads: table heads
+        @param contents: excel content
+        @return: void
+        """
         # Create a workbook and add a worksheet.
         workbook = xlsxwriter.Workbook(f'{file_name}.xlsx')
         worksheet = workbook.add_worksheet()

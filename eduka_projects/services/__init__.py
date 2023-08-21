@@ -1,3 +1,7 @@
+"""
+**Service Manager** main class in which global methods and variables needed by all the services are instantiated.
+"""
+
 import os
 from eduka_projects.bootstrap import Bootstrap
 from eduka_projects.utils.rialization import deserialize, serialize
@@ -5,6 +9,9 @@ from eduka_projects.bootstrap import platform
 
 
 class ServiceManager(Bootstrap):
+    """
+    Service Manager main class herited Bootstrap parent class
+    """
     def __init__(self):
         print("Starting Service Manager (SM)...")
         super().__init__()
@@ -36,11 +43,18 @@ class ServiceManager(Bootstrap):
             'password': self.parameters['enko_education']['schools'][school]['login']['password']
         }
 
-    def get_guardians(self, abbr, base_url, school):
+    def get_guardians(self, abbr, base_url, school) -> list:
+        """
+        Get all the gardians from Eduka plaform
+        @param abbr: school abbraviation
+        @param base_url: school base url
+        @param school: school name
+        @return: list of guardians
+        """
 
         gardians_list_urls = self.get_good_codes_from_excel(self.parameters["global"]["eduka_login_stats"])
         guardian_memo_file = "gardians" + abbr + ".ep"
-        columns_data = None
+        columns_data = []
 
         gardians_memo_path = os.path.join(self.autobackup_memoize, guardian_memo_file)
 

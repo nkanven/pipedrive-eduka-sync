@@ -118,7 +118,10 @@ class Correct(CodeManager):
         return result
 
     def get_wrong_ids(self):
-
+        """
+        Get all the wrong IDs to correct
+        @return: void
+        """
         urls = [
             self.wrong_student_list_uri,
             self.wrong_family_list_uri
@@ -159,6 +162,15 @@ class Correct(CodeManager):
         print(self.columns_data, self.columns_data.__len__())
 
     def db_manipulations(self, old_code, c_platform, category, acad_year):
+        """
+        func to get good code and match with corresponding bad code for update in Eduka platform. This func calls
+        the code_replacer func.
+        @param old_code: bad code to replace
+        @param c_platform: school url
+        @param category: user cateory (family, male or female)
+        @param acad_year: academic year
+        @return: void
+        """
         # Get the oldest student id
         print("DB Manipulations......")
         try:
@@ -228,6 +240,11 @@ class Correct(CodeManager):
         serialize(self.id_fname_path, corrector_memoize)
 
     def code_categorizer(self):
+        """
+        func to categorize each code for it to be associated with the corresponding good code. A lock is placed to no
+        allow a school access to the same code more than once on runtime. This func calls the db_manipulations func
+        @return: void
+        """
         category_map = {"male": "mst", "garçon": "mst", "female": "fst", "fille": "fst", "family": "fam"}
 
         if self.school_caracteristics.__len__() == 0:
@@ -325,10 +342,16 @@ class Correct(CodeManager):
                     break
 
     def code_replacer(self, datas, clean_id) -> bool:
+        """
+        func to replace bad code with good one on Eduka platform. This func calls fill_code_for_replacement func
+        @param datas: student data is a string and family data is a list
+        @param clean_id: good id
+        @return: bool if update went well True is return else False
+        """
         result = False
         print("replace bad code on dashboard")
         try:
-            selector = 'button[data-type = "person"]'
+            selector = 'button[data-type = "personlist"]'
             code_block = self.code_blocks["person"]
 
             if type(datas) is str and not self.code_is_stored(datas, self._old_code):
@@ -367,6 +390,12 @@ class Correct(CodeManager):
             return result
 
     def code_is_stored(self, code, o_codes) -> bool:
+        """
+        func to check if code is already stored on runtime. It's a second security layer to prevent multiple usage o same code.
+        @param code: good code
+        @param o_codes: old code
+        @return: bool True is code found and False if not
+        """
         # Skip if code has been already replaced
         result = False
         if code in o_codes:
@@ -375,7 +404,15 @@ class Correct(CodeManager):
 
         return result
 
-    def fill_code_for_replacement(self, data: str, block: webbrowser, selector: str):
+    def fill_code_for_replacement(self, data: str, block: webbrowser, selector: str) -> bool:
+        """
+        func to browse Eduka code update page. This func place the code and bad code in the proper box on Eduka
+        for the update. The func calls submit_updates for submission.
+        @param data: user data for update
+        @param block: browser instance
+        @param selector: update box selector
+        @return: bool will response True if no incident or False.
+        """
         result = False
         try:
             block.clear()
@@ -406,6 +443,10 @@ class Correct(CodeManager):
             return result
 
     def submit_updates(self):
+        """
+        func to submit bad code / good codes for update
+        @return: void
+        """
         time.sleep(5)
         while True:
             try:

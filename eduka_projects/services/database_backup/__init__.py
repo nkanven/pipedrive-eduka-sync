@@ -13,6 +13,9 @@ from eduka_projects.services import ServiceManager
 
 
 class DatabaseBackup(ServiceManager):
+    """
+    Database Backup service main class inherites Service Manager class
+    """
     def __init__(self):
         super().__init__()
         self.service_name = "Database Backup Service"

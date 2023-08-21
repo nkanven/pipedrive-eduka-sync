@@ -1,4 +1,14 @@
+"""
+**Eduka Custom Exceptions**
+
+Raise specific exception for Eduka errors using one or more of these exceptions.
+Exception class name are self explanatory
+"""
+
 class EdukaException(Exception):
+    """
+    General exception
+    """
     def __init__(self, school, error):
         self.school = school
         self.error = error

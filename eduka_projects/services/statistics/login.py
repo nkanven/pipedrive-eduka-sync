@@ -11,7 +11,9 @@ from selenium.common.exceptions import ElementClickInterceptedException, Timeout
 
 
 class Login(Statistics):
-
+    """
+    Login is the core of the login statistics service.
+    """
     def __init__(self, school):
         super().__init__()
         self.school = school
@@ -33,6 +35,10 @@ class Login(Statistics):
         }
 
     def _get_guardians(self):
+        """
+        Private method for collecting guardians information in Eduka platform
+        @return: void
+        """
         user_data = []
 
         def get_user_datas(user_rows):

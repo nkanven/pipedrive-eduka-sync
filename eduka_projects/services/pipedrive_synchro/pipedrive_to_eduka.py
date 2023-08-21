@@ -11,6 +11,9 @@ from eduka_projects.utils.eduka_exceptions import EdukaPipedriveNoDealsFoundExce
 
 
 class PipedriveToEduka(PipedriveService):
+    """
+    Pipedrive to Eduka service class inherates PipedriveService
+    """
     def __init__(self, school):
         super().__init__()
         self.school = school
@@ -24,6 +27,10 @@ class PipedriveToEduka(PipedriveService):
         # TODO: Use training pipeline
 
     def check_conditions(self):
+        """
+        Pipedrive to Eduka Service preprocessing. Check if all conditions for a valid deal are met
+        @return: void
+        """
         pipeline_ids = self.get_school_parameter(self.school)["pipedrive_pipelines"].keys()
         if pipeline_ids.__len__() == 0:
             error = "No pipeline found."
@@ -133,6 +140,10 @@ class PipedriveToEduka(PipedriveService):
             raise EdukaPipedriveNoDealsFoundException(self.service_name, self.school, error)
 
     def parse_data(self):
+        """
+        Parse data preprocessed for deal creation in Pipedrive
+        @return:
+        """
         print("Total deals", self.clean_deals.__len__())
         print(self.clean_deals)
         # i = 1000 #TODO: Place to handle just a few number of deals. To be removed
@@ -187,6 +198,10 @@ class PipedriveToEduka(PipedriveService):
         self.notifications["imported_deals"] = imported_deals
 
     def import_to_eduka(self) -> bool:
+        """
+        Import student data stored in an excel file to Eduka via API call through the IMPORTDATA endpoint
+        @return: bool success or failure
+        """
         print("Import to Eduka")
         endpoint = self.base_url + "api.php?K=" + self.get_school_parameter(self.school, "api_key") \
                    + "&A=IMPORTDATA&PROFILE=" + str(self.get_school_parameter(self.school,

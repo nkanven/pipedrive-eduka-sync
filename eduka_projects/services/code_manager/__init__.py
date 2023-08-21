@@ -27,11 +27,21 @@ import pandas as pd
 
 
 class CodeManager(ServiceManager):
+    """
+    Code Manager service main class inherites Service Manager class
+    """
     def __init__(self):
         super().__init__()
         self.service_name = "Code Manager Service"
 
     def build_academic_year(self, cluster: str, category: str, __year: str) -> str:
+        """
+        Func to build academic year given certain parameters
+        @param cluster: school cluster
+        @param category: student category (sex or gender)
+        @param __year: academic year given
+        @return: str proper academic year
+        """
         if cluster == "nh" and category in ("mst", "fst"):
             acad_year = "20" + __year + "/20" + str(int(__year) + 1)
         else:  # (cluster.lower() == "sh" and category in ("mst", "fst")) or category == "fam")
@@ -39,6 +49,10 @@ class CodeManager(ServiceManager):
         return acad_year
 
     def db_init(self):
+        """
+        Database initialization. Create databse if not exists
+        @return: void
+        """
         try:
             with connector.connect(**self.db_config) as dbase:
                 dbase.cursor().execute('CREATE DATABASE IF NOT EXISTS enko_db')

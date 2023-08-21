@@ -1,3 +1,8 @@
+"""
+Eduka project Dispatcher logic.
+Here, the script get the route to follow in other to launch the requested service.
+"""
+
 import os
 
 from eduka_projects.bootstrap import EdukaProjects
@@ -9,6 +14,9 @@ from eduka_projects.services.statistics.login import Login
 from eduka_projects.services.pipedrive_synchro.eduka_to_pipedrive import EdukaToPipedrive
 from eduka_projects.services.pipedrive_synchro.pipedrive_to_eduka import PipedriveToEduka
 
+"""
+Service loader
+"""
 loader = {
     "corrector": Correct,
     "db_populate": Populate,
@@ -20,6 +28,12 @@ loader = {
 
 
 def dispatcher(service_name: str, school: str):
+    """
+    Dispatcher logic
+    @param service_name: the name of the service to execute
+    @param school: the school name the service should handle
+    @return: void
+    """
     edkp = EdukaProjects()
     service = None
     services_dirs_path = edkp.base_dir + os.sep + "services"

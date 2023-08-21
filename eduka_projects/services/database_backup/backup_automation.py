@@ -20,7 +20,9 @@ from bs4 import BeautifulSoup
 
 
 class Backup(DatabaseBackup):
-
+    """
+    Backup service class
+    """
     def __init__(self, school):
         super().__init__()
         self.school = school
@@ -42,7 +44,11 @@ class Backup(DatabaseBackup):
         self.notifications = {}
 
     def create_backup(self):
-
+        """
+        func to create backup of Eduka database. Database will be backed up through API by default. If failured, browser
+        backup will initiate.
+        @return: void
+        """
         # Create a backup through API if not already done for this task
         recent_memoize_file = datetime.now().strftime("%Y%m%d") + self.abbr + ".ep"
         create_memo = False
@@ -103,6 +109,10 @@ class Backup(DatabaseBackup):
             print(self.nb)
 
     def delete_backups(self):
+        """
+        func to delete Old backups
+        @return: void
+        """
         # List available backups and delete old ones if any
         try:
             browser = platform.login(self.backup_url, self.logins(self.school))

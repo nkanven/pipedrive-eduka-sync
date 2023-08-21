@@ -152,7 +152,7 @@ class EnkoMail(Bootstrap):
 
     def backup_automation(self):
         """
-        Mail summarized for single message using multiple threads
+        Backup automation mail logic
         """
 
         if self.datas is not None:
@@ -184,6 +184,11 @@ class EnkoMail(Bootstrap):
                 self.error_logger.info(f"{self.__service_name} key not found in bootstrap.service.get")
 
     def corrector(self):
+        """
+        Corrector of the Code Manager service mail logic
+        @return: void
+        """
+
         stats = sh_stats = nh_stats = families_blank_code = no_gender_students = ""
         students_blank_code = "<table class='enko_table'><tr><th class='enko_th'>Platform</th><th " \
                               "class='enko_th'>Student name</th><th class='enko_th'>Guardian " \
@@ -273,6 +278,10 @@ class EnkoMail(Bootstrap):
                 self.error_logger.info(f"{self.__service_name} key not found in bootstrap.service.get")
 
     def login_stats(self):
+        """
+        Login statistics mail logic
+        @return: void
+        """
         if self.datas is not None:
             excel_heads = ['', '']
             excel_contents = ()
@@ -330,6 +339,10 @@ class EnkoMail(Bootstrap):
         pass
 
     def pipedrive_to_eduka(self):
+        """
+        Pipedrive to Eduka mail logic
+        @return: void
+        """
         imported_deals_thead = "<table class='enko_table'><tr><th class='enko_th'>Student ID</th><th " \
                                "class='enko_th'>Deal ID</th><th class='enko_th'>School</th></tr>"
         failed_deals_thead = "<table class='enko_table'><tr><th class='enko_th'>School</th><th " \
@@ -360,6 +373,10 @@ class EnkoMail(Bootstrap):
         self.send_mail()
 
     def eduka_to_pipedrive(self):
+        """
+        Eduka to Pipedrive mail logic
+        @return:
+        """
         created_deals_thead = "<table class='enko_table'><tr><th class='enko_th'>Deal ID</th><th " \
                               "class='enko_th'>Student ID</th><th class='enko_th'>School</th></tr>"
         wrong_deals_thead = "<table class='enko_table'><tr><th class='enko_th'>School</th><th " \
@@ -389,6 +406,10 @@ class EnkoMail(Bootstrap):
         self.send_mail()
 
     def mail_builder_selector(self):
+        """
+        Eduka project mail dispatcher
+        @return: void
+        """
         # Add service mail builder methods here
         m_select = {
             "backup_automation": self.backup_automation,

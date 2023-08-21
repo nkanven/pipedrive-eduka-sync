@@ -23,6 +23,11 @@ class EdukaToPipedrive(PipedriveService):
         self.deal_not_found = ""
 
     def get_list_from_eduka(self, list_url):
+        """
+        Get a list from Eduka
+        @param list_url: list url
+        @return: void
+        """
         url = self.base_url + self.get_school_parameter(self.school, list_url)
         if self.browser is None:
             self.browser = platform.login(url, self.logins(self.school))
@@ -34,6 +39,13 @@ class EdukaToPipedrive(PipedriveService):
         self.browser.get(platform.locate_element(breadcrumb, By.CSS_SELECTOR, 'span > a', 30).get_attribute('href'))
 
     def create_deals_from_eduka_to_pipedrive(self):
+        """
+        func to Create deals from Eduka to pipedrive.
+        Get the list of deal from Eduka, from the school branch code, build the product code and find if exists on
+        Pipedrive. If not log error and continue
+        Else create deal, add the product, update deal with student ID then log for mail
+        @return: void
+        """
         print("Get list from")
         self.get_list_from_eduka("deals_from_eduka")
         for line in platform.get_printable(self.browser):
@@ -85,6 +97,13 @@ class EdukaToPipedrive(PipedriveService):
         self.notifications["deals"] = self.deal_created
 
     def update_deals_in_pipedrive(self):
+        """
+        func to Update deals in Pipedrive
+        Get deals to update from a list on Eduka platform. Get deal ID and find if exists on Pipedrive. If not, log reason
+        Else update product code build from school branch code, update deal student ID
+        update deal on Eduka to -WON on update_deal_on_eduka call
+        @return: void
+        """
         self.get_list_from_eduka("deals_to_update_in_pipedrive")
 
         for line in platform.get_printable(self.browser):
@@ -113,6 +132,12 @@ class EdukaToPipedrive(PipedriveService):
             self.deal_not_found = f"<p>Deal ID not found for update in Pipedrive:</p> {self.deal_not_found}"
 
     def update_deal_on_eduka(self, user_id, value):
+        """
+        func to update deal on Eduka by making an API call to Eduka SETDATA endpoints
+        @param user_id: student id to update
+        @param value: updated deal value
+        @return: void
+        """
         print("Deal value to update", value)
         set_data_url = f"{self.base_url}api.php?K={self.get_school_parameter(self.school, 'api_key')}"
         set_data_url += f"&A=SETDATA&PERSON={user_id}&PROPERTY=dealid&VALUE={value}"

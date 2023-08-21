@@ -1,3 +1,7 @@
+"""
+The rialization contains all the methods needed to store python objets for memoization and further usage
+"""
+
 import datetime
 import os
 import pickle
@@ -22,11 +26,11 @@ def serialize(file_path, data) -> bool:
         return result
 
 
-def deserialize(dir_name, fname):
+def deserialize(dir_name, fname) -> list:
     """
     Deserialize a store object
     :param dir_name: (str) the name of the directory in which file is stored
-    :param category: (str) the type of contained in data. It can be mail, memoize, etc.
+    :param fname: (str) name of the file to desirialize.
     :return: (list) function return a list of python object
     """
     data = []
@@ -52,6 +56,11 @@ def delete_serialized(folder_path, file_name):
 
 
 def clean_memoize_folder(folder_path):
+    """
+    Delete old serialized file
+    @param folder_path: self explaining
+    @return: void
+    """
     for _file in os.listdir(folder_path):
         c_time = os.path.getctime(folder_path)
         dt_c = datetime.datetime.fromtimestamp(c_time)
